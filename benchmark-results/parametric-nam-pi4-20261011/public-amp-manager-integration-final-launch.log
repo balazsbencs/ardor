@@ -1,0 +1,4 @@
+started=public-amp-manager-integration-final pid=16916 frames=128 duration=90
+completed=public-amp-manager-integration-final
+callbacks=35243 over=0 over%=0.00 gaps=0 max=1.82ms avg=0.38ms recent_avg=0.37ms budget=2.67ms buffer_free=86.29% bypassed=0 worker_ready=1 worker_over=0 worker_underflow=0 worker_submit_miss=0 nonfinite=0 block_mismatch=0
+0

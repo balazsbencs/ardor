@@ -501,8 +501,8 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       error = "nested split blocks are not supported in a routing lane: " + block.id;
       return false;
     }
-    if (block.type == "nam") {
-      if (loadedNam) {
+    if (block.type == "nam" || block.type == "namPedal") {
+      if (loadedNam && block.type == "nam") {
         error = "multiple NAM blocks are not supported in one routing lane: " + block.id;
         return false;
       }
@@ -516,11 +516,12 @@ bool prepareLaneChain(RuntimeChain& chain, const std::vector<ChainBlockPlan>& bl
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       if (!chain.addNam(resolvedPath, options.sampleRate,
                         static_cast<int>(options.blockSize), block.id,
-                        slimmableSize, inputMode, options.inputReferenceLevelDbU)) {
+                        slimmableSize, inputMode, options.inputReferenceLevelDbU,
+                        block.params.value("modelParameters", nlohmann::json::object()))) {
         error = "failed to load dual rig NAM: " + block.assetPath.string();
         return false;
       }
-      loadedNam = true;
+      loadedNam = loadedNam || block.type == "nam";
       stereoEstablished = false;
       chain.setBlockEnabled(block.id, block.enabled);
       continue;
@@ -731,8 +732,8 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
       }
       continue;
     }
-    if (block.type == "nam") {
-      if (loadedNam) {
+    if (block.type == "nam" || block.type == "namPedal") {
+      if (loadedNam && block.type == "nam") {
         error = "multiple NAM blocks are not supported: " + block.id;
         return false;
       }
@@ -745,7 +746,7 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
         return false;
       }
       if (!validateAssetPath(block.assetPath, options, error)) return false;
-      loadedNam = true;
+      loadedNam = loadedNam || block.type == "nam";
       stereoEstablished = false;
       continue;
     }
@@ -848,8 +849,8 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       }
       continue;
     }
-    if (block.type == "nam") {
-      if (loadedNam) {
+    if (block.type == "nam" || block.type == "namPedal") {
+      if (loadedNam && block.type == "nam") {
         error = "multiple NAM blocks are not supported: " + block.id;
         return false;
       }
@@ -865,11 +866,12 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       if (!validateAssetPath(block.assetPath, options, error, &resolvedPath)) return false;
       if (!engine.loadNam(resolvedPath, options.sampleRate, static_cast<int>(options.blockSize),
                           block.id, slimmableSize, inputMode,
-                          options.inputReferenceLevelDbU)) {
+                          options.inputReferenceLevelDbU,
+                          block.params.value("modelParameters", nlohmann::json::object()))) {
         error = "failed to load NAM: " + block.assetPath.string();
         return false;
       }
-      loadedNam = true;
+      loadedNam = loadedNam || block.type == "nam";
       stereoEstablished = false;
       engine.setBlockEnabled(block.id, block.enabled);
       continue;

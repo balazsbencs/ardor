@@ -1186,7 +1186,8 @@ int main(int argc, char** argv)
             // this one is the right owner. Distortion must stay on this live
             // path: promoting the first touch to a structural preview blocks
             // the rest of a slider drag while that preview is pending.
-            if (liveEngine->setConsoleEqParameter(blockId, key, value)
+            if ((key.starts_with("model:") && liveEngine->setNamParameter(blockId, key.substr(6), value))
+                || liveEngine->setConsoleEqParameter(blockId, key, value)
                 || liveEngine->setTransientShaperParameter(blockId, key, value)
                 || liveEngine->setDistortionParameter(blockId, key, value)
                 || liveEngine->setStereoWidenerParameter(blockId, key, value)

@@ -1,0 +1,8 @@
+Ardor pedal performance probe
+  pid:        16519
+  command:    /tmp/ardor-hw-20261011/bin/ardor-hw-pedal --realtime --bank 0 --slot 0 --data-root /tmp/ardor-hw-20261011/data --sample-rate 48000 --block-size 128 --capture-device -1 --playback-device -1 --audio-cpu 2 --parallel-rigs --rig-worker-cpu 3 --wdw-dry-worker-cpu 0 --wdw-wet-worker-cpu 1 --telemetry-file /tmp/ardor-hw-20261011/results/soak-clone-amp-cab/telemetry.txt --clip-debug --ui 
+  sample:     600s (1s interval)
+  temperature at start: 52.1 C
+  CPU clock at start:   1500 MHz
+
+Sampling............................................................................................

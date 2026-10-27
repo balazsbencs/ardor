@@ -1,0 +1,22 @@
+ardor-hw-pedal (15962, #threads: 2)
+-------------------------------------------------------------------
+se.exec_start                                :      40893989.340961
+se.vruntime                                  :            89.477352
+se.sum_exec_runtime                          :           780.964937
+se.nr_migrations                             :                    1
+nr_switches                                  :                  917
+nr_voluntary_switches                        :                  664
+nr_involuntary_switches                      :                  253
+se.load.weight                               :              1048576
+se.avg.load_sum                              :                  971
+se.avg.runnable_sum                          :               999009
+se.avg.util_sum                              :               995895
+se.avg.load_avg                              :                   20
+se.avg.runnable_avg                          :                   20
+se.avg.util_avg                              :                   20
+se.avg.last_update_time                      :       40893988225024
+se.avg.util_est                              :                   28
+policy                                       :                    0
+prio                                         :                  120
+se.slice                                     :              2100000
+clock-delta                                  :                   74

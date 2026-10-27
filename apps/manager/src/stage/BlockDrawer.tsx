@@ -2,6 +2,7 @@ import { Copy, Power, RotateCcw, Trash2, X } from "lucide-react";
 
 import type { AssetKind, PresetBlock } from "../api/types";
 import { Button, IconButton } from "../components/ui";
+import { useDeviceSession } from "../connection/deviceSession";
 import { allEffectDefinitions, findEffectDefinition } from "../effects/catalog";
 import type { EffectControl } from "../effects/types";
 import { usePresetEditorContext } from "../presets/editor/EditorContext";
@@ -12,6 +13,7 @@ import { sceneOwns } from "../presets/scenes/sceneView";
 import { Tag } from "../ui/Tag";
 import { blockTitle } from "./BlockCard";
 import { DrawerControl } from "./DrawerControl";
+import { ModelParameters } from "./ModelParameters";
 import { SceneScope } from "./SceneScope";
 import "./drawer.css";
 
@@ -23,6 +25,7 @@ export function BlockDrawer({ block, issues, focusedKey, onFocusKey, onClose, on
   block: PresetBlock; issues: ValidationIssue[]; focusedKey?: string; onFocusKey(key: string): void; onClose(): void; onManageFiles(kind: AssetKind): void;
 }) {
   const editor = usePresetEditorContext();
+  const session = useDeviceSession();
   const definition = findEffectDefinition(block);
   const family = familyOf(block.type);
   const modes = definition?.mode ? allEffectDefinitions().filter((d) => d.blockType === definition.blockType && d.mode) : [];
@@ -31,7 +34,9 @@ export function BlockDrawer({ block, issues, focusedKey, onFocusKey, onClose, on
   const control = (c: EffectControl) => (
     <DrawerControl key={keyOf(c) || c.kind} block={block} control={c} focusedKey={focusedKey} onFocusKey={onFocusKey} onManageFiles={onManageFiles} />
   );
-  const controls = definition?.controls ?? [];
+  const model = session.models.find((asset) => asset.path === block.asset)?.nam;
+  const controls = (definition?.controls ?? []).filter((c) =>
+    !(keyOf(c) === "useNano" && !model?.slimmable && (model?.parameters?.length || block.type === "namPedal")));
   const general = controls.filter((c) => !keyOf(c).startsWith("left") && !keyOf(c).startsWith("right"));
   const left = controls.filter((c) => keyOf(c).startsWith("left"));
   const right = controls.filter((c) => keyOf(c).startsWith("right"));
@@ -73,6 +78,7 @@ export function BlockDrawer({ block, issues, focusedKey, onFocusKey, onClose, on
           <h3 className="ctlgrid__lane">Lane A</h3>{left.map(control)}
           <h3 className="ctlgrid__lane">Lane B</h3>{right.map(control)}
         </> : controls.map(control)}
+        {(block.type === "nam" || block.type === "namPedal") && <ModelParameters block={block} focusedKey={focusedKey} onFocusKey={onFocusKey} />}
       </div>
     </section>
   );

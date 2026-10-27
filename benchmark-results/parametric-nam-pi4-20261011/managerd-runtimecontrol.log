@@ -1,0 +1,9 @@
+=== RUN   TestQueueCommandsAtomically
+--- PASS: TestQueueCommandsAtomically (0.00s)
+=== RUN   TestReadApplyStatusRejectsUnsafeIDs
+--- PASS: TestReadApplyStatusRejectsUnsafeIDs (0.00s)
+=== RUN   TestApplyCommandsRetainZeroBankAndSlot
+--- PASS: TestApplyCommandsRetainZeroBankAndSlot (0.00s)
+=== RUN   TestQueueSceneRecallUsesEphemeralCommandChannel
+--- PASS: TestQueueSceneRecallUsesEphemeralCommandChannel (0.00s)
+PASS

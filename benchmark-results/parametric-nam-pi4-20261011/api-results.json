@@ -1,0 +1,1664 @@
+{
+  "passed": true,
+  "runtime": true,
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201,
+      "milliseconds": 59.966323897242546
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 409,
+      "milliseconds": 30.082065146416426
+    },
+    {
+      "asset": "Hardware_clone-overdrive.nam",
+      "metadata": {
+        "architecture": "SlimmableContainer",
+        "version": "0.7.0",
+        "gearType": "pedal",
+        "parameters": [
+          {
+            "name": "Gain",
+            "min": 0,
+            "max": 1,
+            "default": 0.5,
+            "type": "continuous"
+          },
+          {
+            "name": "Tone",
+            "min": 0,
+            "max": 1,
+            "default": 0.5,
+            "type": "continuous"
+          }
+        ],
+        "slimmable": true,
+        "supported": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201,
+      "milliseconds": 12.00684392824769
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 409,
+      "milliseconds": 10.621573310345411
+    },
+    {
+      "asset": "Hardware_Ardor-Parametric-Overdrive-Demo.nam",
+      "metadata": {
+        "architecture": "ConcatLSTM",
+        "version": "1.0.0",
+        "gearType": "pedal",
+        "parameters": [
+          {
+            "name": "Drive",
+            "min": 0,
+            "max": 10,
+            "default": 5,
+            "type": "continuous"
+          },
+          {
+            "name": "Tone",
+            "min": 0,
+            "max": 10,
+            "default": 5,
+            "type": "continuous"
+          }
+        ],
+        "supported": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201,
+      "milliseconds": 43.59146440401673
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 409,
+      "milliseconds": 29.6801351942122
+    },
+    {
+      "asset": "Hardware_a2-dual-0.nam",
+      "metadata": {
+        "architecture": "SlimmableContainer",
+        "version": "1.0.0",
+        "gearType": "pedal",
+        "parameters": [
+          {
+            "name": "Drive",
+            "min": 0,
+            "max": 10,
+            "default": 5,
+            "type": "continuous"
+          },
+          {
+            "name": "Mode",
+            "min": 0,
+            "max": 1,
+            "default": 0,
+            "type": "switch",
+            "enum_names": [
+              "Soft",
+              "Hard"
+            ]
+          }
+        ],
+        "slimmable": true,
+        "supported": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201,
+      "milliseconds": 46.97527876123786
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 409,
+      "milliseconds": 35.778998862951994
+    },
+    {
+      "asset": "Hardware_film-dual-0.nam",
+      "metadata": {
+        "architecture": "SlimmableContainer",
+        "version": "0.7.0",
+        "gearType": "pedal",
+        "parameters": [
+          {
+            "name": "Drive",
+            "min": 0,
+            "max": 10,
+            "default": 5,
+            "type": "continuous"
+          },
+          {
+            "name": "Tone",
+            "min": -5,
+            "max": 5,
+            "default": 0,
+            "type": "continuous"
+          }
+        ],
+        "slimmable": true,
+        "supported": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201,
+      "milliseconds": 12.876356020569801
+    },
+    {
+      "method": "POST",
+      "path": "/api/assets/models",
+      "status": 201,
+      "milliseconds": 10.516244918107986
+    },
+    {
+      "method": "GET",
+      "path": "/api/assets/models",
+      "status": 200,
+      "milliseconds": 122.07269109785557
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 9.42544685676694
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 8.868061937391758
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 9.757244028151035
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 7.74433882907033
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.596817031502724
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.509973995387554
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 8.87791020795703
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 8.053110912442207
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/assets/models/Hardware_clone-overdrive.nam",
+      "status": 200,
+      "milliseconds": 25.644566863775253
+    },
+    {
+      "method": "GET",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 6.159055978059769
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 9.342639241367579
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.747590705752373
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 5.381170194596052
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 13.5368756018579
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 9.388006292283535
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 12.109105940908194
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 12.364609632641077
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 14.22668294981122
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 13.681937009096146
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 202,
+      "milliseconds": 13.159467373043299
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746811140756325",
+      "status": 200,
+      "milliseconds": 13.21110688149929
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 916.8930393643677,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 10.27564238756895
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 9.80450864881277
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812069048713",
+      "status": 202,
+      "milliseconds": 7.771727163344622
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812069048713",
+      "status": 202,
+      "milliseconds": 12.84751482307911
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812069048713",
+      "status": 200,
+      "milliseconds": 8.330326993018389
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 239.0275066718459,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 9.400811977684498
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 8.799441624432802
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812316667935",
+      "status": 202,
+      "milliseconds": 8.03710799664259
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812316667935",
+      "status": 200,
+      "milliseconds": 12.382243759930134
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 129.39407816156745,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 9.045239072293043
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 9.902221150696278
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812456089768",
+      "status": 202,
+      "milliseconds": 8.788353763520718
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812456089768",
+      "status": 200,
+      "milliseconds": 10.945810936391354
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 129.81336377561092,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 8.509092964231968
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.663545828312635
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812593362768",
+      "status": 202,
+      "milliseconds": 7.779103238135576
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812593362768",
+      "status": 202,
+      "milliseconds": 12.53628684207797
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812593362768",
+      "status": 200,
+      "milliseconds": 13.338497374206781
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 242.576883174479,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 9.569486137479544
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 8.832826279103756
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812845728213",
+      "status": 202,
+      "milliseconds": 4.524650983512402
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812845728213",
+      "status": 200,
+      "milliseconds": 17.976418137550354
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 131.66604517027736,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 9.461077861487865
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 8.864965289831161
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812987049101",
+      "status": 202,
+      "milliseconds": 8.340492844581604
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812987049101",
+      "status": 202,
+      "milliseconds": 12.651177123188972
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746812987049101",
+      "status": 200,
+      "milliseconds": 9.86117497086525
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 240.06876396015286,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 9.78314969688654
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 5.956809967756271
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813234058453",
+      "status": 202,
+      "milliseconds": 8.111481089144945
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813234058453",
+      "status": 202,
+      "milliseconds": 12.672351207584143
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813234058453",
+      "status": 200,
+      "milliseconds": 12.870474252849817
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 239.8443422280252,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 8.634346071630716
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 7.856759242713451
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813484710657",
+      "status": 202,
+      "milliseconds": 7.56706390529871
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813484710657",
+      "status": 200,
+      "milliseconds": 12.374843005090952
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 127.88709020242095,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 7.880596909672022
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 8.739287033677101
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813621233360",
+      "status": 202,
+      "milliseconds": 8.070091716945171
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813621233360",
+      "status": 202,
+      "milliseconds": 11.167483869940042
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813621233360",
+      "status": 200,
+      "milliseconds": 11.485292110592127
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 239.70786901190877,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.669817820191383
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 7.935327012091875
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813868661823",
+      "status": 202,
+      "milliseconds": 5.250249989330769
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746813868661823",
+      "status": 200,
+      "milliseconds": 12.831964995712042
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 126.18264136835933,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 9.101180825382471
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 9.051342960447073
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814005261193",
+      "status": 202,
+      "milliseconds": 6.572640035301447
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814005261193",
+      "status": 200,
+      "milliseconds": 13.844626955688
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 129.64026117697358,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 9.294588584452868
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 9.317859075963497
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814144153156",
+      "status": 202,
+      "milliseconds": 8.850183337926865
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814144153156",
+      "status": 202,
+      "milliseconds": 15.737209003418684
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814144153156",
+      "status": 200,
+      "milliseconds": 21.259783301502466
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 255.45326014980674,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 10.630236007273197
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 14.10251995548606
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814411829489",
+      "status": 202,
+      "milliseconds": 23.300147149711847
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814411829489",
+      "status": 200,
+      "milliseconds": 12.314560823142529
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 150.04128823056817,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.612453937530518
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 8.762858808040619
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814568797582",
+      "status": 202,
+      "milliseconds": 8.105478249490261
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814568797582",
+      "status": 200,
+      "milliseconds": 12.575651053339243
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 129.5755309984088,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 10.984132066369057
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 9.66226076707244
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814710323508",
+      "status": 202,
+      "milliseconds": 9.1941449791193
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814710323508",
+      "status": 200,
+      "milliseconds": 13.296116143465042
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 132.27345189079642,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 9.832886047661304
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 6.472723092883825
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814848856471",
+      "status": 202,
+      "milliseconds": 7.056016009300947
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814848856471",
+      "status": 200,
+      "milliseconds": 11.849675793200731
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 125.51453988999128,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 8.84551601484418
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 9.233801160007715
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814986008119",
+      "status": 202,
+      "milliseconds": 7.983814924955368
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814986008119",
+      "status": 202,
+      "milliseconds": 10.547223035246134
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746814986008119",
+      "status": 200,
+      "milliseconds": 13.007437344640493
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 241.05396587401628,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 5.405217874795198
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 8.138461969792843
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815232174822",
+      "status": 202,
+      "milliseconds": 10.770821012556553
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815232174822",
+      "status": 200,
+      "milliseconds": 15.065813437104225
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 134.15590906515718,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 5.651889834553003
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 9.242192842066288
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815372245267",
+      "status": 202,
+      "milliseconds": 8.122642058879137
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815372245267",
+      "status": 200,
+      "milliseconds": 11.959838215261698
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 129.46968991309404,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 7.714767940342426
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.2483128644526
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815509625970",
+      "status": 202,
+      "milliseconds": 3.8002380169928074
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815509625970",
+      "status": 202,
+      "milliseconds": 12.430093251168728
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815509625970",
+      "status": 200,
+      "milliseconds": 13.000968843698502
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 237.7544050104916,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 9.344734717160463
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 10.057158768177032
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815757848359",
+      "status": 202,
+      "milliseconds": 8.932615630328655
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815757848359",
+      "status": 202,
+      "milliseconds": 13.068101834505796
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746815757848359",
+      "status": 200,
+      "milliseconds": 9.534506127238274
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 241.87391297891736,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.046706672757864
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 10.849662125110626
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816008873451",
+      "status": 202,
+      "milliseconds": 8.014291990548372
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816008873451",
+      "status": 202,
+      "milliseconds": 13.557522092014551
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816008873451",
+      "status": 200,
+      "milliseconds": 12.85793213173747
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 245.7488151267171,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 9.40505089238286
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 9.354367852210999
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816262442822",
+      "status": 202,
+      "milliseconds": 33.9566171169281
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816262442822",
+      "status": 200,
+      "milliseconds": 11.662377044558525
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 155.10991122573614,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 9.134700056165457
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.623163681477308
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816426389007",
+      "status": 202,
+      "milliseconds": 6.404908839613199
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816426389007",
+      "status": 200,
+      "milliseconds": 11.252762284129858
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 126.41164613887668,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 5.299855954945087
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 8.253294043242931
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816557936636",
+      "status": 202,
+      "milliseconds": 7.017299998551607
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816557936636",
+      "status": 202,
+      "milliseconds": 12.117604725062847
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816557936636",
+      "status": 200,
+      "milliseconds": 11.426354292780161
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 239.11713575944304,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.407160174101591
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 7.0028482005000114
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816804124266",
+      "status": 202,
+      "milliseconds": 4.729754291474819
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816804124266",
+      "status": 200,
+      "milliseconds": 11.8149952031672
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 123.71563632041216,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 8.861610665917397
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 8.948002010583878
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816938760599",
+      "status": 202,
+      "milliseconds": 4.728340078145266
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746816938760599",
+      "status": 200,
+      "milliseconds": 13.034162111580372
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 126.9057341851294,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 9.250937961041927
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.497833739966154
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817074642469",
+      "status": 202,
+      "milliseconds": 7.8116790391504765
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817074642469",
+      "status": 202,
+      "milliseconds": 13.694765977561474
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817074642469",
+      "status": 200,
+      "milliseconds": 12.161759193986654
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 242.66594229266047,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 8.84493999183178
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 10.012960061430931
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817327047302",
+      "status": 202,
+      "milliseconds": 7.494363002479076
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817327047302",
+      "status": 202,
+      "milliseconds": 12.166012078523636
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817327047302",
+      "status": 200,
+      "milliseconds": 11.771874036639929
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 241.92945891991258,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.860299829393625
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 9.191810619086027
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817577285876",
+      "status": 202,
+      "milliseconds": 8.435524068772793
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817577285876",
+      "status": 202,
+      "milliseconds": 11.92086422815919
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817577285876",
+      "status": 200,
+      "milliseconds": 11.647250037640333
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 241.55414011329412,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 10.076710022985935
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 8.829137310385704
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817828630302",
+      "status": 202,
+      "milliseconds": 6.206381134688854
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817828630302",
+      "status": 202,
+      "milliseconds": 12.567707803100348
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746817828630302",
+      "status": 200,
+      "milliseconds": 12.004975695163012
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 239.90298295393586,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 10.849122889339924
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.388756774365902
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818078960283",
+      "status": 202,
+      "milliseconds": 8.917958941310644
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818078960283",
+      "status": 200,
+      "milliseconds": 11.37912878766656
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 128.81503580138087,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 8.95461393520236
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 10.170675348490477
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818218884154",
+      "status": 202,
+      "milliseconds": 5.007596220821142
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818218884154",
+      "status": 202,
+      "milliseconds": 11.841183062642813
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818218884154",
+      "status": 200,
+      "milliseconds": 8.719942066818476
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 236.06571508571506,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 8.459289092570543
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 9.244121611118317
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818462371524",
+      "status": 202,
+      "milliseconds": 5.420907866209745
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818462371524",
+      "status": 200,
+      "milliseconds": 10.90515311807394
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 125.69958390668035,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 8.898443076759577
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 8.107620757073164
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818596308154",
+      "status": 202,
+      "milliseconds": 7.701063994318247
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818596308154",
+      "status": 200,
+      "milliseconds": 12.134598102420568
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 128.0629951506853,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 12.660049833357334
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.639441803097725
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818737535839",
+      "status": 202,
+      "milliseconds": 7.910991087555885
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818737535839",
+      "status": 202,
+      "milliseconds": 13.328593224287033
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818737535839",
+      "status": 200,
+      "milliseconds": 11.477757710963488
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 241.63284990936518,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/1",
+      "status": 200,
+      "milliseconds": 9.330925066024065
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/1/apply",
+      "status": 202,
+      "milliseconds": 9.141018148511648
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818988915635",
+      "status": 202,
+      "milliseconds": 7.747836876660585
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818988915635",
+      "status": 202,
+      "milliseconds": 15.159314963966608
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746818988915635",
+      "status": 200,
+      "milliseconds": 11.631271801888943
+    },
+    {
+      "apply_slot": 1,
+      "milliseconds": 244.1624579951167,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/2",
+      "status": 200,
+      "milliseconds": 14.917475171387196
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/2/apply",
+      "status": 202,
+      "milliseconds": 9.44604817777872
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819248264986",
+      "status": 202,
+      "milliseconds": 8.376365061849356
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819248264986",
+      "status": 202,
+      "milliseconds": 9.418458212167025
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819248264986",
+      "status": 200,
+      "milliseconds": 13.21698073297739
+    },
+    {
+      "apply_slot": 2,
+      "milliseconds": 240.8128809183836,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 9.45105217397213
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 10.913054924458265
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819499964523",
+      "status": 202,
+      "milliseconds": 8.787056896835566
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819499964523",
+      "status": 202,
+      "milliseconds": 13.372927904129028
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819499964523",
+      "status": 200,
+      "milliseconds": 13.125039171427488
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 246.551136020571,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/0",
+      "status": 200,
+      "milliseconds": 6.218248978257179
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.071672171354294
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819750564968",
+      "status": 202,
+      "milliseconds": 7.882907055318356
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819750564968",
+      "status": 200,
+      "milliseconds": 13.210754841566086
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 129.46853414177895,
+      "state": "applied"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/presets/banks/98/slots/3",
+      "status": 200,
+      "milliseconds": 8.292236365377903
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200,
+      "milliseconds": 8.336641825735569
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/3/apply",
+      "status": 202,
+      "milliseconds": 10.35709073767066
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819898901560",
+      "status": 202,
+      "milliseconds": 8.022372145205736
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746819898901560",
+      "status": 200,
+      "milliseconds": 12.304593808948994
+    },
+    {
+      "apply_slot": 3,
+      "milliseconds": 130.8448421768844,
+      "state": "rejected"
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200,
+      "milliseconds": 7.838153280317783
+    },
+    {
+      "invalid_model_preserved_active": true,
+      "active": {
+        "bank": 98,
+        "slot": 0,
+        "name": "Hardware 0",
+        "revision": "429512638e54f89278eefcd85a3544acfdfcf4ef092cbfcefbd01ca1bca92b06",
+        "storedRevisionMatches": true
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/98/slots/0/apply",
+      "status": 202,
+      "milliseconds": 8.9785261079669
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746820036264301",
+      "status": 202,
+      "milliseconds": 7.280781865119934
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791746820036264301",
+      "status": 200,
+      "milliseconds": 12.212092988193035
+    },
+    {
+      "apply_slot": 0,
+      "milliseconds": 128.5965978167951,
+      "state": "applied"
+    }
+  ]
+}

@@ -30,6 +30,35 @@ const EqPassFilterParams& passFilterForStage(const ParametricEqParams& params, s
   return stage == kEqHighPassStage ? params.highPass : params.lowPass;
 }
 
+std::string parameterViewSignature(const UiState& state, std::size_t page, bool editingEq)
+{
+  const auto* selected = selectedUiBlock(state);
+  const auto& scenes = state.bank.presets[state.activePreset].sceneSet;
+  std::string signature = editingEq ? "eq:parametric"
+    : state.paramTarget == UiParamTarget::Globals ? "globals:" + std::to_string(page)
+    : selected ? "block:" + selected->type + ":"
+        + selected->params.value("mode", std::string{}) + ":" + std::to_string(page)
+    : "none";
+  signature += scenes ? ":scenes:" + std::to_string(scenes->scenes[state.editingScene].targets.size())
+                      : ":shared";
+  if (!editingEq) {
+    // Models of the same block type can expose different controls. Reusing a
+    // stock NAM panel for a learned model used to recurse between rebuild and
+    // sync forever on a count mismatch. Equal counts can also hide incompatible
+    // widget kinds or switch choices. Key the panel by its complete layout,
+    // excluding current values so live edits still retain their widgets.
+    auto layout = nlohmann::json::array();
+    for (const auto& control : parameterPage(state, page)) {
+      layout.push_back({{"key", control.key}, {"label", control.label},
+        {"kind", static_cast<int>(control.kind)}, {"min", control.minimum},
+        {"max", control.maximum}, {"step", control.step},
+        {"choices", control.choices}, {"choiceValues", control.choiceValues}});
+    }
+    signature += ":layout:" + layout.dump();
+  }
+  return signature;
+}
+
 } // namespace
 
 void LvglUi::toggleExpressionAssignment(UiState& state, const ParameterControl& control)
@@ -67,7 +96,7 @@ bool LvglUi::updateSelectedEqBand(UiState& state, EqBandParams params, bool requ
     state.dirty = dirtyBefore;
     auto previewRollback = captureUiPreviewSnapshot(state);
     setSelectedEqBand(state, bandIndex, after);
-    if (queuePreview(state, previewRollback, "update " + blockName + " EQ")) {
+    if (queuePreview(state, previewRollback, "update " + blockName + " EQ", false)) {
       invalidate(UiChange::Parameters | UiChange::Header);
       return true;
     }
@@ -101,7 +130,7 @@ bool LvglUi::updateSelectedEqPassFilter(UiState& state, EqPassFilterParams param
     state.dirty = dirtyBefore;
     auto previewRollback = captureUiPreviewSnapshot(state);
     setSelectedEqPassFilter(state, kind, after);
-    if (queuePreview(state, previewRollback, "update " + blockName + " filter")) {
+    if (queuePreview(state, previewRollback, "update " + blockName + " filter", false)) {
       invalidate(UiChange::Parameters | UiChange::Header);
       return true;
     }
@@ -181,6 +210,18 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         }
       }
       if (!sceneOwned) {
+      if (state.paramTarget == UiParamTarget::Block && control.key.starts_with("model:")) {
+        const auto* block = selectedUiBlock(state);
+        // Consume focused input even if storage is missing; never send a
+        // nonexistent value or fall through to the encoder's master volume.
+        if (!block) return true;
+        const auto values = block->params.find("modelParameters");
+        if (values == block->params.end() || !values->is_object()) return true;
+        const auto stored = values->find(control.key.substr(6));
+        if (stored == values->end() || !stored->is_number()) return true;
+        liveUpdateSucceeded = actions_.updateBlockParameter
+          && actions_.updateBlockParameter(block->id, control.key, stored->get<float>());
+      }
       if (state.paramTarget == UiParamTarget::Globals && actions_.updateGlobalGains) {
         const auto& global = state.bank.presets[state.activePreset].global;
         actions_.updateGlobalGains(global.inputGainDb, global.outputGainDb);
@@ -235,6 +276,7 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
                 || control.key == "wetLevelDb" || control.key == "wetWidth");
           const bool coveredAbove = block.type == "mod" || block.type == "delay"
             || block.type == "reverb" || block.type == "wah" || block.type == "cab"
+            || control.key.starts_with("model:")
             || (block.type == "dynamics" && (mode == "compressor" || mode == "noise_gate"));
           if (!coveredAbove && !wdwMixParameter && block.params.contains(control.key)
               && block.params[control.key].is_number()) {
@@ -285,7 +327,7 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
         auto previewRollback = captureUiPreviewSnapshot(state);
         selected->params = std::move(paramsAfter);
         state.dirty = true;
-        if (queuePreview(state, previewRollback, "update " + selectedName)) {
+        if (queuePreview(state, previewRollback, "update " + selectedName, false)) {
           invalidate(UiChange::Parameters | UiChange::Header);
           return true;
         }
@@ -510,18 +552,7 @@ void LvglUi::rebuildParameterView(UiState& state)
   if (editingEq) {
     selectEqStage(selectedEqStage_);
   }
-  const auto& sceneSet = state.bank.presets[state.activePreset].sceneSet;
-  const std::string sceneSignature = sceneSet
-    ? ":scenes:" + std::to_string(sceneSet->scenes[state.editingScene].targets.size()) : ":shared";
-  const std::string signature = (editingEq
-    ? "eq:parametric"
-    : (state.paramTarget == UiParamTarget::Globals
-        ? "globals:" + std::to_string(parameterPage_)
-        : (selected
-            ? "block:" + selected->type + ":"
-                + selected->params.value("mode", std::string{}) + ":"
-                + std::to_string(parameterPage_)
-            : "none"))) + sceneSignature;
+  const auto signature = parameterViewSignature(state, parameterPage_, editingEq);
 
   for (auto& [key, view] : parameterViews_) {
     (void) key;
@@ -614,18 +645,7 @@ void LvglUi::syncParameterView(UiState& state)
   const auto* selected = selectedUiBlock(state);
   const bool editingEq = state.paramTarget == UiParamTarget::Block
     && selected && selected->type == "eq" && isParametricEqMode(selected->params);
-  const auto& sceneSet = state.bank.presets[state.activePreset].sceneSet;
-  const std::string sceneSignature = sceneSet
-    ? ":scenes:" + std::to_string(sceneSet->scenes[state.editingScene].targets.size()) : ":shared";
-  const std::string signature = (editingEq
-    ? "eq:parametric"
-    : (state.paramTarget == UiParamTarget::Globals
-        ? "globals:" + std::to_string(parameterPage_)
-        : (selected
-            ? "block:" + selected->type + ":"
-                + selected->params.value("mode", std::string{}) + ":"
-                + std::to_string(parameterPage_)
-            : "none"))) + sceneSignature;
+  const auto signature = parameterViewSignature(state, parameterPage_, editingEq);
   if (signature != renderedParameterSignature_) {
     rebuildParameterView(state);
     return;

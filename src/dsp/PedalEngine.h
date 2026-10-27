@@ -1,5 +1,7 @@
 #pragma once
 
+#include "json.hpp"
+
 #include "ClipDiagnostics.h"
 #include "FlexibleRoutingProgram.h"
 #include "RuntimeChain.h"
@@ -24,7 +26,8 @@ public:
   bool loadNam(const std::filesystem::path& modelPath, double sampleRate, int maxBlockSize,
                std::string id = "nam", float slimmableSize = 1.0f,
                NamInputMode inputMode = NamInputMode::Sum,
-               std::optional<float> inputReferenceLevelDbU = std::nullopt);
+               std::optional<float> inputReferenceLevelDbU = std::nullopt,
+              const nlohmann::json& modelParameters = nlohmann::json::object());
   bool addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLaneConfig right,
                   NamInputMode inputMode, double sampleRate, int maxBlockSize,
                   bool requestParallel, int workerCpu, std::string& error);
@@ -60,6 +63,7 @@ public:
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
                                  const EqPassFilterParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
+  bool setNamParameter(const std::string& id, const std::string& name, float value);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   // 0.0 if `id` does not name a live compressor block.
   float compressorGainReductionDb(const std::string& id) const;

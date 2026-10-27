@@ -130,7 +130,7 @@ lv_obj_t* button(lv_obj_t* parent, const std::string& value)
 
 int categoryColor(const std::string& key)
 {
-  if (key == "nam" || key == "amp" || key == "amps" || key == "dualAmp") return palette().family[0];
+  if (key == "nam" || key == "namPedal" || key == "amp" || key == "amps" || key == "dualAmp") return palette().family[0];
   // Drive shares the amp colour: it sits in the same part of the chain and
   // the palette has six families, not seven.
   if (key == "drive" || key == "distortion") return palette().family[0];

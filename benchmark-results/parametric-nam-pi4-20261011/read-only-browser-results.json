@@ -1,0 +1,12 @@
+[
+  {
+    "viewport": "desktop",
+    "passed": true,
+    "readOnly": true
+  },
+  {
+    "viewport": "phone",
+    "passed": true,
+    "readOnly": true
+  }
+]

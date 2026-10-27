@@ -1,0 +1,16 @@
+[
+  {
+    "viewport": "desktop",
+    "passed": true,
+    "gearType": "amp",
+    "saved": false,
+    "applied": false
+  },
+  {
+    "viewport": "phone",
+    "passed": true,
+    "gearType": "amp",
+    "saved": false,
+    "applied": false
+  }
+]

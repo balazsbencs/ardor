@@ -1,0 +1,758 @@
+[
+  {
+    "case": "amp-manager-integration-final",
+    "duration_seconds": 90,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "35173",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.46ms",
+      "avg": "0.18ms",
+      "recent_avg": "0.26ms",
+      "budget": "2.67ms",
+      "buffer_free": "90.22%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "11.5",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 26980,
+        "VmRSS": 26980
+      },
+      "final": {
+        "VmHWM": 26980,
+        "VmRSS": 26980
+      }
+    }
+  },
+  {
+    "case": "concat-128",
+    "duration_seconds": 30,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "12780",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "1.86ms",
+      "avg": "1.35ms",
+      "recent_avg": "1.35ms",
+      "budget": "2.67ms",
+      "buffer_free": "49.37%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "53.8",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 21660,
+        "VmRSS": 21660
+      },
+      "final": {
+        "VmHWM": 21660,
+        "VmRSS": 21660
+      }
+    }
+  },
+  {
+    "case": "concat-32",
+    "duration_seconds": 30,
+    "native_period": 32,
+    "native_buffer": 96,
+    "telemetry": {
+      "callbacks": "51217",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.53ms",
+      "avg": "0.33ms",
+      "recent_avg": "0.33ms",
+      "budget": "0.67ms",
+      "buffer_free": "50.67%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "60.0",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 21096,
+        "VmRSS": 21096
+      },
+      "final": {
+        "VmHWM": 21096,
+        "VmRSS": 21096
+      }
+    }
+  },
+  {
+    "case": "concat-64",
+    "duration_seconds": 30,
+    "native_period": 64,
+    "native_buffer": 192,
+    "telemetry": {
+      "callbacks": "25526",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "1.00ms",
+      "avg": "0.62ms",
+      "recent_avg": "0.61ms",
+      "budget": "1.33ms",
+      "buffer_free": "54.25%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "57.6",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 21328,
+        "VmRSS": 21328
+      },
+      "final": {
+        "VmHWM": 21328,
+        "VmRSS": 21328
+      }
+    }
+  },
+  {
+    "case": "empty-128",
+    "duration_seconds": 30,
+    "native_period": 1024,
+    "native_buffer": 16384,
+    "telemetry": {
+      "callbacks": "12777",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "1596",
+      "max": "0.06ms",
+      "avg": "0.02ms",
+      "recent_avg": "0.02ms",
+      "budget": "2.67ms",
+      "buffer_free": "99.41%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "4.6",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 20356,
+        "VmRSS": 20356
+      },
+      "final": {
+        "VmHWM": 20356,
+        "VmRSS": 20356
+      }
+    }
+  },
+  {
+    "case": "empty-32",
+    "duration_seconds": 30,
+    "native_period": 1024,
+    "native_buffer": 16384,
+    "telemetry": {
+      "callbacks": "51105",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "1596",
+      "max": "0.04ms",
+      "avg": "0.00ms",
+      "recent_avg": "0.00ms",
+      "budget": "0.67ms",
+      "buffer_free": "99.39%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": null,
+    "cpu2_busy": "4.8",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 20356,
+        "VmRSS": 20356
+      },
+      "final": {
+        "VmHWM": 20356,
+        "VmRSS": 20356
+      }
+    }
+  },
+  {
+    "case": "empty-64",
+    "duration_seconds": 30,
+    "native_period": 1024,
+    "native_buffer": 16384,
+    "telemetry": {
+      "callbacks": "25553",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "1596",
+      "max": "0.04ms",
+      "avg": "0.01ms",
+      "recent_avg": "0.01ms",
+      "budget": "1.33ms",
+      "buffer_free": "99.40%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "4.7",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 20356,
+        "VmRSS": 20356
+      },
+      "final": {
+        "VmHWM": 20356,
+        "VmRSS": 20356
+      }
+    }
+  },
+  {
+    "case": "empty-default-128",
+    "duration_seconds": 30,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "12793",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.05ms",
+      "avg": "0.02ms",
+      "recent_avg": "0.02ms",
+      "budget": "2.67ms",
+      "buffer_free": "99.39%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "3.0",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 20088,
+        "VmRSS": 20088
+      },
+      "final": {
+        "VmHWM": 20088,
+        "VmRSS": 20088
+      }
+    }
+  },
+  {
+    "case": "empty-default-32",
+    "duration_seconds": 30,
+    "native_period": 32,
+    "native_buffer": 96,
+    "telemetry": {
+      "callbacks": "51165",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.05ms",
+      "avg": "0.00ms",
+      "recent_avg": "0.00ms",
+      "budget": "0.67ms",
+      "buffer_free": "99.31%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "6.9",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 20088,
+        "VmRSS": 20088
+      },
+      "final": {
+        "VmHWM": 20088,
+        "VmRSS": 20088
+      }
+    }
+  },
+  {
+    "case": "empty-default-64",
+    "duration_seconds": 30,
+    "native_period": 64,
+    "native_buffer": 192,
+    "telemetry": {
+      "callbacks": "25581",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.04ms",
+      "avg": "0.01ms",
+      "recent_avg": "0.01ms",
+      "budget": "1.33ms",
+      "buffer_free": "99.36%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "4.3",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 20088,
+        "VmRSS": 20088
+      },
+      "final": {
+        "VmHWM": 20088,
+        "VmRSS": 20088
+      }
+    }
+  },
+  {
+    "case": "extended-clone-amp-cab",
+    "duration_seconds": 3600,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "1363446",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "2.51ms",
+      "avg": "1.46ms",
+      "recent_avg": "1.46ms",
+      "budget": "2.67ms",
+      "buffer_free": "45.33%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "57.5",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 28068,
+        "VmRSS": 28068
+      },
+      "final": {
+        "VmHWM": 28068,
+        "VmRSS": 28068
+      }
+    }
+  },
+  {
+    "case": "extended-film-four",
+    "duration_seconds": 1800,
+    "native_period": 64,
+    "native_buffer": 192,
+    "telemetry": {
+      "callbacks": "1367080",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "1.29ms",
+      "avg": "0.56ms",
+      "recent_avg": "0.56ms",
+      "budget": "1.33ms",
+      "buffer_free": "58.12%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "44.8",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 29836,
+        "VmRSS": 29836
+      },
+      "final": {
+        "VmHWM": 29836,
+        "VmRSS": 29836
+      }
+    }
+  },
+  {
+    "case": "extended-snapshot-two",
+    "duration_seconds": 600,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "228411",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "2.54ms",
+      "avg": "1.94ms",
+      "recent_avg": "1.93ms",
+      "budget": "2.67ms",
+      "buffer_free": "27.58%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "75.7",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 27532,
+        "VmRSS": 27532
+      },
+      "final": {
+        "VmHWM": 27532,
+        "VmRSS": 27532
+      }
+    }
+  },
+  {
+    "case": "extended-wdw-four",
+    "duration_seconds": 1800,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "686145",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.15ms",
+      "avg": "0.03ms",
+      "recent_avg": "0.04ms",
+      "budget": "2.67ms",
+      "buffer_free": "98.66%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "11",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "4.7",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 46112,
+        "VmRSS": 46112
+      },
+      "final": {
+        "VmHWM": 46112,
+        "VmRSS": 46112
+      }
+    }
+  },
+  {
+    "case": "manager-integration",
+    "duration_seconds": 300,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "114860",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "2.04ms",
+      "avg": "0.14ms",
+      "recent_avg": "0.24ms",
+      "budget": "2.67ms",
+      "buffer_free": "91.09%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "8.4",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 27444,
+        "VmRSS": 26428
+      },
+      "final": {
+        "VmHWM": 28976,
+        "VmRSS": 28028
+      }
+    }
+  },
+  {
+    "case": "overload",
+    "duration_seconds": 20,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "7499",
+      "over": "33",
+      "over%": "0.44",
+      "gaps": "3",
+      "max": "3.30ms",
+      "avg": "0.03ms",
+      "recent_avg": "0.02ms",
+      "budget": "2.67ms",
+      "buffer_free": "99.41%",
+      "bypassed": "1",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 3,
+    "cpu2_busy": "0.5",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 21928,
+        "VmRSS": 21928
+      },
+      "final": {
+        "VmHWM": 21928,
+        "VmRSS": 21928
+      }
+    }
+  },
+  {
+    "case": "public-amp-manager-integration-final",
+    "duration_seconds": 90,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "35243",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "1.82ms",
+      "avg": "0.38ms",
+      "recent_avg": "0.37ms",
+      "budget": "2.67ms",
+      "buffer_free": "86.29%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "17.0",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 26980,
+        "VmRSS": 26980
+      },
+      "final": {
+        "VmHWM": 28564,
+        "VmRSS": 28564
+      }
+    }
+  },
+  {
+    "case": "recovery",
+    "duration_seconds": 30,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "12790",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "0.50ms",
+      "avg": "0.36ms",
+      "recent_avg": "0.36ms",
+      "budget": "2.67ms",
+      "buffer_free": "86.37%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "20.2",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 21012,
+        "VmRSS": 21012
+      },
+      "final": {
+        "VmHWM": 21012,
+        "VmRSS": 21012
+      }
+    }
+  },
+  {
+    "case": "soak-clone-amp-cab-final",
+    "duration_seconds": 600,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "228438",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "2.27ms",
+      "avg": "1.45ms",
+      "recent_avg": "1.46ms",
+      "budget": "2.67ms",
+      "buffer_free": "45.22%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "56.9",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 28032,
+        "VmRSS": 28032
+      },
+      "final": {
+        "VmHWM": 29632,
+        "VmRSS": 29632
+      }
+    }
+  },
+  {
+    "case": "soak-film-five-isolated-final",
+    "duration_seconds": 600,
+    "native_period": 64,
+    "native_buffer": 192,
+    "telemetry": {
+      "callbacks": "459092",
+      "over": "5",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "1.59ms",
+      "avg": "0.70ms",
+      "recent_avg": "0.72ms",
+      "budget": "1.33ms",
+      "buffer_free": "46.22%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": "56.7",
+    "rss_kib": {
+      "start": {
+        "VmHWM": 30376,
+        "VmRSS": 30376
+      },
+      "final": {
+        "VmHWM": 30376,
+        "VmRSS": 30376
+      }
+    }
+  },
+  {
+    "case": "soak-snapshot-two",
+    "duration_seconds": 600,
+    "native_period": 128,
+    "native_buffer": 384,
+    "telemetry": {
+      "callbacks": "64127",
+      "over": "0",
+      "over%": "0.00",
+      "gaps": "0",
+      "max": "2.50ms",
+      "avg": "1.89ms",
+      "recent_avg": "1.89ms",
+      "budget": "2.67ms",
+      "buffer_free": "29.00%",
+      "bypassed": "0",
+      "worker_ready": "1",
+      "worker_over": "0",
+      "worker_underflow": "0",
+      "worker_submit_miss": "0",
+      "nonfinite": "0",
+      "block_mismatch": "0"
+    },
+    "xruns": 0,
+    "cpu2_busy": null,
+    "rss_kib": {
+      "start": {
+        "VmHWM": 27532,
+        "VmRSS": 27532
+      },
+      "final": {
+        "VmHWM": 27532,
+        "VmRSS": 27532
+      }
+    }
+  }
+]

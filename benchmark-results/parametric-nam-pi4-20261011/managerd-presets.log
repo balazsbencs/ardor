@@ -1,0 +1,20 @@
+=== RUN   TestScenesStarterExampleIsValid
+    presets_test.go:13: open ../../../../presets/bank-002/preset-1.json: no such file or directory
+--- FAIL: TestScenesStarterExampleIsValid (0.00s)
+=== RUN   TestValidatePreset
+--- PASS: TestValidatePreset (0.00s)
+=== RUN   TestReplaceWdwAssetReferences
+--- PASS: TestReplaceWdwAssetReferences (0.00s)
+=== RUN   TestReplaceDualAmpAssetReferences
+--- PASS: TestReplaceDualAmpAssetReferences (0.00s)
+=== RUN   TestValidateAndReplaceDualRigAssetReferences
+--- PASS: TestValidateAndReplaceDualRigAssetReferences (0.01s)
+=== RUN   TestStoreSaveLoadList
+--- PASS: TestStoreSaveLoadList (0.00s)
+=== RUN   TestStoreNormalizesLegacyEffectPlaceholders
+--- PASS: TestStoreNormalizesLegacyEffectPlaceholders (0.00s)
+=== RUN   TestAssetUsageListsPresetsPerPath
+--- PASS: TestAssetUsageListsPresetsPerPath (0.00s)
+=== RUN   TestAssetUsageWalksDualAmpParamsDualRigLanesAndWdwLanes
+--- PASS: TestAssetUsageWalksDualAmpParamsDualRigLanesAndWdwLanes (0.01s)
+FAIL

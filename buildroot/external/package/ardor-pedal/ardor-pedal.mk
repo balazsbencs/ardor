@@ -33,6 +33,12 @@ define ARDOR_PEDAL_INSTALL_TARGET_CMDS
 	# them into the data partition whenever one is missing.
 	$(INSTALL) -D -m 0644 $(@D)/assets/wah/gcb95.wahtable \
 		$(TARGET_DIR)/usr/share/ardor-pedal/assets/wah/gcb95.wahtable
+	$(INSTALL) -d -m 0755 $(TARGET_DIR)/usr/share/ardor-pedal/models
+	$(INSTALL) -m 0644 $(@D)/assets/nam/*.nam $(@D)/assets/nam/Clone-Overdrive-LICENSE.txt \
+		$(@D)/assets/nam/README.md $(TARGET_DIR)/usr/share/ardor-pedal/models/
+	$(INSTALL) -m 0644 $(@D)/assets/nam/LICENSE $(TARGET_DIR)/usr/share/ardor-pedal/models/Ardor-Demo-LICENSE.txt
+	$(INSTALL) -D -m 0644 $(@D)/src/namparam/LICENSE-Gene-Ko \
+		$(TARGET_DIR)/usr/share/ardor-pedal/licenses/NAM-FiLM-LICENSE.txt
 endef
 
 $(eval $(cmake-package))

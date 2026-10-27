@@ -23,13 +23,13 @@ bool isTimeBlock(const std::string& type)
 
 bool isDryBlock(const std::string& type)
 {
-  return type == "nam" || type == "cab" || type == "dynamics" || type == "eq"
+  return type == "nam" || type == "namPedal" || type == "cab" || type == "dynamics" || type == "eq"
       || type == "distortion" || type == "wah";
 }
 
 bool isWetBlock(const std::string& type)
 {
-  return type == "nam" || type == "cab" || type == "mod" || type == "delay"
+  return type == "nam" || type == "namPedal" || type == "cab" || type == "mod" || type == "delay"
       || type == "reverb" || type == "irreverb" || type == "stereo";
 }
 

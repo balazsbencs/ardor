@@ -313,6 +313,11 @@ add_library(ardor_dsp OBJECT
   src/dsp/NonUniformConvolver.cpp
   src/dsp/IrConvolver.cpp
   src/dsp/IrReverbProcessor.cpp
+  src/namparam/film_wavenet.cpp
+  src/namparam/parametric_container.cpp
+  src/namparam/parametric_control.cpp
+  src/namparam/concat_lstm.cpp
+  src/namparam/wavenet/concat_wavenet.cpp
   src/dsp/NamProcessor.cpp
   src/dsp/PedalEngine.cpp
   src/dsp/ParallelLaneExecutor.cpp
@@ -756,6 +761,23 @@ add_executable(pedal-ir-reverb-smoke tests/ir_reverb_smoke.cpp)
 target_link_libraries(pedal-ir-reverb-smoke PRIVATE ardor_dsp)
 add_test(NAME pedal-ir-reverb-smoke COMMAND pedal-ir-reverb-smoke)
 
+set(ARDOR_PARAMETRIC_TEST_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH
+  "Deployed fixture root for standalone parametric tests")
+set(ARDOR_PARAMETRIC_TEST_EXAMPLE_MODEL "${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam" CACHE FILEPATH
+  "Deployed stock example model for the standalone parametric test")
+add_executable(pedal-parametric-nam-smoke tests/parametric_nam_smoke.cpp)
+target_link_libraries(pedal-parametric-nam-smoke PRIVATE ardor_audio ardor_ui)
+target_compile_definitions(pedal-parametric-nam-smoke PRIVATE
+  NAM_SAMPLE_FLOAT
+  ARDOR_SOURCE_DIR="${ARDOR_PARAMETRIC_TEST_SOURCE_DIR}"
+  ARDOR_NAM_EXAMPLE_MODEL="${ARDOR_PARAMETRIC_TEST_EXAMPLE_MODEL}")
+add_test(NAME pedal-parametric-nam-smoke COMMAND pedal-parametric-nam-smoke)
+
+add_executable(pedal-parametric-trainer-compat-smoke tests/parametric_trainer_compat_smoke.cpp)
+target_link_libraries(pedal-parametric-trainer-compat-smoke PRIVATE ardor_dsp ardor_ui)
+target_compile_definitions(pedal-parametric-trainer-compat-smoke PRIVATE ARDOR_SOURCE_DIR="${ARDOR_PARAMETRIC_TEST_SOURCE_DIR}")
+add_test(NAME pedal-parametric-trainer-compat-smoke COMMAND pedal-parametric-trainer-compat-smoke)
+
 add_executable(pedal-nam-processor-smoke tests/nam_processor_smoke.cpp)
 target_link_libraries(pedal-nam-processor-smoke PRIVATE ardor_dsp)
 target_compile_definitions(pedal-nam-processor-smoke PRIVATE
@@ -783,6 +805,15 @@ target_compile_definitions(pedal-dsp-bench PRIVATE
 add_executable(pedal-nam-bench tests/nam_bench.cpp)
 target_link_libraries(pedal-nam-bench PRIVATE ardor_dsp)
 target_compile_definitions(pedal-nam-bench PRIVATE
+  ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
+  ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"
+)
+
+# Full serial engine NAM benchmark, not a timing-sensitive ctest.
+add_executable(pedal-nam-chain-bench tests/nam_chain_bench.cpp)
+target_link_libraries(pedal-nam-chain-bench PRIVATE ardor_dsp)
+target_compile_definitions(pedal-nam-chain-bench PRIVATE
   ARDOR_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
   ARDOR_COMPILER="${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}"
   ARDOR_CXX_FLAGS="${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}"

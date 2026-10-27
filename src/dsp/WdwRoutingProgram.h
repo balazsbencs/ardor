@@ -94,6 +94,7 @@ public:
   bool setParametricEqPassFilter(const std::string& id, EqPassFilterKind kind,
                                  const EqPassFilterParams& params);
   bool setDaisyParameter(const std::string& id, const std::string& key, float normalized);
+  bool setNamParameter(const std::string& id, const std::string& name, float value);
   bool setCabParameter(const std::string& id, const std::string& key, float value);
   bool setCompressorParameter(const std::string& id, const std::string& key, float value);
   bool compressorGainReductionDb(const std::string& id, float& outDb) const;

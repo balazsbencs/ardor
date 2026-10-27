@@ -77,12 +77,22 @@ export type WiFiSettingsUpdate = {
   country: string;
 };
 
+export type NAMParameter = {
+  name: string; min: number; max: number; default: number;
+  type: "continuous" | "switch"; enum_names?: string[];
+};
+export type NAMInfo = {
+  architecture: string; version: string; gearType: "amp" | "pedal";
+  parameters?: NAMParameter[]; slimmable?: boolean; supported: boolean; error?: string;
+};
+
 export type Asset = {
   id: string;
   kind: "model" | "ir";
   filename: string;
   path: string;
   sizeBytes: number;
+  nam?: NAMInfo;
 };
 
 export type RenameAssetResponse = {

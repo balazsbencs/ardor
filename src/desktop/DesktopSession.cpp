@@ -281,7 +281,8 @@ void DesktopSession::selectScene(std::size_t index)
 bool DesktopSession::updateParameter(const std::string& blockId, const std::string& key, float value)
 {
   if (busy() || !engine_) return false;
-  return engine_->setDaisyParameter(blockId, key, value)
+  return (key.starts_with("model:") && engine_->setNamParameter(blockId, key.substr(6), value))
+    || engine_->setDaisyParameter(blockId, key, value)
     || engine_->setCompressorParameter(blockId, key, value)
     || engine_->setNoiseGateParameter(blockId, key, value)
     || engine_->setWahParameter(blockId, key, value)

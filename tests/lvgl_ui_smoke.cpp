@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <cstdlib>
 #include <cstring>
 #include <fstream>
@@ -436,7 +437,7 @@ int main()
               "NAM input routing should persist its string value")) return 1;
   if (require(namNano != namControls.end()
                 && namNano->kind == ardor::ParameterControlKind::Toggle
-                && namNano->formatted == "Off",
+                && namNano->label == "Model size" && namNano->formatted == "Standard",
               "NAM page should expose a full-default nano switch")) return 1;
   if (require(ardor::applyParameterDelta(namState, *namNano, 1),
               "NAM nano switch should apply")) return 1;
@@ -713,7 +714,8 @@ int main()
   rejectedEqUi.focusEqBandField(ardor::EqBandField::Gain);
   if (require(rejectedEqUi.applyFocusedParameterDelta(rejectedEqState, 2)
                 && ardor::selectedParametricEqParams(rejectedEqState).bands[0] != rejectedEqBefore
-                && ardor::pendingStructuralPreview(rejectedEqState),
+                && ardor::pendingStructuralPreview(rejectedEqState)
+                && !ardor::pendingStructuralPreview(rejectedEqState)->notifyOnSuccess,
               "rejected live EQ updates should promote to a full preview")) return 1;
   completePreview(rejectedEqState);
 
@@ -755,6 +757,7 @@ int main()
   rejectedDaisyUi.focusParameter("depth");
   if (require(rejectedDaisyUi.applyFocusedParameterDelta(rejectedDaisyState, 1)
                 && rejectedDaisyState.pendingPreview.has_value()
+                && !rejectedDaisyState.pendingPreview->notifyOnSuccess
                 && rejectedDaisyState.pendingPreview->rollback.preset
                      .blocks[rejectedDaisyState.selectedBlock].params == rejectedDaisyParams,
               "rejected live controls should snapshot the pre-edit state for preview rollback")) return 1;
@@ -843,6 +846,87 @@ int main()
                 && !ardor::pendingStructuralPreview(tapeState),
               "Tape Machine slider movement should remain on the live block-parameter path")) return 1;
 
+  auto learnedState = ardor::makeDemoUiState();
+  ardor::UiAsset learnedAsset{"Live OD", "models/live-od.nam", "model", "namPedal"};
+  learnedAsset.modelParameterSpecs = nlohmann::json::array({
+    {{"name", "Drive"}, {"min", 0}, {"max", 10}, {"default", 5}, {"type", "continuous"}},
+  });
+  learnedState.assets.push_back(learnedAsset);
+  ardor::appendAssetBlock(learnedState, learnedState.assets.size() - 1);
+  completePreview(learnedState);
+  const auto learnedIndex = learnedState.bank.presets[learnedState.activePreset].blocks.size() - 1;
+  int learnedUpdates = 0;
+  float lastLearnedValue = 0;
+  ardor::UiActions learnedActions;
+  learnedActions.updateBlockParameter = [&](const std::string&, const std::string& key, float value) {
+    if (key != "model:Drive") return false;
+    ++learnedUpdates;
+    lastLearnedValue = value;
+    return true;
+  };
+  ardor::LvglUi learnedUi(learnedActions);
+  learnedUi.selectBlock(learnedState, learnedIndex);
+  learnedUi.focusParameter("model:Drive");
+  const auto learnedStatus = learnedState.revisions.status;
+  const auto learnedChain = learnedState.revisions.chain;
+  if (require(learnedUi.applyFocusedParameterDelta(learnedState, 1)
+      && learnedUi.applyFocusedParameterDelta(learnedState, 1)
+      && learnedUpdates == 2 && std::fabs(lastLearnedValue - 5.2f) < 0.00001f
+      && !ardor::pendingStructuralPreview(learnedState)
+      && learnedState.revisions.status == learnedStatus
+      && learnedState.revisions.chain == learnedChain,
+      "learned slider edits update the live model repeatedly without toast or chain rebuild")) return 1;
+  for (const std::string type : {"nam", "namPedal"}) {
+    for (bool storedControl : {false, true}) {
+      auto pendingState = learnedState;
+      auto& block = pendingState.bank.presets[pendingState.activePreset].blocks[learnedIndex];
+      block.type = type;
+      if (!storedControl) block.params.erase("modelParameters");
+      ardor::LvglUi pendingUi(learnedActions);
+      pendingUi.selectBlock(pendingState, learnedIndex);
+      pendingUi.focusParameter("inputMode");
+      if (require(pendingUi.applyFocusedParameterDelta(pendingState, 1)
+          && ardor::pendingStructuralPreview(pendingState),
+          "Input source change should queue a prepared preview")) return 1;
+      const auto paramsBefore = block.params;
+      const auto statusBefore = pendingState.revisions.status;
+      const auto parameterRevision = pendingState.revisions.parameters;
+      const auto updatesBefore = learnedUpdates;
+      pendingUi.focusParameter("model:Drive");
+      // The UI consumes focused input even when the edit is refused, so an
+      // encoder turn cannot fall through to the master-volume handler.
+      if (require(pendingUi.applyFocusedParameterDelta(pendingState, 1)
+          && learnedUpdates == updatesBefore && block.params == paramsBefore
+          && ardor::pendingStructuralPreview(pendingState)
+          && pendingState.revisions.parameters == parameterRevision
+          && pendingState.revisions.status == statusBefore,
+          "pending preview must block untouched and saved learned controls without dispatch or mutation")) return 1;
+      const auto controls = ardor::parameterPage(pendingState, 0);
+      const auto drive = std::find_if(controls.begin(), controls.end(), [](const auto& control) {
+        return control.key == "model:Drive";
+      });
+      if (require(drive != controls.end() && !ardor::applyParameterDelta(pendingState, *drive, 1),
+          "learned delta must report failure while its edit is blocked")) return 1;
+      completePreview(pendingState);
+      if (require(pendingUi.applyFocusedParameterDelta(pendingState, 1)
+          && learnedUpdates == updatesBefore + 1 && block.params.contains("modelParameters"),
+          "learned controls should resume live updates after preview completion")) return 1;
+    }
+  }
+  auto rejectedLearnedState = learnedState;
+  const auto learnedParams = rejectedLearnedState.bank.presets[rejectedLearnedState.activePreset].blocks[learnedIndex].params;
+  learnedActions.updateBlockParameter = [](const std::string&, const std::string&, float) { return false; };
+  ardor::LvglUi rejectedLearnedUi(learnedActions);
+  rejectedLearnedUi.focusParameter("model:Drive");
+  if (require(rejectedLearnedUi.applyFocusedParameterDelta(rejectedLearnedState, 1)
+      && ardor::pendingStructuralPreview(rejectedLearnedState)
+      && !ardor::pendingStructuralPreview(rejectedLearnedState)->notifyOnSuccess,
+      "rejected learned targets use a silent prepared fallback")) return 1;
+  ardor::failStructuralPreview(rejectedLearnedState, "live target missing");
+  if (require(rejectedLearnedState.statusIsError
+      && rejectedLearnedState.bank.presets[rejectedLearnedState.activePreset].blocks[learnedIndex].params == learnedParams,
+      "failed learned fallback restores the audible controls and reports the error")) return 1;
+
   if (require(ardor::parameterPage(state, 0).size() <= 6, "page must contain <= six sliders")) return 1;
   if (require(ardor::parameterPageCount(state) == 2, "seven params should use two slider pages")) return 1;
 
@@ -899,6 +983,69 @@ int main()
   if (require(glyphBitmap, "Open Sans glyphs should render in LVGL")) return 1;
 
   lv_display_t* display = lv_display_create(1280, 720);
+  {
+    // Opening a stock amp first must not lend its two-control panel to a
+    // parametric amp selected later from the drawer. Refresh retains panels;
+    // build() would clear the cache and hide this crash.
+    auto modelState = ardor::makeDemoUiState();
+    ardor::Preset snapshot;
+    snapshot.name = "Snapshot controls";
+    snapshot.blocks.push_back({"snapshot", "nam", true, "models/snapshot.nam", nlohmann::json::object()});
+    ardor::replaceActivePreset(modelState, snapshot);
+    ardor::enterEditMode(modelState);
+    ardor::LvglUi modelUi;
+    modelUi.selectBlock(modelState, 0);
+    modelUi.build(lv_screen_active(), modelState);
+    if (require(ardor::parameterPage(modelState, 0).size() == 2,
+                "snapshot amp should cache its two-control panel")) return 1;
+
+    ardor::UiAsset model{"Bassman controls", "models/bassman.nam", "amps", "nam"};
+    model.modelParameterSpecs = nlohmann::json::array({
+      {{"name", "Gain"}, {"min", 1}, {"max", 10}, {"default", 5}, {"type", "continuous"}},
+      {{"name", "Mode"}, {"min", 0}, {"max", 7}, {"default", 2}, {"type", "switch"},
+       {"enum_names", {"Bass / Deep Off", "Bass / Deep On", "Normal / Bright Off", "Normal / Bright On",
+                       "Jumped / Deep Off / Bright Off", "Jumped / Deep Off / Bright On",
+                       "Jumped / Deep On / Bright Off", "Jumped / Deep On / Bright On"}}},
+    });
+    modelState.assets.push_back(model);
+    ardor::Preset empty;
+    empty.name = "Fresh capture preset";
+    ardor::replaceActivePreset(modelState, empty);
+    ardor::enterEditMode(modelState);
+    ardor::openBlockDrawer(modelState);
+    modelUi.refresh(lv_screen_active(), modelState);
+    lv_obj_update_layout(lv_screen_active());
+    auto* modelLabel = findLabel(lv_screen_active(), "BASSMAN CONTROLS");
+    if (require(modelLabel != nullptr, "parametric amp should appear in the drawer")) return 1;
+    auto* modelButton = lv_obj_get_parent(modelLabel);
+    lv_obj_send_event(modelButton, LV_EVENT_CLICKED, nullptr);
+    if (require(ardor::pendingStructuralPreview(modelState) != nullptr,
+                "choosing the model should request a real structural preview")) return 1;
+    modelUi.refresh(lv_screen_active(), modelState);
+    completePreview(modelState);
+    modelUi.refresh(lv_screen_active(), modelState);
+    lv_obj_update_layout(lv_screen_active());
+    if (require(findSliderLabel(lv_screen_active(), "GAIN")
+                  && findSliderLabel(lv_screen_active(), "MODE")
+                  && ardor::parameterPage(modelState, 0).size() == 3,
+                "parametric amp should replace the cached snapshot control layout")) return 1;
+
+    // Equal control counts are not enough either: another NAM can replace
+    // the Mode picker with a continuous knob, or have different choices.
+    modelState.assets.back().modelParameterSpecs[1] = {
+      {"name", "Tone"}, {"min", 0}, {"max", 10}, {"default", 5}, {"type", "continuous"}};
+    ardor::markUiChanged(modelState, ardor::UiChange::Assets | ardor::UiChange::Parameters);
+    modelUi.refresh(lv_screen_active(), modelState);
+    lv_obj_update_layout(lv_screen_active());
+    auto* toneLabel = findSliderLabel(lv_screen_active(), "TONE");
+    if (require(toneLabel && findTravelFill(lv_obj_get_parent(toneLabel)),
+                "same-count NAM schemas must select the correct continuous widget")) return 1;
+    modelState.assets.back().modelParameterSpecs = model.modelParameterSpecs;
+    ardor::markUiChanged(modelState, ardor::UiChange::Assets | ardor::UiChange::Parameters);
+    modelUi.refresh(lv_screen_active(), modelState);
+    if (require(findSliderLabel(lv_screen_active(), "MODE"),
+                "returning to the switch schema should restore its retained panel")) return 1;
+  }
   const char* screenshotPath = std::getenv("ARDOR_UI_SCREENSHOT");
   const char* editScreenshotPath = std::getenv("ARDOR_UI_EDIT_SCREENSHOT");
   const char* scenesScreenshotPath = std::getenv("ARDOR_UI_SCENES_SCREENSHOT");

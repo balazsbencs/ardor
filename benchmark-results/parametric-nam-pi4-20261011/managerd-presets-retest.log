@@ -1,0 +1,19 @@
+=== RUN   TestScenesStarterExampleIsValid
+--- PASS: TestScenesStarterExampleIsValid (0.00s)
+=== RUN   TestValidatePreset
+--- PASS: TestValidatePreset (0.00s)
+=== RUN   TestReplaceWdwAssetReferences
+--- PASS: TestReplaceWdwAssetReferences (0.00s)
+=== RUN   TestReplaceDualAmpAssetReferences
+--- PASS: TestReplaceDualAmpAssetReferences (0.00s)
+=== RUN   TestValidateAndReplaceDualRigAssetReferences
+--- PASS: TestValidateAndReplaceDualRigAssetReferences (0.00s)
+=== RUN   TestStoreSaveLoadList
+--- PASS: TestStoreSaveLoadList (0.00s)
+=== RUN   TestStoreNormalizesLegacyEffectPlaceholders
+--- PASS: TestStoreNormalizesLegacyEffectPlaceholders (0.00s)
+=== RUN   TestAssetUsageListsPresetsPerPath
+--- PASS: TestAssetUsageListsPresetsPerPath (0.00s)
+=== RUN   TestAssetUsageWalksDualAmpParamsDualRigLanesAndWdwLanes
+--- PASS: TestAssetUsageWalksDualAmpParamsDualRigLanesAndWdwLanes (0.01s)
+PASS

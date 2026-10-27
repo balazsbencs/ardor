@@ -362,6 +362,14 @@ bool WdwRoutingProgram::setParametricEqPassFilter(const std::string& id, EqPassF
         && wetContext_->chain->setParametricEqPassFilter(id, kind, params));
 }
 
+bool WdwRoutingProgram::setNamParameter(const std::string& id, const std::string& name, float value)
+{
+  return (dryContext_ && dryContext_->chain
+          && dryContext_->chain->setNamParameter(id, name, value))
+    || (wetContext_ && wetContext_->chain
+        && wetContext_->chain->setNamParameter(id, name, value));
+}
+
 bool WdwRoutingProgram::setDaisyParameter(const std::string& id, const std::string& key,
                                           float normalized)
 {

@@ -30,6 +30,8 @@ struct UiAsset {
   // Drawer list secondary line, e.g. "Modulation · 6 controls". Empty is fine
   // -- the row just shows the name.
   std::string subtitle;
+  nlohmann::json modelParameterSpecs = nlohmann::json::array();
+  bool modelSlimmable = false;
 };
 
 struct UiBlock {
@@ -41,6 +43,8 @@ struct UiBlock {
   bool enabled = true;
   nlohmann::json params = nlohmann::json::object();
   std::array<std::vector<UiBlock>, 2> lanes;
+  nlohmann::json modelParameterSpecs = nlohmann::json::array();
+  bool modelSlimmable = false;
 };
 
 struct UiPreset {
@@ -181,6 +185,7 @@ struct UiPreviewSnapshot {
 struct UiPreviewTransaction {
   UiPreviewSnapshot rollback;
   std::string operation;
+  bool notifyOnSuccess = true;
 };
 
 struct UiClipDebugTelemetry {
@@ -384,7 +389,8 @@ bool setSelectedBlockEnabledLive(UiState& state, bool enabled);
 void setActiveInputGainDb(UiState& state, float db);
 void setActiveOutputGainDb(UiState& state, float db);
 void setMasterVolume(UiState& state, int volume);
-void setSelectedBlockParam(UiState& state, const std::string& key, float value);
+// Returns false when the edit is refused; callers must not dispatch it live.
+bool setSelectedBlockParam(UiState& state, const std::string& key, float value);
 void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann::json value);
 ParametricEqParams selectedParametricEqParams(const UiState& state);
 bool setSelectedEqBand(UiState& state, std::size_t bandIndex, EqBandParams params);
@@ -394,7 +400,8 @@ bool resetSelectedEqPassFilter(UiState& state, EqPassFilterKind kind);
 
 bool previewIsSynchronized(const UiState& state);
 UiPreviewSnapshot captureUiPreviewSnapshot(const UiState& state);
-bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation);
+bool queuePreview(UiState& state, UiPreviewSnapshot rollback, std::string operation,
+                  bool notifyOnSuccess = true);
 const UiPreviewTransaction* pendingStructuralPreview(const UiState& state);
 void completeStructuralPreview(UiState& state);
 void failStructuralPreview(UiState& state, std::string error);

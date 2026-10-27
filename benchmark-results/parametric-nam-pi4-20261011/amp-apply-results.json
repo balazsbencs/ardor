@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "method": "POST",
+      "path": "/api/presets/banks/97/slots/0/apply",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781674283631583",
+      "status": 202
+    },
+    {
+      "method": "GET",
+      "path": "/api/runtime/apply/apply-1791781674283631583",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "path": "/api/device",
+      "status": 200
+    },
+    {
+      "applied": true,
+      "milliseconds": 148.07343715801835,
+      "active": {
+        "bank": 97,
+        "slot": 0,
+        "name": "Hardware FiLM amp",
+        "revision": "ab926eb375e264e3e1ab3318d71ba8c706169c1db4fb763908ef25960b47c0ea",
+        "storedRevisionMatches": true
+      }
+    }
+  ]
+}

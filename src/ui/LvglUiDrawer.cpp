@@ -91,7 +91,7 @@ std::string drawerFilterDisplayName(const std::string& filter)
 std::string wdwAssetBlockType(const UiAsset& asset)
 {
   if (!asset.blockType.empty()) return asset.blockType;
-  if (asset.type == "amps") return "nam";
+  if (asset.type == "amps") return asset.blockType == "namPedal" ? "namPedal" : "nam";
   if (asset.type == "cabs") return "cab";
   return asset.type;
 }
@@ -100,11 +100,11 @@ bool wdwAssetAllowedOnLane(const UiAsset& asset, std::size_t lane)
 {
   const auto blockType = wdwAssetBlockType(asset);
   if (lane == 0) {
-    return blockType == "nam" || blockType == "cab"
+    return blockType == "nam" || blockType == "namPedal" || blockType == "cab"
       || blockType == "dynamics" || blockType == "eq"
       || blockType == "distortion" || blockType == "wah";
   }
-  return blockType == "nam" || blockType == "cab"
+  return blockType == "nam" || blockType == "namPedal" || blockType == "cab"
     || blockType == "mod" || blockType == "delay"
     || blockType == "reverb" || blockType == "irreverb"
     || blockType == "stereo";

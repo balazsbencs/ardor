@@ -174,7 +174,22 @@ function assetIssues(block: PresetBlock, definition: EffectDefinition, assets: A
       issues.push(blockWarning(block, "asset-required", `${control.label} is required before this block can be applied.`, field));
       continue;
     }
-    if (!available[control.assetKind].some(({ path }) => path === value)) {
+    const installed = available[control.assetKind].find(({ path }) => path === value);
+    if (installed?.nam && !installed.nam.supported) {
+      issues.push(blockError(block, "parameter-type", installed.nam.error ?? "Unsupported NAM architecture.", field));
+    }
+    if (installed?.nam && !control.key) {
+      const parameters = block.params.modelParameters === undefined ? {} : block.params.modelParameters;
+      if (!isRecord(parameters)) issues.push(blockError(block, "parameter-type", "Model controls must be an object.", "params.modelParameters"));
+      else for (const [name, value] of Object.entries(parameters)) {
+        const spec = installed.nam.parameters?.find((p) => p.name === name);
+        if (!spec || typeof value !== "number" || !Number.isFinite(value) || value < spec.min || value > spec.max
+            || (spec.type === "switch" && !Number.isInteger(value))) {
+          issues.push(blockError(block, "parameter-type", `Invalid model control ${name}.`, "params.modelParameters"));
+        }
+      }
+    }
+    if (!installed) {
       issues.push(blockWarning(block, "asset-missing", `${control.label} “${value}” is not installed.`, field));
     }
   }
@@ -589,7 +604,7 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
           laneIssues.push(blockWarning(block, "mono-after-stereo",
             `Cabinet must precede stereo effects in the ${laneName} lane.`, "type"));
         }
-        if (block.enabled && block.type === "nam") laneStereo = false;
+        if (block.enabled && (block.type === "nam" || block.type === "namPedal")) laneStereo = false;
         else if (block.enabled && (block.type === "mod" || block.type === "delay" || block.type === "reverb")) {
           laneStereo = true;
         }
@@ -702,7 +717,7 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
           "type",
         ));
       }
-      if (block.enabled && block.type === "nam") {
+      if (block.enabled && (block.type === "nam" || block.type === "namPedal")) {
         stereoEstablished = false;
       } else if (block.enabled && (block.type === "dualAmp" || block.type === "dualRig")) {
         stereoEstablished = true;
