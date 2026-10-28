@@ -13,6 +13,11 @@ NSScrollView* findScroll(NSView* root) {
   for(NSView* child in root.subviews)if(auto* found=findScroll(child))return found;
   return nil;
 }
+NSView* findIdentifier(NSView* root,NSString* identifier) {
+  if([root.accessibilityIdentifier isEqualToString:identifier])return root;
+  for(NSView* child in root.subviews)if(auto* found=findIdentifier(child,identifier))return found;
+  return nil;
+}
 void capture(NSView* view,const char* name) {
   const char* directory=std::getenv("ARDOR_NAM_SCREENSHOTS");if(!directory)return;
   std::filesystem::create_directories(directory);[view layoutSubtreeIfNeeded];[view displayIfNeeded];
@@ -86,6 +91,27 @@ int main(){@autoreleasepool{try{
     runLoop();capture(view,"05-small");
     auto* input=findView(view,@"Input trim");auto* outputTrim=findView(view,@"Output trim");
     require(input&&outputTrim&&NSContainsRect(view.bounds,[input convertRect:input.bounds toView:view])&&NSContainsRect(view.bounds,[outputTrim convertRect:outputTrim.bounds toView:view]),"I/O controls remain inside minimum-size editor");
+    auto* header=findIdentifier(view,@"nam-header");auto* footer=findIdentifier(view,@"nam-footer");
+    auto* field=findView(view,@"Input trim value");
+    require(header&&footer&&field,"header, footer and numeric field are available");
+    clap_gui_resize_hints_t hints{};
+    require(gui->get_resize_hints(instance.plugin,&hints)&&hints.can_resize_horizontally&&hints.can_resize_vertically&&!hints.preserve_aspect_ratio,"host can resize either dimension independently");
+    const CGFloat headerHeight=header.frame.size.height,footerHeight=footer.frame.size.height;
+    const CGFloat listHeight=scroll.frame.size.height,listWidth=scroll.frame.size.width;
+    const CGFloat rowHeight=input.frame.size.height,fieldWidth=field.frame.size.width;
+    const CGFloat bottomInset=view.bounds.size.height-NSMaxY([footer convertRect:footer.bounds toView:view]);
+    for(const auto dimensions:{std::pair{600u,1000u},std::pair{1200u,600u},std::pair{1200u,1000u}}) {
+      [window setContentSize:NSMakeSize(dimensions.first,dimensions.second)];
+      require(gui->set_size(instance.plugin,dimensions.first,dimensions.second),"resize to tall and wide aspect ratios");
+      runLoop();
+      if(dimensions==std::pair{600u,1000u})capture(view,"06-tall");
+      if(dimensions==std::pair{1200u,600u})capture(view,"07-wide");
+      auto equal=[](CGFloat a,CGFloat b){return std::abs(a-b)<1;};
+      require(equal(header.frame.size.height,headerHeight)&&equal(footer.frame.size.height,footerHeight),"header and I/O footer retain their heights during resizing");
+      require(equal(scroll.frame.size.height,listHeight+dimensions.second-600)&&equal(scroll.frame.size.width,listWidth+dimensions.first-600),"only the model viewport absorbs extra window space");
+      require(equal(input.frame.size.height,rowHeight)&&equal(field.frame.size.width,fieldWidth),"I/O controls and numeric fields keep their native sizes");
+      require(equal(view.bounds.size.height-NSMaxY([footer convertRect:footer.bounds toView:view]),bottomInset),"I/O footer remains anchored to the bottom");
+    }
     require(gui->hide(instance.plugin)&&gui->show(instance.plugin),"hide and reopen");gui->destroy(instance.plugin);runLoop();
     require(window.contentView.subviews.count==0,"native view removed on destroy");
     require(gui->create(instance.plugin,CLAP_WINDOW_API_COCOA,false)&&gui->set_parent(instance.plugin,&parent)&&gui->show(instance.plugin),"recreate editor");
