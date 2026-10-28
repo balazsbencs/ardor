@@ -26,6 +26,7 @@ struct OutputEvents {
   unsigned remaining=0;std::vector<uint16_t> types;
   clap_output_events_t api{this,[](const clap_output_events_t* out,const clap_event_header_t* e){
     auto& s=*static_cast<OutputEvents*>(out->ctx);if(!s.remaining)return false;
+    require(e->flags&CLAP_EVENT_IS_LIVE,"UI events are marked as live user edits");
     --s.remaining;s.types.push_back(e->type);return true;}};
 };
 int main(){@autoreleasepool{try{

@@ -270,11 +270,11 @@ private:
     while(read!=write) {
       const auto& e=events_[read%queueCapacity];bool accepted;
       if(e.type==CLAP_EVENT_PARAM_VALUE) {
-        clap_event_param_value_t v{};v.header={sizeof(v),0,CLAP_CORE_EVENT_SPACE_ID,CLAP_EVENT_PARAM_VALUE,0};
+        clap_event_param_value_t v{};v.header={sizeof(v),0,CLAP_CORE_EVENT_SPACE_ID,CLAP_EVENT_PARAM_VALUE,CLAP_EVENT_IS_LIVE};
         v.param_id=e.id;v.value=e.value;v.note_id=-1;v.port_index=v.channel=v.key=-1;
         accepted=out->try_push(out,&v.header);
       }else {
-        clap_event_param_gesture_t v{};v.header={sizeof(v),0,CLAP_CORE_EVENT_SPACE_ID,e.type,0};v.param_id=e.id;
+        clap_event_param_gesture_t v{};v.header={sizeof(v),0,CLAP_CORE_EVENT_SPACE_ID,e.type,CLAP_EVENT_IS_LIVE};v.param_id=e.id;
         accepted=out->try_push(out,&v.header);
       }
       if(!accepted)break;
@@ -463,7 +463,7 @@ private:
     auto& s=self(p);
     try {
       if(kind!=CLAP_PRESET_DISCOVERY_LOCATION_FILE||!path||(key&&*key)||s.loading_)return false;
-      auto info=ModelInfo::read(std::filesystem::u8path(path));const int tier=static_cast<int>(info.tiers.size()-1);
+      auto info=ModelInfo::read(std::filesystem::path(reinterpret_cast<const char8_t*>(path)));const int tier=static_cast<int>(info.tiers.size()-1);
       s.stage(prepare(std::move(info),tier,Json::object(),s.snapshotValues()));return true;
     }catch(const std::exception& e){s.fail(e.what());return false;}
   }

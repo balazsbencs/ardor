@@ -10,7 +10,10 @@ int main(){try{
   {
     Instance instance(factory);require(instance.params->count(instance.plugin)==6,"empty plugin has only I/O controls");
     auto empty=instance.save();
-    require(instance.loadFile(NAM_CLAP_DEMO),"load real parametric model");require(instance.params->count(instance.plugin)==8,"model controls exposed");
+    auto copied=std::filesystem::temp_directory_path()/std::filesystem::path(u8"Ardor-NAM-Bássman-");
+    copied+=std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+".nam";
+    std::filesystem::copy_file(NAM_CLAP_DEMO,copied);const bool loaded=instance.loadFile(copied);std::filesystem::remove(copied);
+    require(loaded,"load real parametric model from a Unicode path");require(instance.params->count(instance.plugin)==8,"model controls exposed");
     const auto drive=instance.find("Drive"),tone=instance.find("Tone");require(drive!=CLAP_INVALID_ID&&tone!=CLAP_INVALID_ID&&drive!=tone,"distinct named controls");
     require(instance.find("Model size")==CLAP_INVALID_ID,"single model has no fictitious size control");
     char text[128];double value;
