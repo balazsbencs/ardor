@@ -94,6 +94,7 @@ target_link_libraries(nam-clap-host-tests PRIVATE nam_loader_runtime ${CMAKE_DL_
 target_compile_definitions(nam-clap-host-tests PRIVATE NAM_CLAP_BINARY="$<TARGET_FILE:ardor-nam-clap>"
   NAM_CLAP_ROOT="${ARDOR_NAM_ROOT}"
   NAM_CLAP_DEMO="${ARDOR_NAM_ROOT}/assets/nam/Ardor-Parametric-Overdrive-Demo.nam"
+  NAM_CLAP_CORE_MODELS="${neuralampmodelercore_SOURCE_DIR}/example_models"
   NAM_CLAP_SNAPSHOT="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
 add_dependencies(nam-clap-host-tests ardor-nam-clap)
 add_test(NAME nam-clap-host-tests COMMAND nam-clap-host-tests)

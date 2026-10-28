@@ -2,6 +2,8 @@
 #pragma once
 #include "dsp/NamProcessor.h"
 #include "preset/NamMetadata.h"
+#include "NAM/get_dsp.h"
+#include "NAM/slimmable.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -82,7 +84,29 @@ struct ModelInfo {
         previous = high;
       }
       if (previous != 1) throw std::runtime_error("Model sizes must cover the full range");
-    } else result.tiers.push_back({"Single model",1});
+    } else {
+      // Upstream WaveNets can also expose channel-sliced sizes without a
+      // container. Ask the runtime for their actual boundaries.
+      if(result.architecture=="WaveNet") {
+        const auto& config=playable.at("config");
+        const auto layers=config.value("layers",Json::array());
+        const bool sliced=layers.is_array()&&std::any_of(layers.begin(),layers.end(),[](const auto& layer){return layer.contains("slimmable");});
+        if(sliced) {
+          auto probe=nam::get_dsp(playable);
+          if(const auto* slim=dynamic_cast<const nam::SlimmableModel*>(probe.get())) {
+            auto boundaries=slim->GetSlimmableSizeBreakpoints();boundaries.push_back(1);
+            double low=0;
+            for(std::size_t i=0;i<boundaries.size();++i) {
+              const double high=boundaries[i];
+              if(!std::isfinite(high)||high<=low||high>1)throw std::runtime_error("Invalid native model size boundaries");
+              result.tiers.push_back({boundaries.size()==1?"Single model":i+1==boundaries.size()?"Full":"Size "+std::to_string(i+1),static_cast<float>((low+high)*.5)});
+              low=high;
+            }
+          }
+        }
+      }
+      if(result.tiers.empty())result.tiers.push_back({"Single model",1});
+    }
     return result;
   }
   static ModelInfo read(const std::filesystem::path& path) {

@@ -12,6 +12,8 @@ physical model controls, input/output trims, input channel and input calibration
 Size changes prepare a new instance and request a host audio restart; they are not
 advertised as automatable. Controls and their automation IDs survive compatible
 tier changes. Model loads and size changes never parse or prewarm on the audio thread.
+Upstream channel-sliced WaveNets also expose their native widths as Size 1, Size 2,
+and Full, using the runtime's own boundaries.
 
 Saved CLAP state embeds the original model and controls for portable project recall.
 Files are limited to 64 MiB and saved state to 128 MiB. A failed model load preserves
