@@ -2,8 +2,6 @@
 #pragma once
 #include "dsp/NamProcessor.h"
 #include "preset/NamMetadata.h"
-#include "NAM/get_dsp.h"
-#include "NAM/slimmable.h"
 #include <algorithm>
 #include <array>
 #include <cstdint>
@@ -13,6 +11,7 @@
 
 namespace ardor::nam_clap {
 using Json = nlohmann::json;
+std::vector<double> nativeSizeBreakpoints(const Json& document);
 constexpr std::size_t modelLimit = 64 * 1024 * 1024;
 enum Parameter : uint32_t { Input = 1, Output, Bypass, Channel, Calibrate, Reference, Size };
 struct Control {
@@ -92,9 +91,8 @@ struct ModelInfo {
         const auto layers=config.value("layers",Json::array());
         const bool sliced=layers.is_array()&&std::any_of(layers.begin(),layers.end(),[](const auto& layer){return layer.contains("slimmable");});
         if(sliced) {
-          auto probe=nam::get_dsp(playable);
-          if(const auto* slim=dynamic_cast<const nam::SlimmableModel*>(probe.get())) {
-            auto boundaries=slim->GetSlimmableSizeBreakpoints();boundaries.push_back(1);
+          {
+            auto boundaries=nativeSizeBreakpoints(playable);boundaries.push_back(1);
             double low=0;
             for(std::size_t i=0;i<boundaries.size();++i) {
               const double high=boundaries[i];

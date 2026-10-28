@@ -21,6 +21,7 @@ find_package(Threads REQUIRED)
 file(GLOB nam_core_sources "${neuralampmodelercore_SOURCE_DIR}/NAM/*.cpp"
   "${neuralampmodelercore_SOURCE_DIR}/NAM/*/*.cpp")
 add_library(nam_loader_runtime OBJECT ${nam_core_sources}
+  ModelInfo.cpp
   ${ARDOR_NAM_ROOT}/src/dsp/NamProcessor.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/film_wavenet.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/parametric_container.cpp
