@@ -26,6 +26,12 @@ public:
             float slimmableSize = 1.0f,
             std::optional<float> inputReferenceLevelDbU = std::nullopt,
               const nlohmann::json& modelParameters = nlohmann::json::object());
+  // Prepared documents let desktop hosts embed models in their project state.
+  // Parsing/preparation remain control-thread operations, never audio callbacks.
+  bool loadDocument(const nlohmann::json& document, double sampleRate, int maxBlockSize,
+                    float slimmableSize = 1.0f,
+                    std::optional<float> inputReferenceLevelDbU = std::nullopt,
+                    const nlohmann::json& modelParameters = nlohmann::json::object());
   float process(float input);
   void processBlock(const float* input, float* output, size_t frames);
   void clear();
