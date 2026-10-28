@@ -14,6 +14,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  clap:
+    name: Full-chain CLAP
+    uses: ./.github/workflows/clap.yml
+    with:
+      version: 0.0.${{ github.run_number }}
+
+  nam-clap:
+    name: NAM CLAP
+    uses: ./.github/workflows/nam-clap.yml
+    with:
+      version: 0.0.${{ github.run_number }}
+
+  clap-packages:
+    name: Verify CLAP release packages
+    needs: [clap, nam-clap]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/collect-clap-packages
+        with:
+          version: 0.0.${{ github.run_number }}
+      - name: Check package validation failure cases
+        run: python3 tests/clap_release_packages.py
+
   dependency-review:
     name: Dependency review
     if: github.event_name == 'pull_request'

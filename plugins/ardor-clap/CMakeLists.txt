@@ -86,10 +86,10 @@ if(ARDOR_UI_BACKEND STREQUAL "memory")
     set_tests_properties(ardor-clap-gui-host-smoke PROPERTIES TIMEOUT 30)
   endif()
   install(FILES ${lvgl_SOURCE_DIR}/LICENCE.txt DESTINATION licenses/ardor-clap
-    RENAME LVGL.txt COMPONENT clap-beta)
+    RENAME LVGL.txt COMPONENT clap)
   install(FILES ${CMAKE_SOURCE_DIR}/src/ui/fonts/OFL-Saira.txt
     ${CMAKE_SOURCE_DIR}/src/ui/fonts/OFL-JetBrainsMono.txt
-    DESTINATION licenses/ardor-clap COMPONENT clap-beta)
+    DESTINATION licenses/ardor-clap COMPONENT clap)
 endif()
 set_target_properties(ardor-clap PROPERTIES PREFIX "" OUTPUT_NAME "Ardor" SUFFIX ".clap"
   CXX_VISIBILITY_PRESET hidden VISIBILITY_INLINES_HIDDEN YES)
@@ -98,36 +98,44 @@ if(APPLE)
   set_target_properties(ardor-clap PROPERTIES SUFFIX ""
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Ardor.clap/Contents/MacOS")
   configure_file(Info.plist.in Ardor.clap/Contents/Info.plist @ONLY)
-  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Ardor.clap" DESTINATION . COMPONENT clap-beta)
+  install(DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Ardor.clap" DESTINATION . COMPONENT clap)
 else()
   if(UNIX)
     target_link_options(ardor-clap PRIVATE "-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/exports.map")
     set_property(TARGET ardor-clap APPEND PROPERTY LINK_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/exports.map")
   endif()
-  install(TARGETS ardor-clap LIBRARY DESTINATION . COMPONENT clap-beta
-    RUNTIME DESTINATION . COMPONENT clap-beta)
+  install(TARGETS ardor-clap LIBRARY DESTINATION . COMPONENT clap
+    RUNTIME DESTINATION . COMPONENT clap)
 endif()
 set(_notices licenses/ardor-clap)
 install(FILES ${CMAKE_SOURCE_DIR}/LICENSE
-  DESTINATION ${_notices} RENAME Ardor.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME Ardor.txt COMPONENT clap)
 install(FILES ${ardor_clap_sdk_SOURCE_DIR}/LICENSE
-  DESTINATION ${_notices} RENAME CLAP.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME CLAP.txt COMPONENT clap)
 install(FILES ${ardor_speexdsp_SOURCE_DIR}/COPYING
-  DESTINATION ${_notices} RENAME SpeexDSP.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME SpeexDSP.txt COMPONENT clap)
+install(FILES ${CMAKE_SOURCE_DIR}/src/namparam/LICENSE
+  DESTINATION ${_notices} RENAME ParametricNAM.txt COMPONENT clap)
+install(FILES ${CMAKE_SOURCE_DIR}/src/namparam/LICENSE-Gene-Ko
+  DESTINATION ${_notices} RENAME FiLMNAM.txt COMPONENT clap)
+install(FILES ${CMAKE_SOURCE_DIR}/third_party/nlohmann-json/LICENSE.MIT
+  DESTINATION ${_notices} RENAME nlohmann-json.txt COMPONENT clap)
+install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann/json.hpp
+  DESTINATION ${_notices}/nlohmann COMPONENT clap)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/LICENSE
-  DESTINATION ${_notices} RENAME NeuralAmpModelerCore.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME NeuralAmpModelerCore.txt COMPONENT clap)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/AudioDSPTools/LICENSE
-  DESTINATION ${_notices} RENAME AudioDSPTools.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME AudioDSPTools.txt COMPONENT clap)
 file(GLOB _eigen_notices "${neuralampmodelercore_SOURCE_DIR}/Dependencies/eigen/COPYING.*")
-install(FILES ${_eigen_notices} DESTINATION ${_notices}/Eigen COMPONENT clap-beta)
+install(FILES ${_eigen_notices} DESTINATION ${_notices}/Eigen COMPONENT clap)
 install(FILES "${CMAKE_SOURCE_DIR}/third_party/fftw/COPYING"
-  DESTINATION ${_notices} RENAME FFTW.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME FFTW.txt COMPONENT clap)
 install(FILES ${CMAKE_SOURCE_DIR}/third_party/cycfi-q/LICENSE
-  DESTINATION ${_notices} RENAME cycfi-q.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME cycfi-q.txt COMPONENT clap)
 install(FILES ${CMAKE_SOURCE_DIR}/src/daisyfx/hosted/UPSTREAM_LICENSE
-  DESTINATION ${_notices} RENAME HostedDaisyFx.txt COMPONENT clap-beta)
+  DESTINATION ${_notices} RENAME HostedDaisyFx.txt COMPONENT clap)
 install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/README.md
-  DESTINATION . COMPONENT clap-beta)
+  DESTINATION . COMPONENT clap)
 
 if(UNIX OR WIN32)
 add_executable(ardor-clap-host-smoke ${CMAKE_SOURCE_DIR}/tests/clap_host_smoke.cpp)
@@ -135,6 +143,7 @@ target_include_directories(ardor-clap-host-smoke PRIVATE ${ardor_clap_sdk_SOURCE
 target_link_libraries(ardor-clap-host-smoke PRIVATE ardor_preset ${CMAKE_DL_LIBS})
 target_compile_definitions(ardor-clap-host-smoke PRIVATE
   ARDOR_CLAP_BINARY="$<TARGET_FILE:ardor-clap>"
+  ARDOR_CLAP_EXPECTED_VERSION="${ARDOR_VERSION}"
   ARDOR_NAM_EXAMPLE_MODEL="${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam")
 set_target_properties(ardor-clap-host-smoke PROPERTIES ENABLE_EXPORTS TRUE)
 add_dependencies(ardor-clap-host-smoke ardor-clap)
