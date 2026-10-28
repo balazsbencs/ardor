@@ -123,6 +123,23 @@ int main(){try{
     const auto delay=latency->get(recalled.plugin);require(delay>0&&delay<1024,"48 kHz bridge reports bounded latency");
     float error=0;for(unsigned i=4096;i<actual.size();++i)error=std::max(error,std::abs(actual[i]-expected[i-delay]));
     require(error<.00001f,"CLAP preserves Ardor input calibration and loudness normalization");recalled.off();
+    for(const auto* file:{"slimmable_wavenet.nam","slimmable_container.nam"}) {
+      const auto path=std::filesystem::path(NAM_CLAP_CORE_MODELS)/file;
+      ardor::NamProcessor probe;require(probe.load(path,48000,64),"native upstream slimmable reference");
+      const auto info=ModelInfo::read(path);
+      require(info.tiers.size()==probe.slimmableSizeBreakpoints().size()+1&&info.tiers.size()>1,"native sizes match the upstream runtime");
+      require(recalled.loadFile(path)&&recalled.find("Model size")==Size,"native multi-size NAM exposes size selector");
+      for(unsigned i=0;i<info.tiers.size();++i) {
+        auto native=recalled.save();auto j=Json::parse(native.data);j["tier"]=i;native.data=j.dump();
+        require(recalled.restore(native)&&recalled.value(Size)==i,"every native model size recalls");
+        recalled.on();recalled.audio(2048);recalled.off();
+      }
+    }
+    auto wrapper=readJson(NAM_CLAP_SNAPSHOT);wrapper["embedded_parametric"]=dual;
+    combined=document;combined["model"]=wrapper;combined["tier"]=0;combined["controls"]={{"Drive",5},{"Tone",5}};
+    combinedState.data=combined.dump();require(recalled.restore(combinedState),"embedded parametric payload loads");
+    require(recalled.params->count(recalled.plugin)==8&&recalled.find("Drive")==drive,"embedded controls replace the snapshot wrapper's definitions");
+    recalled.on();recalled.audio(2048);recalled.off();
   }
   entry->deinit();clap_test::close(library);std::cout<<"NAM CLAP model loading, automation, tier/state recall and host-rate checks passed.\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}
