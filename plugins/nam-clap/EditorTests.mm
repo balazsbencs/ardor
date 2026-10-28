@@ -57,6 +57,11 @@ int main(){@autoreleasepool{try{
     require(output.types==std::vector<uint16_t>{CLAP_EVENT_PARAM_GESTURE_BEGIN},"gesture begins before value");
     output.remaining=10;instance.params->flush(instance.plugin,nullptr,&output.api);
     require(output.types==std::vector<uint16_t>{CLAP_EVENT_PARAM_GESTURE_BEGIN,CLAP_EVENT_PARAM_VALUE,CLAP_EVENT_PARAM_GESTURE_END},"host backpressure retains value and gesture end");
+    for(unsigned i=0;i<400;++i){slider.doubleValue=i%11;[slider sendAction:slider.action to:slider.target];}
+    output.types.clear();output.remaining=4096;instance.params->flush(instance.plugin,nullptr,&output.api);
+    int gestures=0;
+    for(const auto type:output.types){if(type==CLAP_EVENT_PARAM_GESTURE_BEGIN)++gestures;if(type==CLAP_EVENT_PARAM_GESTURE_END)--gestures;require(gestures>=0&&gestures<=1,"gestures remain ordered when the UI queue fills");}
+    require(gestures==0,"a full UI queue retains every accepted gesture end");
     auto state=instance.save();auto document=Json::parse(state.data);
     document["model"]=readJson(std::filesystem::path(NAM_CLAP_ROOT)/"tests/fixtures/parametric-trainer-a2-dual.json")["models"][0]["model"];
     document["name"]="Two-tier trainer fixture.nam";document["controls"]={{"Drive",7},{"Mode",1}};document["tier"]=1;

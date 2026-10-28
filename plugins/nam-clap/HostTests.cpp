@@ -48,8 +48,21 @@ int main(){try{
     const auto rapidLimit=std::chrono::steady_clock::now()+std::chrono::seconds(20);
     while(recalled.host.rescans<rescans+2&&std::chrono::steady_clock::now()<rapidLimit){recalled.callbacks();std::this_thread::sleep_for(std::chrono::milliseconds(2));}
     require(recalled.host.rescans>=rescans+2&&recalled.value(size)==0&&recalled.value(drive)==7,"latest size request survives background preparation and host restarts");
+    recalled.set(size,1);
+    const auto pendingLimit=std::chrono::steady_clock::now()+std::chrono::seconds(20);
+    while(!recalled.host.restart.load()&&std::chrono::steady_clock::now()<pendingLimit){
+      if(recalled.host.callback.exchange(false))recalled.plugin->on_main_thread(recalled.plugin);
+      std::this_thread::sleep_for(std::chrono::milliseconds(2));
+    }
+    require(recalled.host.restart.load(),"tier preparation reaches host restart boundary");
+    recalled.set(drive,8);auto pendingState=recalled.save();
+    require(Json::parse(pendingState.data)["controls"]["Drive"]==8,"project save retains edits made while a tier awaits restart");
+    recalled.callbacks();require(recalled.value(drive)==8&&recalled.value(size)==1,"tier commit retains the same saved live edits");
     recalled.audio(2048);recalled.off();
     require(recalled.loadFile(NAM_CLAP_SNAPSHOT),"ordinary snapshot model loads");require(recalled.params->count(recalled.plugin)==6,"snapshot has no learned controls or fake tiers");require(recalled.host.clears>=3,"removed controls clear stale host automation");
+    auto noMetadata=readJson(NAM_CLAP_SNAPSHOT);noMetadata["metadata"]=nullptr;
+    auto snapshotState=document;snapshotState["model"]=noMetadata;snapshotState["tier"]=0;snapshotState["controls"]=Json::object();
+    Stream plain;plain.data=snapshotState.dump();require(recalled.restore(plain),"snapshot NAM accepts null optional metadata");
     auto invalid=dual;invalid["architecture"]="HyperWaveNet";combined["model"]=invalid;Stream invalidState;invalidState.data=combined.dump();
     require(!recalled.restore(invalidState)&&recalled.params->count(recalled.plugin)==6,"unsupported model preserves the old model");
     auto info=ModelInfo::parse(dual,"Demo");auto reordered=dual;

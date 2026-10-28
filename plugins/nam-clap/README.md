@@ -42,6 +42,21 @@ Linux builds are provided only for ABI/audio validation and use host parameter U
 Dependencies are pinned; builds fetch the same NAM core as Ardor, CLAP headers,
 Eigen and SpeexDSP. Licenses are installed alongside the module.
 
+The `NAM CLAP` GitHub Actions workflow produces `ArdorNAM-macOS-arm64.zip`,
+including the plugin, this guide and license notices. It requires macOS 13 or
+newer. These development builds are ad-hoc signed, rather than notarized with a
+Developer ID. If macOS blocks a downloaded build, remove quarantine from this
+specific installed bundle before rescanning:
+
+```sh
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/CLAP/ArdorNAM.clap"
+```
+
+The workflow also runs model/reference inference, automation, project recall and
+rate-conversion checks, then the upstream CLAP validator. Its native editor test
+captures empty, single-model, combined-model, 24-control and minimum-size views
+in the `ArdorNAM-checks-macos-26` artifact (with the commit appended to the name).
+
 The calibration controls are optional. Enable them only when the model supplies
 `input_level_dbu` and you know your interface's matching full-scale reference.
 Uncalibrated operation leaves that mapping at unity and retains the manual input trim.

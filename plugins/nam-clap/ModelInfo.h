@@ -42,8 +42,10 @@ struct ModelInfo {
     const auto specs = namParameterSpecs(playable);
     result.name = std::move(name);
     result.architecture = playable.at("architecture").get<std::string>();
-    const auto metadata = playable.value("metadata", Json::object());
-    result.gear = metadata.value("gear_type", std::string{"amp"});
+    auto metadata = playable.value("metadata", Json::object());
+    if(!metadata.is_object())metadata=Json::object();
+    result.gear = metadata.contains("gear_type")&&metadata["gear_type"].is_string()
+      ? metadata["gear_type"].get<std::string>() : "amp";
     if (metadata.contains("input_level_dbu") && metadata["input_level_dbu"].is_number()) {
       const double value = metadata["input_level_dbu"].get<double>();
       if (!std::isfinite(value)) throw std::runtime_error("Invalid model input reference");
