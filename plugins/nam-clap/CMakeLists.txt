@@ -63,7 +63,7 @@ if(APPLE)
   target_sources(ardor-nam-clap PRIVATE EditorMac.mm)
   set_source_files_properties(EditorMac.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
   target_compile_definitions(ardor-nam-clap PRIVATE ARDOR_NAM_COCOA=1)
-  target_link_libraries(ardor-nam-clap PRIVATE "-framework AppKit" "-framework QuartzCore" objc)
+  target_link_libraries(ardor-nam-clap PRIVATE "-framework AppKit" "-framework QuartzCore" "-framework UniformTypeIdentifiers" objc)
   target_link_options(ardor-nam-clap PRIVATE "-Wl,-exported_symbol,_clap_entry")
   set_target_properties(ardor-nam-clap PROPERTIES SUFFIX ""
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/ArdorNAM.clap/Contents/MacOS")

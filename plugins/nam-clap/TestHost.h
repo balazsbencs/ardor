@@ -73,12 +73,12 @@ struct Instance {
   ~Instance(){off();plugin->destroy(plugin);}
   void on(double r=48000){rate=r;require(plugin->activate(plugin,r,1,512),"activate");host.active=true;require(plugin->start_processing(plugin),"start processing");}
   void off(){if(host.active){plugin->stop_processing(plugin);host.active=false;plugin->deactivate(plugin);}}
-  bool loadFile(const std::filesystem::path& path){const auto text=clap_test::utf8(path);return preset->from_location(plugin,CLAP_PRESET_DISCOVERY_LOCATION_FILE,text.c_str(),nullptr);}
+  bool loadFile(const std::filesystem::path& path){const auto text=clap_test::utf8(path);const bool ok=preset->from_location(plugin,CLAP_PRESET_DISCOVERY_LOCATION_FILE,text.c_str(),nullptr);if(!ok&&!host.errors.empty())std::cerr<<host.errors.back()<<"\n";return ok;}
   double value(clap_id id){double v=0;require(params->get_value(plugin,id,&v),"parameter value");return v;}
   clap_id find(const std::string& name){for(unsigned i=0;i<params->count(plugin);++i){clap_param_info_t info{};require(params->get_info(plugin,i,&info),"get parameter definition");if(name==info.name)return info.id;}return CLAP_INVALID_ID;}
   void set(clap_id id,double value){Events e;e.add(id,value);params->flush(plugin,&e.api,nullptr);}
   Stream save(){Stream s;require(state->save(plugin,&s.out),"save state with partial writes");return s;}
-  bool restore(Stream& s){s.position=0;return state->load(plugin,&s.in);}
+  bool restore(Stream& s){s.position=0;const bool ok=state->load(plugin,&s.in);if(!ok&&!host.errors.empty())std::cerr<<host.errors.back()<<"\n";return ok;}
   std::vector<float> audio(unsigned count,Events* events=nullptr,bool doubles=false,bool inPlace=false){
     require(host.active,"audio requires activation");std::vector<float> all;all.reserve(count);
     const std::array<unsigned,5> sizes{1,17,64,127,257};unsigned position=0,block=0;

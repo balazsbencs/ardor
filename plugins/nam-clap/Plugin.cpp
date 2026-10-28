@@ -61,6 +61,7 @@ private:
   const clap_host_state_t* hostState_=nullptr;
   const clap_host_log_t* hostLog_=nullptr;
   std::unique_ptr<Prepared> model_,pending_;
+  std::array<double,slots> pendingEmptyValues_{};
   std::array<std::atomic<double>,slots> values_{};
   std::array<double,24> applied_{};
   std::array<UiEvent,queueCapacity> events_{};
@@ -70,7 +71,8 @@ private:
   std::atomic<float> inputPeak_{0},outputPeak_{0};
   std::future<Result> future_;
   std::thread worker_;
-  bool active_=false,loading_=false,pendingPreserve_=false;
+  bool active_=false,loading_=false,pendingPreserve_=false,pendingChange_=false;
+  uint32_t gestureId_=CLAP_INVALID_ID;
   uint64_t revision_=1;
   std::string status_="Load a NAM model to begin.";
   clap_audio::RateAdapter rate_;
@@ -147,6 +149,7 @@ private:
     return result;
   }
   void install(std::unique_ptr<Prepared> prepared,bool preserve) {
+    const int requested=preserve?requestedTier_.load():-1;
     std::vector<uint32_t> old;
     for(unsigned i=0;i<paramCount(&api);++i)old.push_back(idAt(i));
     if(preserve && prepared && model_)prepared->values=snapshotValues();
@@ -158,29 +161,30 @@ private:
     }
     model_=std::move(prepared);
     if(model_)for(unsigned i=0;i<slots;++i)values_[i].store(model_->values[i]);
-    else for(unsigned i=firstControl;i<slots;++i)values_[i].store(0);
-    read_.store(write_.load());requestedTier_.store(-1);
+    else for(unsigned i=0;i<slots;++i)values_[i].store(i<globals.size()?pendingEmptyValues_[i]:0);
+    read_.store(write_.load());gestureId_=CLAP_INVALID_ID;requestedTier_.store(requested);pendingChange_=false;
     applied_.fill(std::numeric_limits<double>::quiet_NaN());fault_.store(false);
     status_=model_?"Ready":"Load a NAM model to begin.";++revision_;
     if(hostParams_) {
       for(auto id:old)if(slot(id)<0)hostParams_->clear(host_,id,CLAP_PARAM_CLEAR_ALL);
       hostParams_->rescan(host_,CLAP_PARAM_RESCAN_ALL);
     }
+    if(requested>=0)callback();
   }
   void stage(std::unique_ptr<Prepared> prepared,bool preserve=false) {
     if(active_) {
-      pending_=std::move(prepared);pendingPreserve_=preserve;
+      pending_=std::move(prepared);pendingPreserve_=preserve;pendingChange_=true;
       status_="Ready to switch — waiting for the host to restart audio.";++revision_;
       host_->request_restart(host_);
     } else install(std::move(prepared),preserve);
     if(hostState_)hostState_->mark_dirty(host_);
   }
   void asyncLoad(std::filesystem::path path) {
-    if(loading_ || pending_)return;
+    if(loading_ || pendingChange_)return;
     loading_=true;status_="Loading model…";++revision_;
     const auto values=snapshotValues();
     auto promise=std::make_shared<std::promise<Result>>();future_=promise->get_future();
-    worker_=std::thread([this,promise,path=std::move(path),values] {
+    try {worker_=std::thread([this,promise,path=std::move(path),values] {
       Result result;
       try {
         auto info=ModelInfo::read(path);
@@ -189,29 +193,37 @@ private:
       }catch(const std::exception& e){result.error=e.what();}
       promise->set_value(std::move(result));
       if(!destroying_.load())callback();
-    });
+    });}catch(...){loading_=false;future_={};throw;}
   }
   void tierLoad(int tier) {
-    if(!model_ || loading_ || pending_ || tier<0 || static_cast<std::size_t>(tier)>=model_->info.tiers.size())return;
+    if(!model_ || loading_ || pendingChange_ || tier<0 || static_cast<std::size_t>(tier)>=model_->info.tiers.size())return;
     if(tier==static_cast<int>(model_->values[Size-1]))return;
     loading_=true;status_="Preparing model size…";++revision_;
     auto info=model_->info;const auto targets=controls();const auto values=snapshotValues();
     auto promise=std::make_shared<std::promise<Result>>();future_=promise->get_future();
-    worker_=std::thread([this,promise,info=std::move(info),tier,targets,values]() mutable {
+    try {worker_=std::thread([this,promise,info=std::move(info),tier,targets,values]() mutable {
       Result result;result.preserve=true;
       try {result.model=prepare(std::move(info),tier,targets,values);}
       catch(const std::exception& e){result.error=e.what();}
       promise->set_value(std::move(result));
       if(!destroying_.load())callback();
-    });
+    });}catch(...){loading_=false;future_={};throw;}
   }
   void tick() {
     if(future_.valid() && future_.wait_for(std::chrono::seconds(0))==std::future_status::ready) {
       auto result=future_.get();if(worker_.joinable())worker_.join();loading_=false;
-      if(result.model)stage(std::move(result.model),result.preserve);else fail(result.error);
+      if(result.model) {
+        if(!result.preserve)for(unsigned i=0;i<globals.size();++i)result.model->values[i]=values_[i].load();
+        stage(std::move(result.model),result.preserve);
+      }else {
+        if(model_)values_[Size-1].store(model_->values[Size-1]);
+        fail(result.error);
+      }
     }
-    const int tier=requestedTier_.exchange(-1);
-    if(tier>=0)tierLoad(tier);
+    if(!loading_&&!pendingChange_) {
+      const int tier=requestedTier_.exchange(-1);
+      if(tier>=0)tierLoad(tier);
+    }
   }
   bool push(UiEvent event) noexcept {
     const auto write=write_.load(std::memory_order_relaxed);
@@ -220,7 +232,14 @@ private:
   }
   void gesture(uint32_t id,bool begin) {
     if(slot(id)<0)return;
-    push({static_cast<uint16_t>(begin?CLAP_EVENT_PARAM_GESTURE_BEGIN:CLAP_EVENT_PARAM_GESTURE_END),id,0});
+    // Reserve room for the matching end even when the host stops accepting events.
+    if(begin) {
+      if(gestureId_!=CLAP_INVALID_ID||write_.load()-read_.load()>=queueCapacity-1)return;
+      if(push({CLAP_EVENT_PARAM_GESTURE_BEGIN,id,0}))gestureId_=id;
+    }else {
+      if(gestureId_!=id)return;
+      push({CLAP_EVENT_PARAM_GESTURE_END,id,0});gestureId_=CLAP_INVALID_ID;
+    }
     if(hostParams_)hostParams_->request_flush(host_);
   }
   void uiChange(uint32_t id,double v) {
@@ -228,7 +247,7 @@ private:
     const auto* c=definition(id);
     const double low=id==Size?0:c->min, high=id==Size?static_cast<double>(model_->info.tiers.size()-1):c->max;
     v=std::clamp(v,low,high);if(id==Size||(c&&c->stepped()))v=std::round(v);
-    if(!push({CLAP_EVENT_PARAM_VALUE,id,v}))return;
+    if(gestureId_!=id||write_.load()-read_.load()>=queueCapacity-1||!push({CLAP_EVENT_PARAM_VALUE,id,v}))return;
     values_[n].store(v);
     if(id==Size){requestedTier_.store(static_cast<int>(v));tick();}
     if(hostParams_)hostParams_->request_flush(host_);
@@ -306,7 +325,7 @@ private:
   }
   static void CLAP_ABI deactivate(const clap_plugin_t* p) noexcept {
     auto& s=self(p);s.active_=false;
-    try{if(s.pending_)s.install(std::move(s.pending_),s.pendingPreserve_);}catch(...){s.fail("Cannot switch model.");}
+    try{if(s.pendingChange_)s.install(std::move(s.pending_),s.pendingPreserve_);}catch(...){s.fail("Cannot switch model.");}
   }
   static bool CLAP_ABI start(const clap_plugin_t* p) noexcept {return self(p).active_;}
   static void CLAP_ABI stop(const clap_plugin_t*) noexcept {}
@@ -405,12 +424,12 @@ private:
     auto& s=self(p);if(in)for(unsigned i=0,n=in->size(in);i<n;++i)s.event(in->get(in,i));s.emit(out);
   }
   Json stateJson() const {
-    const auto* m=pending_?pending_.get():model_.get();
-    Json g=Json::array();for(unsigned i=0;i<globals.size();++i)g.push_back(pending_?pending_->values[i]:values_[i].load());
+    const auto* m=pendingChange_?pending_.get():model_.get();
+    Json g=Json::array();for(unsigned i=0;i<globals.size();++i)g.push_back(pendingChange_?(m?m->values[i]:pendingEmptyValues_[i]):values_[i].load());
     Json values=Json::object();
-    if(m)for(unsigned i=0;i<m->info.controls.size();++i)values[m->info.controls[i].name]=pending_?m->values[firstControl+i]:values_[firstControl+i].load();
+    if(m)for(unsigned i=0;i<m->info.controls.size();++i)values[m->info.controls[i].name]=pendingChange_?m->values[firstControl+i]:values_[firstControl+i].load();
     return {{"version",1},{"model",m?*m->info.document:Json{}},{"name",m?m->info.name:""},
-      {"tier",m?static_cast<int>(pending_?m->values[Size-1]:values_[Size-1].load()):0},{"globals",g},{"controls",values}};
+      {"tier",m?static_cast<int>(pendingChange_?m->values[Size-1]:values_[Size-1].load()):0},{"globals",g},{"controls",values}};
   }
   static bool CLAP_ABI save(const clap_plugin_t* p,const clap_ostream_t* stream) noexcept {
     try {
@@ -432,8 +451,7 @@ private:
         if(!std::isfinite(v)||v<c.min||v>c.max||(c.stepped()&&std::round(v)!=v))return false;values[i]=v;
       }
       if(j.at("model").is_null()) {
-        if(s.active_)return false;
-        s.install(nullptr,false);for(unsigned i=0;i<globals.size();++i)s.values_[i].store(values[i]);return true;
+        s.pendingEmptyValues_=values;s.stage(nullptr);return true;
       }
       auto info=ModelInfo::parse(j.at("model"),j.at("name").get<std::string>());
       auto model=prepare(std::move(info),j.at("tier").get<int>(),j.at("controls"),values);
@@ -464,7 +482,7 @@ private:
   static bool CLAP_ABI guiCreate(const clap_plugin_t* p,const char* api,bool floating) noexcept {
     auto& s=self(p);if(!guiSupported(p,api,floating)||s.editor_)return false;
     try {
-      s.editor_=createEditor({[&s]{return EditorState{s.model_?&s.model_->info:nullptr,s.status_,s.revision_,s.loading_||static_cast<bool>(s.pending_),s.inputPeak_.exchange(0),s.outputPeak_.exchange(0)};},
+      s.editor_=createEditor({[&s]{return EditorState{s.model_?&s.model_->info:nullptr,s.status_,s.revision_,s.loading_||s.pendingChange_,s.inputPeak_.exchange(0),s.outputPeak_.exchange(0)};},
         [&s](uint32_t id){return s.value(id);},[&s](uint32_t id,double v){s.uiChange(id,v);},
         [&s](uint32_t id,bool begin){s.gesture(id,begin);},[&s](auto path){s.asyncLoad(std::move(path));},[&s]{s.tick();}});
       return static_cast<bool>(s.editor_);
