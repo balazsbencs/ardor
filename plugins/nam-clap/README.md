@@ -41,6 +41,10 @@ Copy `ArdorNAM.clap` into `~/Library/Audio/Plug-Ins/CLAP/`, then rescan plugins 
 Bitwig, REAPER or another CLAP host. This is a CLAP effect; Logic Pro needs an Audio
 Unit and cannot open it directly. The macOS build has a native embedded Cocoa editor.
 Linux builds are provided only for ABI/audio validation and use host parameter UI.
+Resize the editor freely within 600–1400 × 600–1200 logical pixels. Extra height
+goes to the model-control list; the header and bottom input/output section keep
+their height. Wider windows lengthen sliders while labels, values and control
+heights retain their size. The model list scrolls when needed.
 Dependencies are pinned; builds fetch the same NAM core as Ardor, CLAP headers,
 Eigen and SpeexDSP. Licenses are installed alongside the module.
 

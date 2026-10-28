@@ -139,8 +139,18 @@ void fullWidth(NSView* child,NSView* parent) {[child.widthAnchor constraintEqual
   self.calibrationPopover.contentViewController=[NSViewController new];self.calibrationPopover.contentViewController.view=calibrationView;
   self.status=label(@"Load a NAM model to begin.",12);self.status.textColor=NSColor.secondaryLabelColor;
   self.status.lineBreakMode=NSLineBreakByWordWrapping;self.status.maximumNumberOfLines=2;
-  [self.status.heightAnchor constraintGreaterThanOrEqualToConstant:30].active=YES;
-  self.content=stack(@[heading,identity,sizeRow,controlsHeading,self.scroll,rule,routing,input,output,meters,disclosure,self.status],NSUserInterfaceLayoutOrientationVertical,8);
+  [self.status.heightAnchor constraintEqualToConstant:30].active=YES;
+  auto* header=stack(@[heading,identity,sizeRow,controlsHeading],NSUserInterfaceLayoutOrientationVertical,8);
+  auto* footer=stack(@[rule,routing,input,output,meters,disclosure,self.status],NSUserInterfaceLayoutOrientationVertical,8);
+  [header setAccessibilityIdentifier:@"nam-header"];[footer setAccessibilityIdentifier:@"nam-footer"];
+  // Keep the instrument controls at their native size. Only the model list
+  // absorbs extra height, independently of the host window's aspect ratio.
+  for(NSStackView* fixed in @[header,footer]) {
+    [fixed setContentHuggingPriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationVertical];
+    [fixed setContentCompressionResistancePriority:NSLayoutPriorityRequired forOrientation:NSLayoutConstraintOrientationVertical];
+    for(NSView* child in fixed.arrangedSubviews)fullWidth(child,fixed);
+  }
+  self.content=stack(@[header,self.scroll,footer],NSUserInterfaceLayoutOrientationVertical,8);
   self.content.detachesHiddenViews=YES;[self addSubview:self.content];
   [NSLayoutConstraint activateConstraints:@[
     [self.content.leadingAnchor constraintEqualToAnchor:self.leadingAnchor constant:24],
