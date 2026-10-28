@@ -38,10 +38,23 @@ bool NamProcessor::load(const std::filesystem::path& modelPath, double sampleRat
                         float slimmableSize, std::optional<float> inputReferenceLevelDbU,
                         const nlohmann::json& modelParameters)
 {
-  liveParameters_.reset();
   try {
     std::ifstream stream(modelPath);
-    const auto uploaded = nlohmann::json::parse(stream);
+    return loadDocument(nlohmann::json::parse(stream), sampleRate, maxBlockSize,
+                        slimmableSize, inputReferenceLevelDbU, modelParameters);
+  } catch (const std::exception& e) {
+    clear();
+    std::cerr << "Failed to read NAM model: " << e.what() << "\n";
+    return false;
+  }
+}
+
+bool NamProcessor::loadDocument(const nlohmann::json& uploaded, double sampleRate, int maxBlockSize,
+                                float slimmableSize, std::optional<float> inputReferenceLevelDbU,
+                                const nlohmann::json& modelParameters)
+{
+  liveParameters_.reset();
+  try {
     const auto& document = playableNamDocument(uploaded);
     const auto specs = namParameterSpecs(document);
     if (!specs.empty()) {
