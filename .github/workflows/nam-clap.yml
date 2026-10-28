@@ -85,7 +85,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
       - name: Stage plugin and license notices
-        run: cmake --install build-nam-clap --prefix "$RUNNER_TEMP/ArdorNAM"
+        run: |
+          cmake --install build-nam-clap --prefix "$RUNNER_TEMP/ArdorNAM"
+          printf '\nCommit: %s\n' "$GITHUB_SHA" >> "$RUNNER_TEMP/ArdorNAM/README.md"
       - name: Verify and package Apple Silicon plugin
         if: runner.os == 'macOS'
         run: |

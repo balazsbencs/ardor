@@ -81,6 +81,9 @@ install(FILES ${ARDOR_NAM_ROOT}/src/namparam/LICENSE DESTINATION licenses RENAME
 install(FILES ${ARDOR_NAM_ROOT}/src/namparam/LICENSE-Gene-Ko DESTINATION licenses RENAME FiLMNAM.txt)
 install(FILES ${nam_clap_sdk_SOURCE_DIR}/LICENSE DESTINATION licenses RENAME CLAP.txt)
 install(FILES ${nam_speex_SOURCE_DIR}/COPYING DESTINATION licenses RENAME SpeexDSP.txt)
+install(FILES licenses/nlohmann-json.txt DESTINATION licenses)
+# The amalgamated header carries its bundled components' own notices as well.
+install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann/json.hpp DESTINATION licenses/nlohmann)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/LICENSE DESTINATION licenses RENAME NeuralAmpModelerCore.txt)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/AudioDSPTools/LICENSE DESTINATION licenses RENAME AudioDSPTools.txt)
 file(GLOB eigen_licenses "${neuralampmodelercore_SOURCE_DIR}/Dependencies/eigen/COPYING.*")
