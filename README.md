@@ -276,6 +276,11 @@ per-project full-chain state. Beta 2 includes the shared Ardor editor on Mac
 with `-DARDOR_UI_BACKEND=memory`; Linux uses host-generated controls. It is
 separate from the Whammy plugin.
 
+The [standalone NAM loader](plugins/nam-clap/README.md) provides a smaller CLAP
+effect for macOS Apple Silicon, with a native editor for the model's own controls
+and selectable Nano/Standard tiers when exported together. Build it separately
+with `cmake -S plugins/nam-clap -B build-nam-clap -DCMAKE_BUILD_TYPE=Release`.
+
 For a headless build, configure with `-DARDOR_UI_BACKEND=none`. The Pi firmware
 uses the `fbdev` backend through the Buildroot package.
 

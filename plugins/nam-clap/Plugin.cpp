@@ -425,11 +425,12 @@ private:
   }
   Json stateJson() const {
     const auto* m=pendingChange_?pending_.get():model_.get();
-    Json g=Json::array();for(unsigned i=0;i<globals.size();++i)g.push_back(pendingChange_?(m?m->values[i]:pendingEmptyValues_[i]):values_[i].load());
+    const bool liveValues=!pendingChange_||pendingPreserve_;
+    Json g=Json::array();for(unsigned i=0;i<globals.size();++i)g.push_back(liveValues?values_[i].load():(m?m->values[i]:pendingEmptyValues_[i]));
     Json values=Json::object();
-    if(m)for(unsigned i=0;i<m->info.controls.size();++i)values[m->info.controls[i].name]=pendingChange_?m->values[firstControl+i]:values_[firstControl+i].load();
+    if(m)for(unsigned i=0;i<m->info.controls.size();++i)values[m->info.controls[i].name]=liveValues?values_[firstControl+i].load():m->values[firstControl+i];
     return {{"version",1},{"model",m?*m->info.document:Json{}},{"name",m?m->info.name:""},
-      {"tier",m?static_cast<int>(pendingChange_?m->values[Size-1]:values_[Size-1].load()):0},{"globals",g},{"controls",values}};
+      {"tier",m?static_cast<int>(liveValues?values_[Size-1].load():m->values[Size-1]):0},{"globals",g},{"controls",values}};
   }
   static bool CLAP_ABI save(const clap_plugin_t* p,const clap_ostream_t* stream) noexcept {
     try {
