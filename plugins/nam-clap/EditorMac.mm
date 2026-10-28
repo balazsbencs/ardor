@@ -6,6 +6,7 @@
 // FORM: one resizable instrument panel, no chain browser or decorative widgets.
 #import <AppKit/AppKit.h>
 #import <QuartzCore/QuartzCore.h>
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
 #include "Editor.h"
 #include <algorithm>
 #include <cmath>
@@ -22,9 +23,15 @@ NSStackView* stack(NSArray<NSView*>* views,NSUserInterfaceLayoutOrientation axis
   view.alignment=axis==NSUserInterfaceLayoutOrientationVertical?NSLayoutAttributeLeading:NSLayoutAttributeCenterY;
   view.spacing=spacing;view.translatesAutoresizingMaskIntoConstraints=NO;return view;
 }
-NSView* spacer() {auto* view=[NSView new];[view setContentHuggingPriority:1 forOrientation:NSUserInterfaceLayoutOrientationHorizontal];return view;}
-void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnchor:parent.widthAnchor].active=YES;}
+NSView* spacer() {auto* view=[NSView new];[view setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationHorizontal];return view;}
+void fullWidth(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnchor:parent.widthAnchor].active=YES;}
 }
+
+@interface NamDocumentStack : NSStackView
+@end
+@implementation NamDocumentStack
+- (BOOL)isFlipped {return YES;}
+@end
 
 @interface NamSlider : NSSlider
 @property(nonatomic,assign) EditorCallbacks* callbacks;
@@ -87,15 +94,17 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
   self.openButton.keyEquivalentModifierMask=NSEventModifierFlagCommand;
   [heading addArrangedSubview:self.openButton];
   auto* identity=stack(@[self.modelName,self.modelDetail],NSUserInterfaceLayoutOrientationVertical,4);
-  wide(self.modelName,identity);wide(self.modelDetail,identity);
-  self.sizes=[[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];self.sizes.tag=Size;
+  fullWidth(self.modelName,identity);fullWidth(self.modelDetail,identity);
+  self.sizes=[[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];self.sizes.tag=Parameter::Size;
   [self.sizes addItemWithTitle:@"Single model"];self.sizes.enabled=NO;self.sizes.target=self;self.sizes.action=@selector(controlChanged:);
   [self.sizes setAccessibilityLabel:@"Model size"];
   auto* sizeRow=stack(@[label(@"Model size"),self.sizes,spacer()],NSUserInterfaceLayoutOrientationHorizontal);
   self.resetButton=[NSButton buttonWithTitle:@"Reset Controls" target:self action:@selector(resetControls:)];
   self.resetButton.bezelStyle=NSBezelStyleInline;
   auto* controlsHeading=stack(@[label(@"Model controls",13,NSFontWeightSemibold),spacer(),self.resetButton],NSUserInterfaceLayoutOrientationHorizontal);
-  self.modelControls=stack(@[],NSUserInterfaceLayoutOrientationVertical,12);
+  self.modelControls=[NamDocumentStack stackViewWithViews:@[]];
+  self.modelControls.orientation=NSUserInterfaceLayoutOrientationVertical;self.modelControls.alignment=NSLayoutAttributeLeading;
+  self.modelControls.spacing=12;self.modelControls.translatesAutoresizingMaskIntoConstraints=NO;
   self.scroll=[NSScrollView new];self.scroll.translatesAutoresizingMaskIntoConstraints=NO;
   self.scroll.drawsBackground=NO;self.scroll.borderType=NSNoBorder;self.scroll.hasVerticalScroller=YES;
   self.scroll.documentView=self.modelControls;
@@ -118,7 +127,7 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
   auto* referenceRow=[self row:globalControls[Reference-1]];self.reference=self.fields[@(Reference)];
   self.calibrationNote=label(@"This model has no recorded input reference.",11);self.calibrationNote.textColor=NSColor.secondaryLabelColor;
   self.calibrationBody=stack(@[self.calibrate,referenceRow,self.calibrationNote],NSUserInterfaceLayoutOrientationVertical,8);
-  wide(referenceRow,self.calibrationBody);wide(self.calibrationNote,self.calibrationBody);
+  fullWidth(referenceRow,self.calibrationBody);fullWidth(self.calibrationNote,self.calibrationBody);
   auto* calibrationView=[[NSView alloc] initWithFrame:NSMakeRect(0,0,520,140)];
   [calibrationView addSubview:self.calibrationBody];
   [NSLayoutConstraint activateConstraints:@[
@@ -138,9 +147,9 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
     [self.content.trailingAnchor constraintEqualToAnchor:self.trailingAnchor constant:-24],
     [self.content.topAnchor constraintEqualToAnchor:self.topAnchor constant:22],
     [self.content.bottomAnchor constraintEqualToAnchor:self.bottomAnchor constant:-16]]];
-  for(NSView* child in self.content.arrangedSubviews)wide(child,self.content);
-  [self.scroll setContentHuggingPriority:1 forOrientation:NSUserInterfaceLayoutOrientationVertical];
-  [self.scroll setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSUserInterfaceLayoutOrientationVertical];
+  for(NSView* child in self.content.arrangedSubviews)fullWidth(child,self.content);
+  [self.scroll setContentHuggingPriority:1 forOrientation:NSLayoutConstraintOrientationVertical];
+  [self.scroll setContentCompressionResistancePriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationVertical];
   [self refresh];return self;
 }
 - (NSLevelIndicator*)meter:(NSString*)name {
@@ -174,7 +183,7 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
     editor=stack(@[slider,field],NSUserInterfaceLayoutOrientationHorizontal,12);
     self.controls[@(control.id)]=slider;self.fields[@(control.id)]=field;
   }
-  [editor setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSUserInterfaceLayoutOrientationHorizontal];
+  [editor setContentHuggingPriority:NSLayoutPriorityDefaultLow forOrientation:NSLayoutConstraintOrientationHorizontal];
   auto* row=stack(@[name,editor],NSUserInterfaceLayoutOrientationHorizontal,16);
   [row.heightAnchor constraintEqualToConstant:30].active=YES;return row;
 }
@@ -196,7 +205,7 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
 - (void)openModel:(id)sender {
   if(!callbacks_)return;
   auto* panel=[NSOpenPanel openPanel];panel.canChooseDirectories=NO;panel.allowsMultipleSelection=NO;
-  panel.allowedFileTypes=@[@"nam"];panel.title=@"Open NAM Model";panel.prompt=@"Open Model";
+  UTType* namType=[UTType typeWithFilenameExtension:@"nam"];panel.allowedContentTypes=namType?@[namType]:@[UTTypeData];panel.title=@"Open NAM Model";panel.prompt=@"Open Model";
   __weak NamEditorView* weakSelf=self;
   [panel beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse response){
     NamEditorView* view=weakSelf;
@@ -229,7 +238,7 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
         self.modelDetail.stringValue=state.model->gear=="pedal"?@"Pedal model · 48 kHz":@"Amp model · 48 kHz";
         for(const auto& tier:state.model->tiers)[self.sizes addItemWithTitle:ns(tier.name)];
         definitions_=state.model->controls;
-        for(const auto& c:definitions_){auto* row=[self row:c];[self.modelControls addArrangedSubview:row];wide(row,self.modelControls);}
+        for(const auto& c:definitions_){auto* row=[self row:c];[self.modelControls addArrangedSubview:row];fullWidth(row,self.modelControls);}
         if(definitions_.empty())[self.modelControls addArrangedSubview:label(@"This capture has no modeled controls.")];
       }else {
         self.modelName.stringValue=@"No model loaded";self.modelDetail.stringValue=@"Open a .nam file to begin.";
@@ -243,7 +252,7 @@ void wide(NSView* child,NSView* parent) {[child.widthAnchor constraintEqualToAnc
       else self.calibrationNote.stringValue=@"This model has no recorded input reference. Use Input trim to set the drive level.";
       self.status.stringValue=ns(state.status);
     }
-    const auto selected=static_cast<NSInteger>(callbacks_->value(Size));
+    const auto selected=static_cast<NSInteger>(callbacks_->value(Parameter::Size));
     if(selected>=0&&selected<self.sizes.numberOfItems)[self.sizes selectItemAtIndex:selected];
     for(NSNumber* key in self.controls) {
       NSControl* control=self.controls[key];const double value=callbacks_->value(key.unsignedIntValue);
@@ -270,7 +279,7 @@ public:
     view_=[[NamEditorView alloc] initWithCallbacks:&callbacks_];view_.hidden=YES;
     if(!view_)throw std::runtime_error("Cannot create NAM editor");
   }
-  ~MacEditor() override {show(false);view_->callbacks_=nullptr;for(NSControl* c in view_.controls.allValues)if([c isKindOfClass:NamSlider.class])((NamSlider*)c).callbacks=nullptr;[view_ removeFromSuperview];}
+  ~MacEditor() override {show(false);[view_.calibrationPopover close];view_->callbacks_=nullptr;for(NSControl* c in view_.controls.allValues)if([c isKindOfClass:NamSlider.class])((NamSlider*)c).callbacks=nullptr;[view_ removeFromSuperview];}
   bool parent(void* parent) override {
     NSView* host=(__bridge NSView*)parent;
     if(!host||![host isKindOfClass:NSView.class]||!NSThread.isMainThread)return false;

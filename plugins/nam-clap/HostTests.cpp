@@ -9,6 +9,7 @@ int main(){try{
   require(!factory->create_plugin(factory,nullptr,"bad"),"invalid creation rejected");
   {
     Instance instance(factory);require(instance.params->count(instance.plugin)==6,"empty plugin has only I/O controls");
+    auto empty=instance.save();
     require(instance.loadFile(NAM_CLAP_DEMO),"load real parametric model");require(instance.params->count(instance.plugin)==8,"model controls exposed");
     const auto drive=instance.find("Drive"),tone=instance.find("Tone");require(drive!=CLAP_INVALID_ID&&tone!=CLAP_INVALID_ID&&drive!=tone,"distinct named controls");
     require(instance.find("Model size")==CLAP_INVALID_ID,"single model has no fictitious size control");
@@ -40,13 +41,23 @@ int main(){try{
       // A callback after preparation stages a restart; wait for a real rescan.
       if(recalled.host.rescans>2){switched=true;break;}}
       std::this_thread::sleep_for(std::chrono::milliseconds(2));}
-    require(switched&&recalled.value(drive)==7,"tier switch retains live control values");recalled.audio(2048);recalled.off();
+    require(switched&&recalled.value(drive)==7,"tier switch retains live control values");recalled.audio(2048);
+    const auto rescans=recalled.host.rescans;
+    recalled.set(size,1);recalled.callbacks(); // Begin preparing Standard.
+    recalled.set(size,0);recalled.callbacks(); // Keep the later Nano request while busy.
+    const auto rapidLimit=std::chrono::steady_clock::now()+std::chrono::seconds(20);
+    while(recalled.host.rescans<rescans+2&&std::chrono::steady_clock::now()<rapidLimit){recalled.callbacks();std::this_thread::sleep_for(std::chrono::milliseconds(2));}
+    require(recalled.host.rescans>=rescans+2&&recalled.value(size)==0&&recalled.value(drive)==7,"latest size request survives background preparation and host restarts");
+    recalled.audio(2048);recalled.off();
     require(recalled.loadFile(NAM_CLAP_SNAPSHOT),"ordinary snapshot model loads");require(recalled.params->count(recalled.plugin)==6,"snapshot has no learned controls or fake tiers");require(recalled.host.clears>=3,"removed controls clear stale host automation");
     auto invalid=dual;invalid["architecture"]="HyperWaveNet";combined["model"]=invalid;Stream invalidState;invalidState.data=combined.dump();
     require(!recalled.restore(invalidState)&&recalled.params->count(recalled.plugin)==6,"unsupported model preserves the old model");
     auto info=ModelInfo::parse(dual,"Demo");auto reordered=dual;
     std::reverse(reordered["config"]["params"].begin(),reordered["config"]["params"].end());auto second=ModelInfo::parse(reordered,"Reordered");
     require(info.controls[0].id==second.controls[1].id,"IDs follow definitions instead of parameter order");
+    auto absentEnums=dual;absentEnums["config"]["params"][0].erase("enum_names");
+    auto nullEnums=absentEnums;nullEnums["config"]["params"][0]["enum_names"]=nullptr;
+    require(ModelInfo::parse(absentEnums,"").controls[0].id==ModelInfo::parse(nullEnums,"").controls[0].id,"null and absent unused labels have the same automation identity");
     auto one=container;one["config"]["submodels"]=Json::array({{{"max_value",1},{"model",container["config"]["submodels"][0]["model"]}}});
     combined["model"]=one;combined["tier"]=0;combinedState.data=combined.dump();require(recalled.restore(combinedState)&&recalled.find("Model size")==CLAP_INVALID_ID,"one-tier container is usable without a size selector");
     for(const auto* file:{"parametric-trainer-a2.json","parametric-trainer-a2-dual.json","parametric-trainer-film.json"}) {
@@ -72,6 +83,30 @@ int main(){try{
         }
       }
     }
+    // Recall the default/empty project while audio is running. The old engine and
+    // parameter definitions remain valid until the host performs its restart.
+    const auto oldCount=recalled.params->count(recalled.plugin);recalled.on();
+    require(recalled.restore(empty)&&recalled.host.restart.load(),"empty recall requests an audio restart");
+    require(recalled.params->count(recalled.plugin)==oldCount,"active recall defers parameter changes");
+    recalled.audio(256);recalled.callbacks();
+    require(recalled.params->count(recalled.plugin)==6,"host restart commits empty state");recalled.off();
+
+    // Compare the complete CLAP path to Ardor's calibrated/normalized processor,
+    // accounting for the reported bridge latency and the initial bypass fade.
+    auto calibrated=dual;calibrated["metadata"]["input_level_dbu"]=6;calibrated["metadata"]["loudness"]=-15;
+    combined=document;combined["model"]=calibrated;combined["tier"]=0;
+    combined["controls"]={{"Drive",5},{"Tone",5}};combined["globals"]={0,0,0,0,1,12};
+    combinedState.data=combined.dump();require(recalled.restore(combinedState),"calibrated model restores");
+    ardor::NamProcessor reference;
+    require(reference.loadDocument(calibrated,48000,64,1,12.f,combined["controls"]),"reference calibrated processor");
+    std::vector<float> input(8192),expected(8192);
+    for(unsigned i=0;i<input.size();++i)input[i]=.05*std::sin(i*.137);
+    reference.processBlock(input.data(),expected.data(),input.size());
+    recalled.on();const auto actual=recalled.audio(input.size());
+    const auto* latency=static_cast<const clap_plugin_latency_t*>(recalled.plugin->get_extension(recalled.plugin,CLAP_EXT_LATENCY));
+    const auto delay=latency->get(recalled.plugin);require(delay>0&&delay<1024,"48 kHz bridge reports bounded latency");
+    float error=0;for(unsigned i=4096;i<actual.size();++i)error=std::max(error,std::abs(actual[i]-expected[i-delay]));
+    require(error<.00001f,"CLAP preserves Ardor input calibration and loudness normalization");recalled.off();
   }
   entry->deinit();clap_test::close(library);std::cout<<"NAM CLAP model loading, automation, tier/state recall and host-rate checks passed.\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

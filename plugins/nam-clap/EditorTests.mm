@@ -65,9 +65,9 @@ int main(){@autoreleasepool{try{
     require(sizes&&sizes.enabled&&sizes.numberOfItems==2&&[sizes.itemTitles[0] isEqualToString:@"Nano"]&&[sizes.itemTitles[1] isEqualToString:@"Standard"],"real model sizes");
     require(mode&&[mode.itemTitles[1] isEqualToString:@"Hard"],"exported mode labels");
     [sizes selectItemAtIndex:0];[sizes sendAction:sizes.action to:sizes.target];
-    for(unsigned i=0;i<100&&instance.value(Size)!=0;++i){instance.callbacks();runLoop();}
+    for(unsigned i=0;i<100&&instance.value(Parameter::Size)!=0;++i){instance.callbacks();runLoop();}
     for(unsigned i=0;i<10;++i){instance.callbacks();runLoop();}
-    require(instance.value(Size)==0&&instance.value(instance.find("Drive"))==7,"UI tier switch preserves controls");
+    require(instance.value(Parameter::Size)==0&&instance.value(instance.find("Drive"))==7,"UI tier switch preserves controls");
     const auto fixture=readJson(std::filesystem::path(NAM_CLAP_ROOT)/"tests/fixtures/parametric-trainer-a2.json");
     auto found=std::find_if(fixture["models"].begin(),fixture["models"].end(),[](const auto& m){return ModelInfo::parse(m.at("model"),"").controls.size()==24;});
     require(found!=fixture["models"].end(),"24-control trainer fixture exists");
