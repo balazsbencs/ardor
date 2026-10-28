@@ -6,6 +6,7 @@ int main(){try{
   auto* entry=static_cast<const clap_plugin_entry_t*>(clap_test::symbol(library,"clap_entry"));require(entry&&entry->init(NAM_CLAP_BINARY),"entry");
   auto* factory=static_cast<const clap_plugin_factory_t*>(entry->get_factory(CLAP_PLUGIN_FACTORY_ID));
   require(factory&&factory->get_plugin_count(factory)==1&&!factory->get_plugin_descriptor(factory,1),"factory enumeration");
+  require(std::strcmp(factory->get_plugin_descriptor(factory,0)->version,NAM_CLAP_VERSION)==0,"plugin version matches the release build");
   require(!factory->create_plugin(factory,nullptr,"bad"),"invalid creation rejected");
   {
     Instance instance(factory);require(instance.params->count(instance.plugin)==6,"empty plugin has only I/O controls");

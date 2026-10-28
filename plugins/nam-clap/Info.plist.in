@@ -5,8 +5,8 @@
 <key>CFBundleIdentifier</key><string>org.ardor.nam-loader</string>
 <key>CFBundleName</key><string>Ardor NAM</string>
 <key>CFBundlePackageType</key><string>BNDL</string>
-<key>CFBundleShortVersionString</key><string>0.1.0</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>@ARDOR_VERSION@</string>
+<key>CFBundleVersion</key><string>@ARDOR_VERSION@</string>
 <key>NSHighResolutionCapable</key><true/>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 </dict></plist>

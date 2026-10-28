@@ -3,6 +3,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   project(ArdorNAM VERSION 0.1.0 LANGUAGES C CXX)
   enable_testing()
 endif()
+set(ARDOR_VERSION "0.1.0" CACHE STRING "Ardor release version")
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -53,6 +54,7 @@ add_library(nam_loader_rate STATIC ${ARDOR_NAM_ROOT}/plugins/ardor-clap/RateAdap
 target_link_libraries(nam_loader_rate PRIVATE nam_loader_resampler)
 target_include_directories(nam_loader_rate PUBLIC ${ARDOR_NAM_ROOT}/plugins/ardor-clap)
 add_library(ardor-nam-clap MODULE Plugin.cpp)
+target_compile_definitions(ardor-nam-clap PRIVATE ARDOR_NAM_VERSION="${ARDOR_VERSION}")
 target_link_libraries(ardor-nam-clap PRIVATE nam_loader_runtime nam_loader_rate Threads::Threads)
 target_include_directories(ardor-nam-clap PRIVATE ${nam_clap_sdk_SOURCE_DIR}/include)
 set_target_properties(ardor-nam-clap PROPERTIES PREFIX "" OUTPUT_NAME "ArdorNAM" SUFFIX ".clap"
@@ -82,7 +84,7 @@ install(FILES ${ARDOR_NAM_ROOT}/src/namparam/LICENSE DESTINATION licenses RENAME
 install(FILES ${ARDOR_NAM_ROOT}/src/namparam/LICENSE-Gene-Ko DESTINATION licenses RENAME FiLMNAM.txt)
 install(FILES ${nam_clap_sdk_SOURCE_DIR}/LICENSE DESTINATION licenses RENAME CLAP.txt)
 install(FILES ${nam_speex_SOURCE_DIR}/COPYING DESTINATION licenses RENAME SpeexDSP.txt)
-install(FILES licenses/nlohmann-json.txt DESTINATION licenses)
+install(FILES ${ARDOR_NAM_ROOT}/third_party/nlohmann-json/LICENSE.MIT DESTINATION licenses RENAME nlohmann-json.txt)
 # The amalgamated header carries its bundled components' own notices as well.
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/Dependencies/nlohmann/json.hpp DESTINATION licenses/nlohmann)
 install(FILES ${neuralampmodelercore_SOURCE_DIR}/LICENSE DESTINATION licenses RENAME NeuralAmpModelerCore.txt)
@@ -93,6 +95,7 @@ add_executable(nam-clap-host-tests HostTests.cpp)
 target_include_directories(nam-clap-host-tests PRIVATE ${nam_clap_sdk_SOURCE_DIR}/include ${ARDOR_NAM_ROOT}/tests ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(nam-clap-host-tests PRIVATE nam_loader_runtime ${CMAKE_DL_LIBS} Threads::Threads)
 target_compile_definitions(nam-clap-host-tests PRIVATE NAM_CLAP_BINARY="$<TARGET_FILE:ardor-nam-clap>"
+  NAM_CLAP_VERSION="${ARDOR_VERSION}"
   NAM_CLAP_ROOT="${ARDOR_NAM_ROOT}"
   NAM_CLAP_DEMO="${ARDOR_NAM_ROOT}/assets/nam/Ardor-Parametric-Overdrive-Demo.nam"
   NAM_CLAP_CORE_MODELS="${neuralampmodelercore_SOURCE_DIR}/example_models"

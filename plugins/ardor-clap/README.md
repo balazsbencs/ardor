@@ -1,24 +1,24 @@
-# Ardor CLAP beta
+# Ardor CLAP
 
 This is a full-chain plugin using the same engine and preset format as the
 standalone app. It is separate from the existing Whammy algorithm plugin.
-Beta 4 supports DAW sample rates from **1 to 768 kHz**, including fractional
+It supports DAW sample rates from **1 to 768 kHz**, including fractional
 rates. Common 44.1/48/88.2/96/176.4/192 kHz projects are covered by audio tests.
 The shared effects engine remains at 48 kHz; other host rates use streaming
 band-limited conversion. Mac and Windows include the shared Ardor editor in
-native child views. Linux uses host-generated parameter controls. This is an
-early beta; real DAW testing remains necessary.
+native child views. Linux uses host-generated parameter controls.
 
 ## Use
 
-Download a versioned CLAP beta from the main [GitHub Releases](https://github.com/balazsbencs/ardor/releases),
+Download a versioned CLAP package from the main [GitHub Releases](https://github.com/balazsbencs/ardor/releases),
 alongside the device firmware. Each release includes Mac, Windows and Linux packages
-named `Ardor-CLAP-<version>-<platform>-beta`, with a SHA-256 checksum for each archive.
-The plugin is still a beta; its version matches the containing Ardor release.
+named `Ardor-CLAP-<version>-<platform>`, with a SHA-256 checksum for each archive.
+The plugin version matches the containing Ardor release.
 
-The **CLAP beta** workflow also uploads Apple Silicon/macOS 15+, Windows 10/11 x64,
-and Linux/x64 artifacts for PR and manual builds. The main release reuses these
-build, smoke-test, full-validator and packaging steps, and waits for all three
+The main **Continuous integration** workflow uploads Apple Silicon/macOS 15+,
+Windows 10/11 x64, and Linux/x64 artifacts for PR builds. The **Ardor CLAP**
+workflow can also be run manually. The main release reuses these build, smoke-test,
+full-validator and packaging steps, and waits for all three
 platforms before publishing. Unpack the download and copy
 `Ardor.clap` to `~/Library/Audio/Plug-Ins/CLAP/` on Mac or `~/.clap/` on Linux.
 Keep the accompanying license notices. Restart/rescan the DAW and insert Ardor on an audio track. Configure the audio interface and
@@ -30,11 +30,11 @@ all-users installation can use `%COMMONPROGRAMFILES%\CLAP\` instead. Keep
 the license notices and restart/rescan the DAW. The Windows
 download is a native x64 DLL with a `.clap` extension, not a Mac bundle;
 use a 64-bit CLAP-capable host. The VC runtime is linked statically, so no
-separate runtime installer is required. The Windows beta is unsigned.
+separate runtime installer is required. The Windows plugin is unsigned.
 
 In REAPER, open Ardor from the track's FX window and use its normal plugin view.
 If REAPER shows the generic parameter list, toggle the **UI** button to return
-to the plugin editor after installing/rescanning the current beta. Beta 1 has no custom UI.
+to the plugin editor after installing/rescanning the current plugin.
 The editor includes the preset/chain view, effect and asset browser, live effect
 parameters, EQ controls, scenes, and an input/output trim, guitar channel and
 bypass toolbar. Trim fields support keyboard editing. NAM/IR assets come from
@@ -53,8 +53,14 @@ looper, footswitch/bank navigation, and device master controls are omitted.
 The six CLAP host parameters remain stable; effect controls are stored in project
 state but are not individually exposed as DAW automation parameters yet.
 
-Mac betas are ad-hoc signed and are not notarized. Hosts may block them. Public
-Developer ID signing/notarization and real DAW testing remain release steps.
+Mac packages use ad-hoc signing and are not notarized with a Developer ID.
+If macOS blocks a downloaded bundle, remove quarantine from the installed plugin:
+
+```sh
+xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/CLAP/Ardor.clap"
+```
+
+CI validates the native plugin hosts and ABI; compatibility with every DAW is not guaranteed.
 
 The main input/output buses are stereo. **Guitar input** selects Left (default),
 Right or Average as the mono guitar source; Ardor creates the stereo effects
@@ -90,7 +96,7 @@ This selector is deliberately not automatable. Hosts implementing CLAP preset-lo
 can also load an ordinary Ardor JSON preset directly.
 
 **Scene** recalls the four authored scenes when present. Parameter scenes are
-supported; structural scene graphs are rejected visibly in this first slice.
+supported; structural scene graphs are rejected visibly in this plugin.
 Serial and fixed WDW chains can use NAM/IR and built-in effects supported by the
 shared engine. Each instance owns its own engine, delay buffers and parameters.
 
@@ -107,7 +113,7 @@ cmake -S . -B build-clap -DARDOR_UI_BACKEND=memory \
   -DARDOR_BUILD_CLAP_PLUGIN=ON -DCMAKE_BUILD_TYPE=Release
 cmake --build build-clap --target ardor-clap-host-smoke ardor-clap-editor-smoke --parallel 3
 ctest --test-dir build-clap --output-on-failure -R '^ardor-clap-((host|editor|gui-host)-smoke|rate-tests)$'
-cmake --install build-clap --prefix "$PWD/build-clap/stage" --component clap-beta
+cmake --install build-clap --prefix "$PWD/build-clap/stage" --component clap
 ```
 
 Windows, with Visual Studio 2022 C++ tools and CMake:
@@ -117,7 +123,7 @@ cmake -S . -B build-clap -G "Visual Studio 17 2022" -A x64 `
   -DARDOR_UI_BACKEND=memory -DARDOR_BUILD_CLAP_PLUGIN=ON
 cmake --build build-clap --config Release --target ardor-clap-host-smoke ardor-clap-editor-smoke pedal-lvgl-ui-smoke --parallel 3
 ctest --test-dir build-clap -C Release --output-on-failure -R '^(ardor-clap-(host|editor|gui-host)-smoke|ardor-clap-rate-tests|pedal-lvgl-ui-smoke)$'
-cmake --install build-clap --config Release --prefix build-clap/stage --component clap-beta
+cmake --install build-clap --config Release --prefix build-clap/stage --component clap
 ```
 
 Use `ARDOR_UI_BACKEND=none` for a DSP-only build without editor dependencies.
@@ -164,7 +170,7 @@ in-place audio. Common, boundary, nonstandard and fractional rates are included.
 
 CI runs the full upstream `clap-validator` 0.4.1 suite on all three platforms,
 using pinned release archives verified by SHA-256. Reports accompany the editor
-check artifacts; failures or warnings prevent beta packaging. Local Linux validation
+check artifacts; failures or warnings prevent release packaging. Local Linux validation
 passes 33 checks with 11 skips for unimplemented optional features and no failures
 or warnings. The conversion dependency is SpeexDSP 1.2.1, built statically with
 quality 8 and its BSD license included. Its reset routine is patched in a generated

@@ -1,0 +1,28 @@
+name: Collect CLAP release packages
+description: Download and validate every tested CLAP archive and checksum before publication.
+inputs:
+  version:
+    description: Exact version expected in package names and Mac bundles
+    required: true
+  directory:
+    description: Directory for the collected archives and checksums
+    default: artifacts/clap
+runs:
+  using: composite
+  steps:
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+      with:
+        pattern: Ardor-CLAP-package-*-${{ github.sha }}
+        path: ${{ inputs.directory }}
+        merge-multiple: true
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+      with:
+        pattern: ArdorNAM-package-*-${{ github.sha }}
+        path: ${{ inputs.directory }}
+        merge-multiple: true
+    - name: Verify complete release package set
+      shell: bash
+      env:
+        PACKAGE_DIRECTORY: ${{ inputs.directory }}
+        RELEASE_VERSION: ${{ inputs.version }}
+      run: python3 "$GITHUB_ACTION_PATH/../../../scripts/verify-clap-packages.py" --directory "$PACKAGE_DIRECTORY" --version "$RELEASE_VERSION"
