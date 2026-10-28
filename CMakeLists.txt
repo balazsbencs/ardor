@@ -29,7 +29,7 @@ set(BUILD_SHARED_LIBS OFF)
 
 set(ARDOR_UI_BACKEND "sdl" CACHE STRING "UI backend: sdl, fbdev, memory (embedded editor), or none")
 
-option(ARDOR_BUILD_CLAP_PLUGIN "Build the full-chain Ardor CLAP beta" OFF)
+option(ARDOR_BUILD_CLAP_PLUGIN "Build the full-chain Ardor CLAP plugin" OFF)
 if(ARDOR_BUILD_CLAP_PLUGIN)
   # DSP archives and NAM registration objects become part of a shared module.
   set(CMAKE_POSITION_INDEPENDENT_CODE ON)

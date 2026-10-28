@@ -270,16 +270,20 @@ Configure with `-DARDOR_BUILD_DESKTOP=ON` and the SDL backend to build
 [desktop prototype instructions](apps/ardor-desktop/README.md) for audio setup,
 user-library storage, validation, and current limitations.
 
-The full-chain [CLAP beta](plugins/ardor-clap/README.md) is an optional follow-up
-with `-DARDOR_BUILD_CLAP_PLUGIN=ON`. It supports 48 kHz DAW sessions and
-per-project full-chain state. Beta 2 includes the shared Ardor editor on Mac
-with `-DARDOR_UI_BACKEND=memory`; Linux uses host-generated controls. It is
-separate from the Whammy plugin.
+The full-chain [Ardor CLAP plugin](plugins/ardor-clap/README.md) is built with
+`-DARDOR_BUILD_CLAP_PLUGIN=ON`. It includes the shared Ardor editor on Mac and
+Windows with `-DARDOR_UI_BACKEND=memory`; Linux uses host-generated controls.
+It supports host sample-rate conversion and per-project full-chain state, and
+is separate from the Whammy plugin. Versioned Mac, Windows and Linux packages
+are included in the main GitHub release.
 
 The [standalone NAM loader](plugins/nam-clap/README.md) provides a smaller CLAP
 effect for macOS Apple Silicon, with a native editor for the model's own controls
 and selectable Nano/Standard tiers when exported together. Build it separately
 with `cmake -S plugins/nam-clap -B build-nam-clap -DCMAKE_BUILD_TYPE=Release`.
+Versioned Mac and Linux NAM packages are also included in the main release.
+CI builds and validates both CLAP modules and checks all release packages before
+publishing them alongside firmware.
 
 For a headless build, configure with `-DARDOR_UI_BACKEND=none`. The Pi firmware
 uses the `fbdev` backend through the Buildroot package.

@@ -45,6 +45,9 @@ jobs:
           if git diff --quiet "$BEFORE_SHA" "$GITHUB_SHA" -- \
             .github/workflows/release.yml \
             .github/workflows/clap.yml \
+            .github/workflows/nam-clap.yml \
+            .github/actions/collect-clap-packages \
+            scripts/verify-clap-packages.py \
             CMakeLists.txt \
             lv_conf.h \
             src third_party plugins assets \
@@ -128,6 +131,8 @@ jobs:
 
           {
             echo "Automated build of main at \`${GITHUB_SHA}\`."
+            echo
+            echo "Includes Ardor CLAP (Mac, Windows, Linux) and Ardor NAM CLAP (Mac, Linux), with versioned packages and SHA-256 checksums."
             echo
             cat .release-changes.md
           } > .release-notes.md
@@ -230,6 +235,13 @@ jobs:
     name: Build CLAP release packages
     needs: prepare
     uses: ./.github/workflows/clap.yml
+    with:
+      version: ${{ needs.prepare.outputs.version }}
+
+  nam-clap:
+    name: Build NAM CLAP release packages
+    needs: prepare
+    uses: ./.github/workflows/nam-clap.yml
     with:
       version: ${{ needs.prepare.outputs.version }}
 
@@ -404,34 +416,23 @@ jobs:
       - firmware
       - device-checks
       - clap
+      - nam-clap
     runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
-      - name: Download tested CLAP release packages
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Collect and verify tested CLAP release packages
+        uses: ./.github/actions/collect-clap-packages
         with:
-          pattern: Ardor-CLAP-beta-*-${{ github.sha }}
-          path: artifacts/clap
-          merge-multiple: true
+          version: ${{ needs.prepare.outputs.version }}
 
-      - name: Verify and upload CLAP packages to the draft release
+      - name: Upload all verified CLAP packages to the draft release
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
-          RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
-        working-directory: artifacts/clap
         shell: bash
-        run: |
-          assets=()
-          prefix="Ardor-CLAP-$RELEASE_VERSION"
-          for archive in "$prefix-macOS-arm64-beta.zip" "$prefix-Windows-x64-beta.zip" "$prefix-Linux-x64-beta.tar.gz"; do
-            test -s "$archive"
-            test -s "$archive.sha256"
-            sha256sum --check "$archive.sha256"
-            assets+=("$archive" "$archive.sha256")
-          done
-          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${assets[@]}" --clobber
+        run: gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" artifacts/clap/* --clobber
 
       - name: Publish the completed release
         env:

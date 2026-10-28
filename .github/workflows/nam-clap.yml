@@ -1,18 +1,27 @@
 name: NAM CLAP
 
 on:
+  workflow_call:
+    inputs:
+      version:
+        description: Release version embedded in the plugin and packages
+        required: true
+        type: string
   workflow_dispatch:
-  pull_request:
-    paths: ['plugins/nam-clap/**', 'plugins/ardor-clap/RateAdapter.*', 'src/dsp/NamProcessor.*', 'src/namparam/**', 'src/preset/NamMetadata.h', 'tests/fixtures/parametric-trainer*', 'assets/nam/**', '.github/workflows/nam-clap.yml']
-  push:
-    branches: [main]
-    paths: ['plugins/nam-clap/**', 'src/dsp/NamProcessor.*', 'src/namparam/**', 'src/preset/NamMetadata.h', '.github/workflows/nam-clap.yml']
+    inputs:
+      version:
+        description: Version embedded in the plugin and packages
+        type: string
+        default: '0.1.0'
 
 permissions:
   contents: read
 concurrency:
-  group: nam-clap-${{ github.ref }}
+  group: nam-clap-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  ARDOR_NAM_VERSION: ${{ inputs.version || '0.1.0' }}
 
 jobs:
   plugin:
@@ -31,7 +40,7 @@ jobs:
       - name: Use GitHub mirror for Eigen
         run: git config --global url."https://github.com/eigen-mirror/eigen.git".insteadOf https://gitlab.com/libeigen/eigen
       - name: Configure standalone loader
-        run: cmake -S plugins/nam-clap -B build-nam-clap -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0
+        run: cmake -S plugins/nam-clap -B build-nam-clap -DCMAKE_BUILD_TYPE=Release -DARDOR_VERSION="$ARDOR_NAM_VERSION" -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0
       - name: Build plugin and test hosts
         run: cmake --build build-nam-clap --parallel 2
       - name: Check models, automation, project recall, audio and native editor
@@ -87,7 +96,7 @@ jobs:
       - name: Stage plugin and license notices
         run: |
           cmake --install build-nam-clap --prefix "$RUNNER_TEMP/ArdorNAM"
-          printf '\nCommit: %s\n' "$GITHUB_SHA" >> "$RUNNER_TEMP/ArdorNAM/README.md"
+          printf '\nBuild: %s\nCommit: %s\n' "$ARDOR_NAM_VERSION" "$GITHUB_SHA" >> "$RUNNER_TEMP/ArdorNAM/README.md"
       - name: Verify and package Apple Silicon plugin
         if: runner.os == 'macOS'
         run: |
@@ -104,17 +113,19 @@ jobs:
               assert path.startswith(('/System/Library/', '/usr/lib/')), path
           PYTHON
           mkdir -p package
-          ditto -c -k --keepParent "$RUNNER_TEMP/ArdorNAM" package/ArdorNAM-macOS-arm64.zip
-          (cd package && shasum -a 256 ArdorNAM-macOS-arm64.zip > ArdorNAM-macOS-arm64.zip.sha256)
+          archive="ArdorNAM-$ARDOR_NAM_VERSION-macOS-arm64.zip"
+          ditto -c -k --keepParent "$RUNNER_TEMP/ArdorNAM" "package/$archive"
+          (cd package && shasum -a 256 "$archive" > "$archive.sha256")
       - name: Package Linux validation module
         if: runner.os == 'Linux'
         run: |
           mkdir -p package
-          tar -czf package/ArdorNAM-Linux-x64.tar.gz -C "$RUNNER_TEMP" ArdorNAM
-          (cd package && sha256sum ArdorNAM-Linux-x64.tar.gz > ArdorNAM-Linux-x64.tar.gz.sha256)
+          archive="ArdorNAM-$ARDOR_NAM_VERSION-Linux-x64.tar.gz"
+          tar -czf "package/$archive" -C "$RUNNER_TEMP" ArdorNAM
+          (cd package && sha256sum "$archive" > "$archive.sha256")
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: ArdorNAM-package-${{ matrix.os }}
+          name: ArdorNAM-package-${{ matrix.os }}-${{ github.sha }}
           path: package/
           if-no-files-found: error
           retention-days: 30

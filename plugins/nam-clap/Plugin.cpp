@@ -21,7 +21,7 @@ constexpr const char* pluginId = "org.ardor.nam-loader";
 const char* const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT,CLAP_PLUGIN_FEATURE_STEREO,nullptr};
 const clap_plugin_descriptor_t descriptor{CLAP_VERSION,pluginId,"Ardor NAM","Ardor",
   "https://github.com/balazsbencs/ardor","","https://github.com/balazsbencs/ardor/issues",
-  "0.1.0","Snapshot and parametric NAM loader with model-defined controls",features};
+  ARDOR_NAM_VERSION,"Snapshot and parametric NAM loader with model-defined controls",features};
 const auto& globals=globalControls;
 static_assert(std::atomic<double>::is_always_lock_free);
 static_assert(std::atomic<float>::is_always_lock_free);

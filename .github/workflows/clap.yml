@@ -1,4 +1,4 @@
-name: CLAP beta
+name: Ardor CLAP
 
 on:
   workflow_call:
@@ -8,11 +8,11 @@ on:
         required: true
         type: string
   workflow_dispatch:
-  pull_request:
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'scripts/build-fftw-single.py', 'third_party/fftw/**', 'lv_conf.h', '.github/workflows/clap.yml', '.github/workflows/release.yml']
-  push:
-    branches: [main]
-    paths: ['plugins/ardor-clap/**', 'src/**', 'tests/clap*', 'tests/ClapTestPlatform.h', 'CMakeLists.txt', 'scripts/build-fftw-single.py', 'third_party/fftw/**', 'lv_conf.h', '.github/workflows/clap.yml']
+    inputs:
+      version:
+        description: Version embedded in the plugin and packages
+        type: string
+        default: '0.1.0'
 
 permissions:
   contents: read
@@ -31,7 +31,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-24.04, windows-2022]
+        os: [macos-26, ubuntu-24.04, windows-2022]
     defaults:
       run:
         shell: bash
@@ -101,40 +101,40 @@ jobs:
           path: ${{ runner.temp }}/clap-screenshots/
           if-no-files-found: error
           retention-days: 30
-      - name: Stage beta
+      - name: Stage release package
         run: |
-          cmake --install build-clap --config Release --prefix "$RUNNER_TEMP/ardor-clap-beta" --component clap-beta
-          printf '\nBuild: %s\nCommit: %s\n' "$ARDOR_CLAP_VERSION" "$GITHUB_SHA" >> "$RUNNER_TEMP/ardor-clap-beta/README.md"
+          cmake --install build-clap --config Release --prefix "$RUNNER_TEMP/ardor-clap" --component clap
+          printf '\nBuild: %s\nCommit: %s\n' "$ARDOR_CLAP_VERSION" "$GITHUB_SHA" >> "$RUNNER_TEMP/ardor-clap/README.md"
       - name: Sign and package Mac plugin
         if: runner.os == 'macOS'
         run: |
-          codesign --force --sign - "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
-          codesign --verify --strict "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap"
-          plutil -lint "$RUNNER_TEMP/ardor-clap-beta/Ardor.clap/Contents/Info.plist"
+          codesign --force --sign - "$RUNNER_TEMP/ardor-clap/Ardor.clap"
+          codesign --verify --strict "$RUNNER_TEMP/ardor-clap/Ardor.clap"
+          plutil -lint "$RUNNER_TEMP/ardor-clap/Ardor.clap/Contents/Info.plist"
           python3 - <<'PYTHON'
           import os, subprocess
-          binary = os.environ['RUNNER_TEMP'] + '/ardor-clap-beta/Ardor.clap/Contents/MacOS/Ardor'
+          binary = os.environ['RUNNER_TEMP'] + '/ardor-clap/Ardor.clap/Contents/MacOS/Ardor'
           libraries = subprocess.check_output(['otool', '-L', binary], text=True).splitlines()[1:]
           for line in libraries:
               path = line.strip().split(' (')[0]
               assert path.startswith(('/System/Library/', '/usr/lib/')), path
           PYTHON
-          mkdir -p beta
-          archive="Ardor-CLAP-$ARDOR_CLAP_VERSION-macOS-arm64-beta.zip"
-          ditto -c -k --keepParent "$RUNNER_TEMP/ardor-clap-beta" "beta/$archive"
-          (cd beta && shasum -a 256 "$archive" > "$archive.sha256")
+          mkdir -p package
+          archive="Ardor-CLAP-$ARDOR_CLAP_VERSION-macOS-arm64.zip"
+          ditto -c -k --keepParent "$RUNNER_TEMP/ardor-clap" "package/$archive"
+          (cd package && shasum -a 256 "$archive" > "$archive.sha256")
       - name: Package Linux development plugin
         if: runner.os == 'Linux'
         run: |
-          mkdir -p beta
-          archive="Ardor-CLAP-$ARDOR_CLAP_VERSION-Linux-x64-beta.tar.gz"
-          tar -czf "beta/$archive" -C "$RUNNER_TEMP" ardor-clap-beta
-          (cd beta && sha256sum "$archive" > "$archive.sha256")
+          mkdir -p package
+          archive="Ardor-CLAP-$ARDOR_CLAP_VERSION-Linux-x64.tar.gz"
+          tar -czf "package/$archive" -C "$RUNNER_TEMP" ardor-clap
+          (cd package && sha256sum "$archive" > "$archive.sha256")
       - name: Verify and package Windows plugin
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $binary = Join-Path $env:RUNNER_TEMP 'ardor-clap-beta/Ardor.clap'
+          $binary = Join-Path $env:RUNNER_TEMP 'ardor-clap/Ardor.clap'
           $vswhere = "${env:ProgramFiles(x86)}/Microsoft Visual Studio/Installer/vswhere.exe"
           $dumpbin = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC/Tools/MSVC/**/bin/Hostx64/x64/dumpbin.exe' | Select-Object -First 1
           if (!$dumpbin -or !(Test-Path $binary)) { throw 'Windows plugin/tool missing' }
@@ -148,15 +148,15 @@ jobs:
               throw "Plugin requires an undistributed runtime: $dll"
             }
           }
-          New-Item -ItemType Directory -Force beta | Out-Null
-          $archive = "Ardor-CLAP-$env:ARDOR_CLAP_VERSION-Windows-x64-beta.zip"
-          Compress-Archive -Path "$env:RUNNER_TEMP/ardor-clap-beta" -DestinationPath "beta/$archive"
-          $hash = (Get-FileHash "beta/$archive" -Algorithm SHA256).Hash.ToLowerInvariant()
-          "$hash  $archive" | Set-Content -Encoding ascii "beta/$archive.sha256"
+          New-Item -ItemType Directory -Force package | Out-Null
+          $archive = "Ardor-CLAP-$env:ARDOR_CLAP_VERSION-Windows-x64.zip"
+          Compress-Archive -Path "$env:RUNNER_TEMP/ardor-clap" -DestinationPath "package/$archive"
+          $hash = (Get-FileHash "package/$archive" -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $archive" | Set-Content -Encoding ascii "package/$archive.sha256"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: Ardor-CLAP-beta-${{ matrix.os }}-${{ github.sha }}
-          path: beta/
+          name: Ardor-CLAP-package-${{ matrix.os }}-${{ github.sha }}
+          path: package/
           if-no-files-found: error
           retention-days: 30
           compression-level: 0

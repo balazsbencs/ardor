@@ -36,7 +36,7 @@ constexpr const char* pluginId = "org.ardor.guitar";
 const char* const features[] = {CLAP_PLUGIN_FEATURE_AUDIO_EFFECT, CLAP_PLUGIN_FEATURE_STEREO, nullptr};
 const clap_plugin_descriptor_t descriptor = {CLAP_VERSION, pluginId, "Ardor", "Ardor",
   "https://github.com/balazsbencs/ardor", "", "https://github.com/balazsbencs/ardor/issues",
-  ARDOR_CLAP_VERSION " Beta 4", "Shared Ardor guitar effects engine with host sample-rate conversion", features};
+  ARDOR_CLAP_VERSION, "Shared Ardor guitar effects engine with host sample-rate conversion", features};
 
 enum Param : clap_id { InputTrim, OutputTrim, Bypass, InputChannel, LibrarySlot, Scene, Count };
 struct ParamSpec { const char* name; double low, high, initial; bool stepped; };
@@ -129,7 +129,7 @@ private:
     std::string error;
     if (!ardor::applyPreset(*engine, preset, root_, options, error)) throw std::runtime_error(error);
     if (engine->flexibleRoutingEnabled())
-      throw std::runtime_error("Structural scene graphs are not supported by this CLAP beta's latency contract.");
+      throw std::runtime_error("Structural scene graphs are not supported by the CLAP latency contract.");
     return engine;
   }
 
@@ -179,7 +179,7 @@ private:
         s.engine_ = s.prepare(s.preset_);
       }
       const auto engineLatency = s.engine_->latencyFrames();
-      if (engineLatency > 48000 * 10) throw std::runtime_error("Preset latency exceeds the beta's supported bound.");
+      if (engineLatency > 48000 * 10) throw std::runtime_error("Preset latency exceeds the supported 10-second bound.");
       s.rateAdapter_.prepare(rate, static_cast<unsigned>(engineLatency));
       s.hostRate_ = rate;
       s.smoothing_ = static_cast<float>(1. - std::exp(-1. / (.005 * rate)));

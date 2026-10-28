@@ -257,6 +257,8 @@ int main() {
     require(entry && entry->init(ARDOR_CLAP_BINARY), "Missing CLAP entry");
     const auto* factory = static_cast<const clap_plugin_factory_t*>(entry->get_factory(CLAP_PLUGIN_FACTORY_ID));
     require(factory && factory->get_plugin_count(factory) == 1, "Missing factory");
+    require(std::strcmp(factory->get_plugin_descriptor(factory, 0)->version, ARDOR_CLAP_EXPECTED_VERSION) == 0,
+      "Plugin version does not match the release build");
     require(!factory->get_plugin_descriptor(factory, 1), "Out-of-range descriptor accepted");
     Host host, otherHost;
     {

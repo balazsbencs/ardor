@@ -48,11 +48,17 @@ heights retain their size. The model list scrolls when needed.
 Dependencies are pinned; builds fetch the same NAM core as Ardor, CLAP headers,
 Eigen and SpeexDSP. Licenses are installed alongside the module.
 
-The `NAM CLAP` GitHub Actions workflow produces `ArdorNAM-macOS-arm64.zip`,
-including the plugin, this guide and license notices. It requires macOS 13 or
-newer. These development builds are ad-hoc signed, rather than notarized with a
-Developer ID. If macOS blocks a downloaded build, remove quarantine from this
-specific installed bundle before rescanning:
+The main [GitHub release](https://github.com/balazsbencs/ardor/releases) includes
+`ArdorNAM-<version>-macOS-arm64.zip` and `ArdorNAM-<version>-Linux-x64.tar.gz`,
+each with a SHA-256 checksum. The plugin descriptor and Mac bundle carry that
+same release version. Packages include this guide and license notices.
+
+The **Continuous integration** workflow builds both modules and verifies the
+complete release package set. The reusable **NAM CLAP** workflow also supports
+manual builds with a version input. The Mac plugin requires macOS 13 or
+newer. Mac packages use ad-hoc signing and are not notarized with a Developer ID.
+If macOS blocks a downloaded build, remove quarantine from this specific installed
+bundle before rescanning:
 
 ```sh
 xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/CLAP/ArdorNAM.clap"
