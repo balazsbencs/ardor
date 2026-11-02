@@ -2,6 +2,8 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.114](https://github.com/balazsbencs/ardor/compare/v0.1.113...v0.1.114) (2026-11-02)
+
 ## [0.1.113](https://github.com/balazsbencs/ardor/compare/v0.1.102...v0.1.113) (2026-11-02)
 
 ### Features
