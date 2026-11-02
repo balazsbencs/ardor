@@ -2,6 +2,20 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.113](https://github.com/balazsbencs/ardor/compare/v0.1.102...v0.1.113) (2026-11-02)
+
+### Features
+
+* **hardware:** add through-hole hand-assembly module variants ([c601014](https://github.com/balazsbencs/ardor/commit/c601014eb878db7f9db2b8f8120e9f9c2c9df646))
+* **hardware:** compact layouts and adopt Hestore module packages ([70b0b52](https://github.com/balazsbencs/ardor/commit/70b0b52ec88ae81dfbc7923a478add68947b43fe))
+* **hardware:** use hand-solderable OPA1656 headphone amplifier ([679b059](https://github.com/balazsbencs/ardor/commit/679b059e2cd614fb79e7a6d9c059548533ca004a))
+* support for parametric a2 models ([a1ea3c4](https://github.com/balazsbencs/ardor/commit/a1ea3c41e417727449477e327e57ba03c14c0b98))
+
+### Bug Fixes
+
+* **hardware:** use Hestore TVS diodes in hand-assembly modules ([a1e4d17](https://github.com/balazsbencs/ardor/commit/a1e4d17e667b9e17844d0fca69a0a200c97d884d))
+* **ota:** preserve signed requests and keep the touchscreen responsive ([5ce553a](https://github.com/balazsbencs/ardor/commit/5ce553ae1f1bc1c3b9e0c0b2b279d058fe0a06f4))
+
 ## [0.1.102](https://github.com/balazsbencs/ardor/compare/v0.1.101...v0.1.102) (2026-10-19)
 
 ## [0.1.101](https://github.com/balazsbencs/ardor/compare/v0.1.97...v0.1.101) (2026-10-19)
