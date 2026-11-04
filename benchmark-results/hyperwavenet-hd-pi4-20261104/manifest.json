@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.54",
+  "tag": "v0.1.54",
+  "commit": "74efef6c-hyperwavenet-hd-dev",
+  "target": "raspberry-pi-4",
+  "arch": "aarch64",
+  "minimumUpdaterVersion": "1.0.0",
+  "minimumBaseVersion": "0.1.54",
+  "bundle": {
+    "name": "ardor-device-0.1.54-linux-aarch64.tar.gz",
+    "size": 7683214,
+    "sha256": "5dc8572677cf3351c61e98fe5941dc1465a2f570746ea26e22b38a815330fd26"
+  },
+  "files": [
+    {
+      "path": "bin/ardor-pedal",
+      "size": 7859624,
+      "mode": 493,
+      "sha256": "53c2d56f3189498d612f6dad43992264d7b9fb22100e86322ab73a663dc9ad3c"
+    },
+    {
+      "path": "bin/ardor-managerd",
+      "size": 9109666,
+      "mode": 493,
+      "sha256": "180b5eaa593c1e78b768c49b5e4d14be738e4f8d43983ebd3c34401454555251"
+    }
+  ],
+  "developmentPatch": {
+    "description": "Full 16-channel HyperWaveNet A2 NEON inference, compact histories and unchanged-kernel retention. Original HD model and cabinet qualified at 48 kHz/128 frames with live controls; no extra buffering latency.",
+    "nativeVersion": "0.1.99-hyperwavenet-hd.dev.20261104",
+    "baseCommit": "74efef6c06e91bc4b07d3cdb95cb4902c6186478",
+    "sourcePatchSha256": "2f91ee5a6a741f157247f00ee77411b154804da9b8913f318691fdfeb4797313"
+  }
+}

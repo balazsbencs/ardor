@@ -120,7 +120,7 @@ describe("AssetsView", () => {
   });
 
   it("prevents trying an unsupported model and shows its error", async () => {
-    session.models.push({ ...asset("Unsupported.nam"), nam: { architecture: "HyperWaveNet", version: "1.0.0", gearType: "amp", supported: false, error: "Unsupported NAM architecture." } });
+    session.models.push({ ...asset("Unsupported.nam"), nam: { architecture: "UnknownParametric", version: "1.0.0", gearType: "amp", supported: false, error: "Unsupported NAM architecture." } });
     renderAssets();
     await userEvent.click(screen.getByRole("button", { name: "Unsupported" }));
     expect(screen.getByRole("button", { name: /Try in/ })).toBeDisabled();

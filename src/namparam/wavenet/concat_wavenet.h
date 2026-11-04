@@ -44,6 +44,9 @@ struct ConcatWaveNetConfig : public ModelConfig
   std::unique_ptr<DSP> create(std::vector<float> weights, double sampleRate) override;
 };
 
+// Validate the complete serialized base network before iterator-based loading.
+size_t wave_net_weight_count(const WaveNetConfig& config);
+
 std::unique_ptr<ModelConfig> create_concat_wavenet_config(const nlohmann::json& config, double sampleRate);
 
 } // namespace wavenet

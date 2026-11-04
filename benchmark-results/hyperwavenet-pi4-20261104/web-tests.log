@@ -1,0 +1,11 @@
+npm notice run ardor-manager@0.1.0 test
+npm notice run vitest run src/stage/ModuleDrawer.test.tsx src/stage/BlockDrawer.test.tsx src/assets/AssetsView.test.tsx
+
+ RUN  v5.0.3 /home/bbalazs/projects/ardor/apps/manager
+
+
+ Test Files  3 passed (3)
+      Tests  74 passed (74)
+   Start at  21:31:09
+   Duration  12.96s (tests 64%, environment 17%, import 9%, transform 9%, setup 3%)
+

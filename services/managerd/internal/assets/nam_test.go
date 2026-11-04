@@ -213,7 +213,7 @@ func TestParametricNAMMetadata(t *testing.T) {
 		t.Fatalf("list lost metadata: %+v %v", listed, err)
 	}
 	for name, doc := range map[string]string{
-		"unsupported":    strings.ReplaceAll(model, "ConcatLSTM", "HyperWaveNet"),
+		"unsupported":    strings.ReplaceAll(model, "ConcatLSTM", "UnknownParametric"),
 		"version":        strings.ReplaceAll(model, "1.0.0", "0.7.0"),
 		"sampleRate":     strings.ReplaceAll(model, "48000", "44100"),
 		"missingRate":    strings.ReplaceAll(model, `,"sample_rate":48000`, ""),
@@ -293,5 +293,29 @@ func TestPublishedFiLMNAMMetadata(t *testing.T) {
 	info := describeNAM(&embedded, 0)
 	if !info.Supported || !info.Slimmable || info.GearType != "pedal" || len(info.Parameters) != 2 {
 		t.Fatalf("embedded parametric metadata lost: %+v", info)
+	}
+}
+
+func TestHyperWaveNetNAMMetadata(t *testing.T) {
+	data, err := os.ReadFile("../../../../tests/fixtures/hyperwavenet/hyperwavenet.nam")
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := NewStore(t.TempDir())
+	info, err := store.Save(KindModel, "Hyper.nam", strings.NewReader(string(data)), false)
+	if err != nil || info.NAM == nil || !info.NAM.Supported || len(info.NAM.Parameters) != 2 {
+		t.Fatalf("Hyper metadata: %+v %v", info, err)
+	}
+	renamed, err := store.Rename(KindModel, info.ID, "Hyper Renamed.nam")
+	if err != nil || renamed.NAM == nil || !renamed.NAM.Supported {
+		t.Fatalf("Hyper rename: %+v %v", renamed, err)
+	}
+	var doc namDocument
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	doc.Config.Hypernet = nil
+	if describeNAM(&doc, 0).Supported {
+		t.Fatal("missing hypernet accepted")
 	}
 }

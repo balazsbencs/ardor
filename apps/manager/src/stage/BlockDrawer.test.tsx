@@ -275,9 +275,9 @@ describe("BlockDrawer, ported from the old inspector", () => {
 
 
 describe("learned NAM controls", () => {
-  it("edits continuous and switch values, resets them, and clears them when changing models", async () => {
+  it.each(["ConcatLSTM", "HyperWaveNet"])("edits %s controls, resets them, and clears them when changing models", async (architecture) => {
     session.models[0].nam = {
-      architecture: "ConcatLSTM", version: "1.0.0", gearType: "amp", supported: true,
+      architecture, version: "1.0.0", gearType: "amp", supported: true,
       parameters: [
         { name: "Drive", min: 0, max: 10, default: 5, type: "continuous" },
         { name: "Mode", min: 0, max: 1, default: 0, type: "switch", enum_names: ["Soft", "Hard"] },

@@ -1,0 +1,10 @@
+Stopping ardor-pedal
+stopped process in pidfile '/var/run/ardor-pedal.pid' (pid 23829)
+Stopping ardor-managerd
+stopped process in pidfile '/var/run/ardor-managerd.pid' (pid 402)
+Starting ardor-managerd
+Starting ardor-pedal
+wget: can't connect to remote host (127.0.0.1): Connection refused
+/opt/ardor-pedal/system/releases/0.1.99-hyperwavenet.dev.20261104
+ardor-pedal 0.1.99-hyperwavenet.dev.20261104 (74efef6c-hyperwavenet-dev)
+ardor-managerd 0.1.54 (74efef6c-hyperwavenet-dev) updater 1.0.0

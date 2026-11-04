@@ -1,0 +1,35 @@
+Stopping ardor-pedal
+stopped process in pidfile '/var/run/ardor-pedal.pid' (pid 25587)
+Python reference max error: 9.68575e-08 (13/64/128 frames)
+Malformed model checks: passed
+synthetic A2 optimized/reference max_error=5.82077e-10,peak=0.000236502,error_rms=1.46894e-10,reference_rms=0.00022173
+"hyperwavenet.nam",steady,n=9375,p99.9_us=68.277,deadline_misses=0,max_us=90.112
+"hyperwavenet.nam",all-controls-change,n=625,p99.9_us=72.463,deadline_misses=0,max_us=72.463
+Live controls, preset restore and allocation audit passed; checksum=-106452
+Marshall_1987X_Reissue-hd.nam optimized/reference max_error=1.36346e-06,peak=0.59671,error_rms=8.44794e-08,reference_rms=0.126378
+"Marshall_1987X_Reissue-hd.nam",steady,n=9375,p99.9_us=1959.91,deadline_misses=0,max_us=2059.04
+"Marshall_1987X_Reissue-hd.nam",all-controls-change,n=625,p99.9_us=2398.63,deadline_misses=0,max_us=2398.63
+Live controls, preset restore and allocation audit passed; checksum=1102.33
+Live HD + cabinet, muted output, all controls edited every 100 ms
+Callback scheduler: SCHED_FIFO (1), priority 70, CPU 2
+Realtime started: client 48000 Hz, block 128, input channel 0, native capture 48000 Hz/128, playback 48000 Hz/128
+seconds=10,callbacks=3750,over=0,gaps=0,avg_ms=2.02728,max_ms=2.44585,budget_ms=2.66667,updates=600,nonfinite=0,mismatch=0
+seconds=20,callbacks=7500,over=0,gaps=0,avg_ms=2.02587,max_ms=2.44585,budget_ms=2.66667,updates=1200,nonfinite=0,mismatch=0
+seconds=30,callbacks=11250,over=0,gaps=0,avg_ms=2.02717,max_ms=2.44585,budget_ms=2.66667,updates=1800,nonfinite=0,mismatch=0
+seconds=40,callbacks=15000,over=0,gaps=0,avg_ms=2.02903,max_ms=2.44585,budget_ms=2.66667,updates=2400,nonfinite=0,mismatch=0
+seconds=50,callbacks=18750,over=0,gaps=0,avg_ms=2.02926,max_ms=2.44585,budget_ms=2.66667,updates=3000,nonfinite=0,mismatch=0
+seconds=60,callbacks=22500,over=0,gaps=0,avg_ms=2.02842,max_ms=2.44585,budget_ms=2.66667,updates=3600,nonfinite=0,mismatch=0
+seconds=70,callbacks=26249,over=0,gaps=0,avg_ms=2.02803,max_ms=2.44994,budget_ms=2.66667,updates=4200,nonfinite=0,mismatch=0
+seconds=80,callbacks=29999,over=0,gaps=0,avg_ms=2.02886,max_ms=2.44994,budget_ms=2.66667,updates=4800,nonfinite=0,mismatch=0
+seconds=90,callbacks=33749,over=0,gaps=0,avg_ms=2.02937,max_ms=2.44994,budget_ms=2.66667,updates=5400,nonfinite=0,mismatch=0
+seconds=100,callbacks=37499,over=0,gaps=0,avg_ms=2.02892,max_ms=2.44994,budget_ms=2.66667,updates=6000,nonfinite=0,mismatch=0
+seconds=110,callbacks=41249,over=0,gaps=0,avg_ms=2.02853,max_ms=2.44994,budget_ms=2.66667,updates=6600,nonfinite=0,mismatch=0
+seconds=120,callbacks=44999,over=0,gaps=0,avg_ms=2.02877,max_ms=2.44994,budget_ms=2.66667,updates=7200,nonfinite=0,mismatch=0
+seconds=130,callbacks=48749,over=0,gaps=0,avg_ms=2.02917,max_ms=2.44994,budget_ms=2.66667,updates=7800,nonfinite=0,mismatch=0
+seconds=140,callbacks=52499,over=0,gaps=0,avg_ms=2.02917,max_ms=2.44994,budget_ms=2.66667,updates=8400,nonfinite=0,mismatch=0
+seconds=150,callbacks=56248,over=0,gaps=0,avg_ms=2.02888,max_ms=2.44994,budget_ms=2.66667,updates=9000,nonfinite=0,mismatch=0
+seconds=160,callbacks=59998,over=0,gaps=0,avg_ms=2.02883,max_ms=2.45556,budget_ms=2.66667,updates=9600,nonfinite=0,mismatch=0
+seconds=170,callbacks=63748,over=0,gaps=0,avg_ms=2.02916,max_ms=2.45556,budget_ms=2.66667,updates=10200,nonfinite=0,mismatch=0
+seconds=180,callbacks=67498,over=0,gaps=0,avg_ms=2.0293,max_ms=2.45556,budget_ms=2.66667,updates=10800,nonfinite=0,mismatch=0
+Hardware control sweep passed
+Starting ardor-pedal

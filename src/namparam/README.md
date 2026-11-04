@@ -5,8 +5,29 @@ commit fddcbc91e74ba79066a43c3b73cc690073529232 (MIT; LICENSE).
 Changes: upstream core includes, explicit parser invocation instead of static
 registration, weight-count validation before WaveNet construction, and reuse of
 the prepared conditioning ramp during same-rate resets. Ardor keeps its pinned
-stock NAM runtime. HyperWaveNet is not
-supported: its weight updates need a separate realtime-safe integration.
+stock NAM runtime.
+
+HyperWaveNet support adapts `hypernet.{h,cpp}` and
+`wavenet/hyperwavenet.{h,cpp}` from the same pinned fork. It validates the full
+base weight count before construction, bounds hypernetwork dimensions, and uses
+explicit parser dispatch. Weight generation and installation reuse prepared
+buffers and run once at the next audio block after a changed parameter vector.
+Controls are not smoothed: the upstream measured smoothing experiment introduced
+block-rate artifacts and repeated expensive weight generation. Knob changes may
+still step audibly. Packed/slimmable inner networks and nested condition DSPs
+are rejected. Existing direct concat/FiLM container families remain unchanged.
+
+On ARM64, exact 16-channel A2 HyperWaveNets automatically use
+`wavenet/mutable_a2.cpp`. The four-frame NEON kernel keeps the full network and
+its floating-point weights. A compact ring mirrors only three frames, and
+validated delta ranges determine whether dilated convolution kernels need
+reloading after an edit. Other topologies and production hosts retain the generic
+runtime; a scalar implementation of the specialized layout is exercised in tests.
+No extra worker thread or buffering latency is introduced. Both generic and
+specialized paths retain histories on control changes and clear them on reset.
+The synthetic test changes convolution weights too, guarding the conditional
+reload optimization. The original Marshall HD export is tested externally
+against the generic runtime, including varied block sizes and live controls.
 
 Concat models accept 1–24 named controls, including one-hot switches. The
 companion trainer's A2 Standard and Nano topology exports retain the same

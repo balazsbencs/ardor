@@ -217,6 +217,7 @@ int main() {
   require(!low.load(root/"models/wave-short.nam",48000,64),"reject truncated WaveNet weights before reading them");
   const auto clone = source/"assets/nam/clone-overdrive.nam";
   checkConcurrentTargets(model, "Drive", 10, 1);
+  checkConcurrentTargets(source/"tests/fixtures/hyperwavenet/hyperwavenet.nam", "gain", 10, 1);
   checkConcurrentTargets(clone, "Gain", 1, 0);
   checkConcurrentTargets(clone, "Gain", 1, 1);
   checkLiveFilmHistory(clone, 0);
@@ -293,6 +294,7 @@ int main() {
   require(ardor::applyPreset(engine, dual, root, options, error), "live Dual Rig prepares: " + error);
   require(engine.setNamParameter("left-od", "Drive", 8)
     && engine.setNamParameter("right-od", "Tone", 4), "live controls reach both Dual Rig children");
+  std::filesystem::copy_file(source/"tests/fixtures/hyperwavenet/hyperwavenet.nam",root/"models/hyper.nam");
   auto ui=ardor::makeDemoUiState();ardor::loadAssetsFromDataRoot(ui,root);ardor::replaceActivePreset(ui,preset);
   const auto asset=std::find_if(ui.assets.begin(),ui.assets.end(),[](const auto& a){return a.path=="models/overdrive.nam";});
   require(asset!=ui.assets.end() && asset->blockType=="namPedal","native drawer classifies parametric pedal");
@@ -356,6 +358,21 @@ int main() {
       : stored.blocks[0].lanes[lane][0].id;
     require(engine.setNamParameter(pedalId, "Drive", 8), "live controls reach each WDW lane");
   }
+  auto hyperUi=ui;
+  ardor::Preset hyperPreset;
+  hyperPreset.name="HyperWaveNet rig";
+  hyperPreset.blocks={{"hyper","nam",true,"models/hyper.nam",{{"modelParameters",{{"gain",9},{"mode",2}}}}}};
+  require(ardor::applyPreset(engine,hyperPreset,root,options,error),"HyperWaveNet native preset applies: "+error);
+  require(engine.setNamParameter("hyper","gain",3),"HyperWaveNet engine accepts learned targets");
+  ardor::replaceActivePreset(hyperUi,hyperPreset); hyperUi.selectedBlock=0; hyperUi.paramTarget=ardor::UiParamTarget::Block;
+  const auto hyperAsset=std::find_if(hyperUi.assets.begin(),hyperUi.assets.end(),[](const auto& a){return a.path=="models/hyper.nam";});
+  require(hyperAsset!=hyperUi.assets.end() && hyperAsset->blockType=="nam","HyperWaveNet drawer classifies amp");
+  const auto hyperControls=ardor::parameterPage(hyperUi,0);
+  require(std::any_of(hyperControls.begin(),hyperControls.end(),[](const auto& c){return c.key=="model:gain" && c.value==9;}),"native HyperWaveNet learned controls restore");
+  ardor::setSelectedBlockParam(hyperUi,"model:gain",4);
+  require(!ardor::pendingStructuralPreview(hyperUi),"HyperWaveNet edits retain network history");
+  const auto hyperStored=ardor::activePresetToPreset(hyperUi);
+  require(hyperStored.blocks[0].params["modelParameters"]["gain"]==4 && hyperStored.blocks[0].params["modelParameters"]["mode"]==2,"HyperWaveNet native preset roundtrip");
   std::filesystem::remove_all(root);
   std::cout<<"parametric NAM audio, controls, routing and native roundtrip passed\n";
 }

@@ -38,7 +38,8 @@ public:
   void reset();
   bool loaded() const;
   // Control-thread mailbox. The audio thread commits targets between blocks;
-  // the model's conditioner smooths continuous controls without resetting history.
+  // concat/FiLM smooth continuous controls; HyperWaveNet applies weights at the
+  // next block boundary. None of these control commits reset history.
   // May overlap processing, but not load(), clear(), or destruction.
   bool setParameterTarget(std::string_view name, float value);
 

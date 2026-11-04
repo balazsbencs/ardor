@@ -1,0 +1,116 @@
+[
+  {
+    "id": "Marshall_Lite_upload.nam",
+    "kind": "model",
+    "filename": "Marshall_Lite_upload.nam",
+    "path": "models/Marshall_Lite_upload.nam",
+    "sizeBytes": 849293,
+    "nam": {
+      "architecture": "HyperWaveNet",
+      "version": "1.0.0",
+      "gearType": "amp",
+      "parameters": [
+        {
+          "name": "Presence",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Bass",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Middle",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Treble",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Volume I (High Treb)",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Volume II (Normal)",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        }
+      ],
+      "supported": true
+    }
+  },
+  {
+    "id": "Marshall_HD_upload.nam",
+    "kind": "model",
+    "filename": "Marshall_HD_upload.nam",
+    "path": "models/Marshall_HD_upload.nam",
+    "sizeBytes": 2120068,
+    "nam": {
+      "architecture": "HyperWaveNet",
+      "version": "1.0.0",
+      "gearType": "amp",
+      "parameters": [
+        {
+          "name": "Presence",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Bass",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Middle",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Treble",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Volume I (High Treb)",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        },
+        {
+          "name": "Volume II (Normal)",
+          "min": 0,
+          "max": 10,
+          "default": 5,
+          "type": "continuous"
+        }
+      ],
+      "supported": true
+    }
+  }
+]
