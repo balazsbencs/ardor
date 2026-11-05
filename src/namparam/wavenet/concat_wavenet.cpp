@@ -31,7 +31,8 @@ size_t film_weights(const _FiLMParams& film, int condition, int input)
 {
   return film.active ? conv_weights(condition, (film.shift ? 2 : 1) * input, 1, true, film.groups) : 0;
 }
-size_t weight_count(const WaveNetConfig& config)
+} // namespace
+size_t wave_net_weight_count(const WaveNetConfig& config)
 {
   size_t count = 1; // final head_scale
   for (const auto& a : config.layer_array_params) {
@@ -67,11 +68,10 @@ size_t weight_count(const WaveNetConfig& config)
   }
   return count;
 }
-} // namespace
 
 std::unique_ptr<DSP> ConcatWaveNetConfig::create(std::vector<float> weights, const double sampleRate)
 {
-  if (weights.size() != weight_count(inner))
+  if (weights.size() != wave_net_weight_count(inner))
     throw std::runtime_error("ConcatWaveNet weight count does not match its config");
   if (inner.condition_dsp != nullptr)
     throw std::runtime_error("ConcatWaveNet does not support condition_dsp");

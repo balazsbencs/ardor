@@ -1,0 +1,14 @@
+Stopping ardor-pedal
+stopped process in pidfile '/var/run/ardor-pedal.pid' (pid 22917)
+Python reference max error: 9.68575e-08 (13/64/128 frames)
+Malformed model checks: passed
+"hyperwavenet.nam",steady,n=9375,p99.9_us=56.426,deadline_misses=0,max_us=60.945
+"hyperwavenet.nam",all-controls-change,n=625,p99.9_us=57.814,deadline_misses=0,max_us=57.814
+Live controls, preset restore and allocation audit passed; checksum=-106452
+"Marshall_1987X_Reissue_-_Lite_CPU_parametric.nam",steady,n=9375,p99.9_us=1482.59,deadline_misses=0,max_us=1657.83
+"Marshall_1987X_Reissue_-_Lite_CPU_parametric.nam",all-controls-change,n=625,p99.9_us=1711.13,deadline_misses=0,max_us=1711.13
+Live controls, preset restore and allocation audit passed; checksum=-1567.49
+"Marshall_1987X_Reissue-hd.nam",steady,n=9375,p99.9_us=3748.24,deadline_misses=9375,max_us=3776
+"Marshall_1987X_Reissue-hd.nam",all-controls-change,n=625,p99.9_us=4250.17,deadline_misses=625,max_us=4250.17
+Live controls, preset restore and allocation audit passed; checksum=1102.33
+Starting ardor-pedal

@@ -68,13 +68,28 @@ inline nlohmann::json namParameterSpecs(const nlohmann::json& document) {
   }
   const bool film = architecture == "ParametricWaveNet";
   const bool concat = architecture == "ConcatWaveNet" || architecture == "ConcatLSTM";
-  if (!film && !concat) {
+  const bool hyper = architecture == "HyperWaveNet";
+  if (!film && !concat && !hyper) {
     if (architecture == "HyperWaveNet" || config.contains("params") || config.contains("parametric"))
       throw std::runtime_error("Unsupported parametric NAM architecture");
     return nlohmann::json::array();
   }
   if (model.at("version") != (film ? "0.7.0" : "1.0.0") || model.at("sample_rate") != 48000)
     throw std::runtime_error("Unsupported parametric NAM version or sample rate");
+  if (hyper) {
+    if (!config.contains("hypernet") || !config.at("hypernet").is_object()
+        || (config.contains("condition_dsp") && !config.at("condition_dsp").is_null()))
+      throw std::runtime_error("HyperWaveNet requires hypernet and no nested condition DSP");
+    const auto& layers = config.at("layers");
+    if (!layers.is_array() || layers.empty() || layers.size() > 8
+        || layers.at(0).value("input_size", 1) != 1)
+      throw std::runtime_error("HyperWaveNet requires 1 to 8 mono layer arrays");
+    for (const auto& layer : layers)
+      if (layer.value("condition_size", 1) != 1
+          || (layer.contains("packing") && !layer.at("packing").is_null())
+          || (layer.contains("slimmable") && !layer.at("slimmable").is_null()))
+        throw std::runtime_error("HyperWaveNet does not support packed, slimmable or multichannel conditioning");
+  }
   auto specs = film ? config.at("parametric").at("parameters") : config.at("params");
   const size_t maxParameters = film ? 16 : 24;
   if (!specs.is_array() || specs.empty() || specs.size() > maxParameters)

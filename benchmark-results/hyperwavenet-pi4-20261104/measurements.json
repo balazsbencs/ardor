@@ -1,0 +1,40 @@
+{
+  "sample_rate": 48000,
+  "block_frames": 128,
+  "deadline_us": 2666.6666666666665,
+  "cpu_hz": 1500000000,
+  "rows": [
+    {
+      "model": "Lite CPU",
+      "mode": "steady",
+      "blocks": 9375,
+      "p999_us": 1482.59,
+      "deadline_misses": 0,
+      "max_us": 1657.83
+    },
+    {
+      "model": "Lite CPU",
+      "mode": "all-controls-change",
+      "blocks": 625,
+      "p999_us": 1711.13,
+      "deadline_misses": 0,
+      "max_us": 1711.13
+    },
+    {
+      "model": "HD",
+      "mode": "steady",
+      "blocks": 9375,
+      "p999_us": 3748.24,
+      "deadline_misses": 9375,
+      "max_us": 3776.0
+    },
+    {
+      "model": "HD",
+      "mode": "all-controls-change",
+      "blocks": 625,
+      "p999_us": 4250.17,
+      "deadline_misses": 625,
+      "max_us": 4250.17
+    }
+  ]
+}

@@ -33,8 +33,10 @@ type namDocument struct {
 	SampleRate   float64      `json:"sample_rate"`
 	Embedded     *namDocument `json:"embedded_parametric"`
 	Config       struct {
-		Params     json.RawMessage `json:"params"`
-		Parametric *struct {
+		Params       json.RawMessage `json:"params"`
+		Hypernet     json.RawMessage `json:"hypernet"`
+		ConditionDSP json.RawMessage `json:"condition_dsp"`
+		Parametric   *struct {
 			Type          string          `json:"type"`
 			Schema        int             `json:"schema_version"`
 			Head          string          `json:"head_mode"`
@@ -148,7 +150,8 @@ func describeNAM(document *namDocument, depth int) *NAMInfo {
 	}
 	film := document.Architecture == "ParametricWaveNet"
 	concat := document.Architecture == "ConcatWaveNet" || document.Architecture == "ConcatLSTM"
-	if !film && !concat {
+	hyper := document.Architecture == "HyperWaveNet"
+	if !film && !concat && !hyper {
 		if len(document.Config.Params) > 0 || document.Config.Parametric != nil || document.Architecture == "HyperWaveNet" {
 			return fail("This parametric NAM architecture is not supported.")
 		}
@@ -180,6 +183,25 @@ func describeNAM(document *namDocument, depth int) *NAMInfo {
 	}
 	if document.SampleRate != 48000 {
 		return fail("Parametric NAM files must specify a 48000 Hz sample_rate.")
+	}
+	if hyper {
+		var network map[string]json.RawMessage
+		var layers []struct {
+			Input     int             `json:"input_size"`
+			Condition int             `json:"condition_size"`
+			Packing   json.RawMessage `json:"packing"`
+			Slimmable json.RawMessage `json:"slimmable"`
+		}
+		present := func(raw json.RawMessage) bool { return len(raw) > 0 && string(raw) != "null" }
+		if json.Unmarshal(document.Config.Hypernet, &network) != nil || network == nil || present(document.Config.ConditionDSP) ||
+			json.Unmarshal(document.Config.Layers, &layers) != nil || len(layers) < 1 || len(layers) > 8 || layers[0].Input != 1 {
+			return fail("HyperWaveNet requires hypernet, mono layers and no nested condition DSP.")
+		}
+		for _, layer := range layers {
+			if layer.Condition != 1 || present(layer.Packing) || present(layer.Slimmable) {
+				return fail("HyperWaveNet does not support packed, slimmable or multichannel conditioning.")
+			}
+		}
 	}
 	// Pointer fields distinguish an omitted default/minimum from a valid zero.
 	var specs []struct {

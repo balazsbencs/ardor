@@ -1,0 +1,61 @@
+{
+  "sample_rate": 48000,
+  "block_frames": 128,
+  "deadline_us": 2666.6666666666665,
+  "cpu_hz": 1500000000,
+  "rows": [
+    {
+      "model": "HD",
+      "mode": "steady",
+      "blocks": 9375,
+      "p999_us": 3748.24,
+      "deadline_misses": 9375,
+      "max_us": 3776.0,
+      "runtime": "generic"
+    },
+    {
+      "model": "HD",
+      "mode": "all-controls-change",
+      "blocks": 625,
+      "p999_us": 4250.17,
+      "deadline_misses": 625,
+      "max_us": 4250.17,
+      "runtime": "generic"
+    },
+    {
+      "model": "HD",
+      "runtime": "NEON",
+      "mode": "steady",
+      "blocks": 9375,
+      "p999_us": 1959.91,
+      "deadline_misses": 0,
+      "max_us": 2059.04
+    },
+    {
+      "model": "HD",
+      "runtime": "NEON",
+      "mode": "all-controls-change",
+      "blocks": 625,
+      "p999_us": 2398.63,
+      "deadline_misses": 0,
+      "max_us": 2398.63
+    }
+  ],
+  "live_control_sweep": {
+    "seconds": 180,
+    "callbacks": 67498,
+    "setter_calls": 10800,
+    "overruns": 0,
+    "gaps": 0,
+    "average_ms": 2.0293,
+    "maximum_ms": 2.45556
+  },
+  "native_ui_soak": {
+    "process_seconds": 180,
+    "last_observed_callbacks": 65539,
+    "overruns": 0,
+    "gaps": 0,
+    "average_ms": 1.99,
+    "maximum_ms": 2.21
+  }
+}

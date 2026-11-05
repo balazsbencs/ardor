@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "version": "0.1.54",
+  "tag": "v0.1.54",
+  "commit": "74efef6c-hyperwavenet-dev",
+  "target": "raspberry-pi-4",
+  "arch": "aarch64",
+  "minimumUpdaterVersion": "1.0.0",
+  "minimumBaseVersion": "0.1.54",
+  "bundle": {
+    "name": "ardor-device-0.1.54-linux-aarch64.tar.gz",
+    "size": 7683214,
+    "sha256": "5dc8572677cf3351c61e98fe5941dc1465a2f570746ea26e22b38a815330fd26"
+  },
+  "files": [
+    {
+      "path": "bin/ardor-pedal",
+      "size": 7849840,
+      "mode": 493,
+      "sha256": "f4194fc5b72da6e46d82657b5fea913840069de7cbf1344c886cd2ae485b906f"
+    },
+    {
+      "path": "bin/ardor-managerd",
+      "size": 9109666,
+      "mode": 493,
+      "sha256": "180b5eaa593c1e78b768c49b5e4d14be738e4f8d43983ebd3c34401454555251"
+    }
+  ],
+  "developmentPatch": {
+    "description": "HyperWaveNet 1.0.0 loading and live controls; retains installed NAM UI cache fix. Lite CPU qualified at 48 kHz/128 frames; supplied HD exceeds Pi 4 processing budget.",
+    "nativeVersion": "0.1.99-hyperwavenet.dev.20261104",
+    "baseCommit": "74efef6c06e91bc4b07d3cdb95cb4902c6186478",
+    "sourcePatchSha256": "2c9b7bc84d84fd6a41f2bc138bdec3db83333f16b68c1c67d35a4356e0067ecc"
+  }
+}

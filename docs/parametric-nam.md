@@ -1,6 +1,6 @@
 # Parametric NAM models
 
-Ardor supports self-describing `ConcatWaveNet` and `ConcatLSTM` `.nam` models
+Ardor supports self-describing `ConcatWaveNet`, `ConcatLSTM` and `HyperWaveNet` `.nam` models
 using the parametric fork's `1.0.0` format, and Gene Ko's `ParametricWaveNet`
 FiLM schema 1 models in `0.7.0` files, including their `SlimmableContainer`
 exports and complete top-level `embedded_parametric` payloads. Ordinary snapshot models continue to
@@ -33,7 +33,8 @@ provide a usable file contract:
   one one-hot channel per choice. The network still exposes mono audio to the host.
 - `HyperWaveNet` generates network weights from controls. It needs different
   runtime handling; the trainer documents audible artifacts during weight changes.
-  Ardor does not support it in this release.
+  Ardor supports its version 1.0.0 full and low-rank weight layout; knob changes
+  apply at the next audio block and may step audibly.
 - `config.params` gives ordered control names, ranges, defaults, types and switch
   choices. Hosts must retain that order for input-channel encoding.
 
@@ -141,6 +142,27 @@ heads, LoRA, newer schemas and discrete FiLM parameters are rejected. Containers
 accept 1–8 direct ParametricWaveNet children, identical control definitions,
 strictly ascending `max_value` boundaries ending at 1.0, and matching versions and
 48 kHz rates. A dual export uses its embedded model's metadata and calibration.
+
+HyperWaveNet 1.0.0 uses the ordered `config.params` controls and
+`config.hypernet.delta_map` to condition a base WaveNet. Both `full` and
+`low_rank` modes are supported; the exported base weights, trunk/final matrices
+and low-rank anchors retain the trainer's layout. Unlike concat/FiLM, changed
+controls regenerate weights once at the next block without smoothing. No network
+history is reset by a control edit. This avoids regeneration on every block but
+does not remove possible audible steps while turning knobs.
+
+This adapter rejects nested condition DSPs, packed/slimmable inner layers, and
+HyperWaveNet containers. It validates finite weights, complete base weight counts,
+nonoverlapping delta ranges and low-rank shapes before playback. Limits are four
+hidden layers of up to 512 units, 2,048 targets, ranks up to 64, and 16,777,216
+serialized hypernetwork values. The existing 24-control, mono/48 kHz rules apply.
+Format support does not guarantee a model fits the device's processing budget.
+Exact 16-channel A2 HyperWaveNets use an ARM64 NEON kernel with the same learned
+weights, layers, controls and stream timing. Other shapes retain the generic
+runtime. This makes the supplied Marshall HD file usable on Pi 4 at 48 kHz /
+128 frames with a cabinet; additional effects still consume its remaining budget.
+See the [full HD optimization and validation](../benchmark-results/hyperwavenet-hd-pi4-20261104/README.md)
+and the [initial generic-runtime measurements](../benchmark-results/hyperwavenet-pi4-20261104/README.md).
 
 Preset values are keyed by model control name:
 
@@ -300,7 +322,7 @@ concat test measured a maximum adjacent-sample change of `1.25989e-5` versus a
 full-range jump of `0.152159`, including mid-ramp retargeting. These are host
 regressions, not a fresh Pi listening or audio-interface measurement.
 
-Still outside this release: HyperWaveNet, FiLM LoRA/schema 2 and residual heads,
+Still outside this release: HyperWaveNet containers, FiLM LoRA/schema 2 and residual heads,
 other forks' parametric architectures,
 per-scene learned control values, MIDI/expression control of learned parameters,
 live manager parameter messages, arbitrary model-rate resampling, and hardware

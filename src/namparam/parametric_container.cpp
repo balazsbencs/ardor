@@ -3,6 +3,7 @@
 #include "parametric_container.h"
 #include "concat_lstm.h"
 #include "wavenet/concat_wavenet.h"
+#include "wavenet/hyperwavenet.h"
 #include "NAM/slimmable.h"
 #include "preset/NamMetadata.h"
 #include <algorithm>
@@ -96,6 +97,7 @@ std::unique_ptr<DSP> create(const nlohmann::json& document) {
     const double rate = document.at("sample_rate").get<double>();
     auto parsed = architecture == "ConcatWaveNet"
       ? wavenet::create_concat_wavenet_config(config, rate)
+      : architecture == "HyperWaveNet" ? wavenet::create_hyperwavenet_config(config, rate)
       : lstm::create_concat_lstm_config(config, rate);
     auto weights = document.at("weights").get<std::vector<float>>();
     if (!std::all_of(weights.begin(), weights.end(), [](float v) { return std::isfinite(v); }))

@@ -142,5 +142,21 @@ int main(){try{
     require(recalled.params->count(recalled.plugin)==8&&recalled.find("Drive")==drive,"embedded controls replace the snapshot wrapper's definitions");
     recalled.on();recalled.audio(2048);recalled.off();
   }
+  {
+    Instance hyper(factory);
+    const auto path=std::filesystem::path(NAM_CLAP_ROOT)/"tests/fixtures/hyperwavenet/hyperwavenet.nam";
+    require(hyper.loadFile(path),"HyperWaveNet loads through the standalone CLAP runtime");
+    require(hyper.params->count(hyper.plugin)==8,"HyperWaveNet exposes its two learned controls");
+    const auto gain=hyper.find("gain"),mode=hyper.find("mode");
+    require(gain!=CLAP_INVALID_ID&&mode!=CLAP_INVALID_ID&&gain!=mode,"HyperWaveNet has distinct automation IDs");
+    hyper.set(gain,7);hyper.set(mode,2);
+    auto saved=hyper.save();
+    Instance recalled(factory);
+    require(recalled.restore(saved)&&recalled.value(gain)==7&&recalled.value(mode)==2,
+      "HyperWaveNet project recall retains its model and controls");
+    for(double rate:{44100.,48000.}) {
+      recalled.on(rate);recalled.audio(4096,nullptr,true,true);recalled.off();
+    }
+  }
   entry->deinit();clap_test::close(library);std::cout<<"NAM CLAP model loading, automation, tier/state recall and host-rate checks passed.\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

@@ -68,11 +68,11 @@ describe("ModuleDrawer", () => {
 });
 
 
-it("lists uploaded parametric models by name and selects the model asset", async () => {
+it.each(["ConcatLSTM", "HyperWaveNet"])("lists uploaded %s models by name and selects the model asset", async (architecture) => {
   const onChoose = vi.fn();
   render(<ModuleDrawer open where="" disabledIds={new Map()} onOpenChange={vi.fn()} onChoose={onChoose}
     models={[{ id: "od.nam", kind: "model", filename: "Open OD.nam", path: "models/od.nam", sizeBytes: 1,
-      nam: { architecture: "ConcatLSTM", version: "1.0.0", gearType: "pedal", supported: true,
+      nam: { architecture, version: "1.0.0", gearType: "pedal", supported: true,
         parameters: [{ name: "Drive", min: 0, max: 10, default: 5, type: "continuous" }] } }]} />);
   await userEvent.type(screen.getByRole("searchbox", { name: "Search blocks" }), "Open OD{Enter}");
   expect(onChoose).toHaveBeenCalledWith(expect.objectContaining({ id: "namPedal", assetPath: "models/od.nam" }));

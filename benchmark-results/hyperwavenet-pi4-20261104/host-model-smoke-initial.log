@@ -1,0 +1,11 @@
+Python reference max error: 1.08033e-07 (13/64/128 frames)
+Malformed model checks: passed
+"hyperwavenet.nam",steady,n=9375,p99.9_us=49.428,max_us=59.868
+"hyperwavenet.nam",all-controls-change,n=625,p99.9_us=47.503,max_us=47.613
+Live controls, preset restore and C++ allocation audit passed; checksum=-106452
+"dc420089-c345-483b-9424-6456081a1f10-a09c5715-684d-473c-a7e3-03638dc44633-nam.nam",steady,n=9375,p99.9_us=583.587,max_us=994.361
+"dc420089-c345-483b-9424-6456081a1f10-a09c5715-684d-473c-a7e3-03638dc44633-nam.nam",all-controls-change,n=625,p99.9_us=512.663,max_us=651.274
+Live controls, preset restore and C++ allocation audit passed; checksum=-1567.48
+"dc420089-c345-483b-9424-6456081a1f10-f53c8d28-4a01-4ff6-92f9-68aeffb68656-nam.nam",steady,n=9375,p99.9_us=1015.96,max_us=1834.46
+"dc420089-c345-483b-9424-6456081a1f10-f53c8d28-4a01-4ff6-92f9-68aeffb68656-nam.nam",all-controls-change,n=625,p99.9_us=1118.62,max_us=1202.7
+Live controls, preset restore and C++ allocation audit passed; checksum=1102.33

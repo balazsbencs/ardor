@@ -315,6 +315,9 @@ add_library(ardor_dsp OBJECT
   src/dsp/IrReverbProcessor.cpp
   src/namparam/film_wavenet.cpp
   src/namparam/parametric_container.cpp
+  src/namparam/hypernet.cpp
+  src/namparam/wavenet/hyperwavenet.cpp
+  src/namparam/wavenet/mutable_a2.cpp
   src/namparam/parametric_control.cpp
   src/namparam/concat_lstm.cpp
   src/namparam/wavenet/concat_wavenet.cpp
@@ -765,6 +768,19 @@ set(ARDOR_PARAMETRIC_TEST_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}" CACHE PATH
   "Deployed fixture root for standalone parametric tests")
 set(ARDOR_PARAMETRIC_TEST_EXAMPLE_MODEL "${neuralampmodelercore_SOURCE_DIR}/example_models/lstm.nam" CACHE FILEPATH
   "Deployed stock example model for the standalone parametric test")
+add_executable(pedal-hyperwavenet-live tests/hyperwavenet_live.cpp)
+target_link_libraries(pedal-hyperwavenet-live PRIVATE ardor_audio ardor_dsp)
+
+add_executable(pedal-hyperwavenet-smoke tests/hyperwavenet_smoke.cpp)
+target_link_libraries(pedal-hyperwavenet-smoke PRIVATE ardor_dsp)
+target_compile_definitions(pedal-hyperwavenet-smoke PRIVATE NAM_SAMPLE_FLOAT ARDOR_SOURCE_DIR="${ARDOR_PARAMETRIC_TEST_SOURCE_DIR}")
+if(UNIX AND NOT APPLE)
+  target_compile_definitions(pedal-hyperwavenet-smoke PRIVATE ARDOR_AUDIT_C_ALLOCATIONS)
+  target_link_options(pedal-hyperwavenet-smoke PRIVATE
+    -Wl,--wrap=malloc -Wl,--wrap=calloc -Wl,--wrap=realloc -Wl,--wrap=free)
+endif()
+add_test(NAME pedal-hyperwavenet-smoke COMMAND pedal-hyperwavenet-smoke)
+
 add_executable(pedal-parametric-nam-smoke tests/parametric_nam_smoke.cpp)
 target_link_libraries(pedal-parametric-nam-smoke PRIVATE ardor_audio ardor_ui)
 target_compile_definitions(pedal-parametric-nam-smoke PRIVATE
