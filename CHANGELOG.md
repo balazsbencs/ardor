@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.115](https://github.com/balazsbencs/ardor/compare/v0.1.114...v0.1.115) (2026-11-05)
+
+### Features
+
+* support HyperWaveNet models and full model playback on Pi 4 ([4565cbb](https://github.com/balazsbencs/ardor/commit/4565cbb46578ebbf4ec2daab41f6becd0d0f4564))
+
 ## [0.1.114](https://github.com/balazsbencs/ardor/compare/v0.1.113...v0.1.114) (2026-11-02)
 
 ## [0.1.113](https://github.com/balazsbencs/ardor/compare/v0.1.102...v0.1.113) (2026-11-02)
