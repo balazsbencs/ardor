@@ -1,6 +1,7 @@
 // Hardware qualification helper; deliberately not registered with CTest.
 #include "audio/EngineLoader.h"
 #include "audio/MiniaudioBackend.h"
+#include "TestInputPath.h"
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -15,15 +16,15 @@ int main(int argc, char **argv) try {
   const int seconds = std::stoi(argv[3]);
   if (seconds < 1 || seconds > 3600)
     throw std::runtime_error("duration must be 1 to 3600 seconds");
-  const std::filesystem::path root = argv[2];
-  std::ifstream input(argv[1]);
+  const auto root = test_input::directory(argv[2]);
+  std::ifstream input(test_input::file(argv[1]));
   const auto document = nlohmann::json::parse(input);
   const auto preset = ardor::presetFromJson(document);
   const auto block = std::find_if(preset.blocks.begin(), preset.blocks.end(),
                                   [](const auto &b) { return b.enabled && b.type == "nam"; });
   if (block == preset.blocks.end())
     throw std::runtime_error("preset must include a standalone NAM amp");
-  std::ifstream modelFile(root / block->asset);
+  std::ifstream modelFile(test_input::asset(root, block->asset));
   const auto model = nlohmann::json::parse(modelFile);
   if (model.at("architecture") != "HyperWaveNet")
     throw std::runtime_error("requires a HyperWaveNet model");

@@ -26,6 +26,9 @@ add_library(nam_loader_runtime OBJECT ${nam_core_sources}
   ${ARDOR_NAM_ROOT}/src/dsp/NamProcessor.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/film_wavenet.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/parametric_container.cpp
+  ${ARDOR_NAM_ROOT}/src/namparam/hypernet.cpp
+  ${ARDOR_NAM_ROOT}/src/namparam/wavenet/hyperwavenet.cpp
+  ${ARDOR_NAM_ROOT}/src/namparam/wavenet/mutable_a2.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/parametric_control.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/concat_lstm.cpp
   ${ARDOR_NAM_ROOT}/src/namparam/wavenet/concat_wavenet.cpp)

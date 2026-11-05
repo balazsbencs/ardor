@@ -2,6 +2,7 @@
 #include "namparam/parametric_container.h"
 #include "namparam/wavenet/concat_wavenet.h"
 #include "namparam/wavenet/hyperwavenet.h"
+#include "TestInputPath.h"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -284,8 +285,8 @@ void fastParity(const Json &doc, const std::string &label) {
         const float e = std::fabs(a[i] - b[i]);
         worst = std::max(worst, e);
         peak = std::max(peak, std::fabs(b[i]));
-        squared += e * e;
-        energy += b[i] * b[i];
+        squared += static_cast<double>(e) * e;
+        energy += static_cast<double>(b[i]) * b[i];
         ++count;
       }
     }
@@ -387,14 +388,14 @@ int main(int argc, char **argv) try {
   }
 #endif
   const auto fixtures = argc > first
-                            ? std::filesystem::path(argv[first])
+                            ? test_input::directory(argv[first])
                             : std::filesystem::path(ARDOR_SOURCE_DIR) / "tests/fixtures/hyperwavenet";
   std::cout << std::unitbuf;
   parity(fixtures);
   fastParity(syntheticA2(), "synthetic A2");
   exercise(fixtures / "hyperwavenet.nam");
   for (int i = first + 1; i < argc; ++i)
-    exercise(argv[i]);
+    exercise(test_input::file(argv[i]));
 } catch (const std::exception &e) {
   audit = false;
   std::cerr << e.what() << "\n";

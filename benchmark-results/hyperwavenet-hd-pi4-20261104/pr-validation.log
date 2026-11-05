@@ -29,3 +29,18 @@ src/stage/ModuleDrawer.test.tsx
 
 New runtime source and fixture contents match deployed candidate byte-for-byte.
 Earlier UI cache fix is already on main and is not duplicated in this PR.
+
+CI follow-up, 2026-11-05:
+- Add HyperWaveNet's three source files to standalone NAM CLAP runtime.
+- Standalone Release plugin and nam-clap-host-tests build passed on Linux.
+- nam-clap-host-tests passed, including new HyperWaveNet load/controls/state
+  recall and 44.1/48 kHz processing coverage.
+- The same four native NAM CTests passed again (10.99 seconds total).
+- Explicit CLI fixture-directory and model-file smoke invocation passed.
+- CLI inputs now select existing regular files/directories from filesystem
+  entries; hardware preset model inspection is confined to its data root.
+  Focused checks passed for valid paths, wrong file types, traversal and
+  an escaping symlink. No CodeQL query or workflow was disabled.
+- Numerical error accumulation promotes operands to double before squaring.
+- GitHub's renewed CodeQL and platform CI checks remain the authoritative
+  verification of the reported CI findings.
