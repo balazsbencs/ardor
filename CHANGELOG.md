@@ -2,6 +2,10 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.120](https://github.com/balazsbencs/ardor/compare/v0.1.119...v0.1.120) (2026-11-16)
+
+## [0.1.119](https://github.com/balazsbencs/ardor/compare/v0.1.116...v0.1.119) (2026-11-16)
+
 ## [0.1.116](https://github.com/balazsbencs/ardor/compare/v0.1.115...v0.1.116) (2026-11-09)
 
 ## [0.1.115](https://github.com/balazsbencs/ardor/compare/v0.1.114...v0.1.115) (2026-11-05)
