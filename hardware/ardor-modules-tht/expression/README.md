@@ -1,6 +1,12 @@
 # Passive expression pedal / I2C ADC / HAND ASSEMBLY
 
-T1.1 compact hand-assembly PCB: 72 × 50 mm. **Unbuilt engineering prototype.**
+T1.1 compact hand-assembly PCB: 56 × 44 mm. **Unbuilt engineering prototype.**
+
+The denser expression layout reduces the previous 72 × 50 mm carrier to 56 × 44 mm (31.6% less area), with the same circuit, components and pin assignments. Mounting holes are now at (3, 41) and (53, 3) mm from the top-left board corner. All axial parts lie flat; the complete ADC body remains reserved.
+
+Front labels show component values or types instead of reference IDs; connector IDs still link to the complete back pin maps. Each pair of BAT85S clamp diodes shares one label between its two bodies. Some labels are inside component outlines and are covered after assembly. Clamp labels use 0.8 mm text; other labels use 0.9 mm. Electrical references and full ratings remain in the unchanged BOM.
+
+The 3D views omit the custom ADS1115-M, TVS and ferrite bodies; their full embedded courtyards are checked separately. Confirm enclosure, socket and shunt heights before fabrication. This is an unbuilt layout candidate, not a production release.
 
 [KiCad project](Ardor_Expression_THT.kicad_pro) · [Manual BOM](BOM.csv) · [Schematic](review/schematic.pdf) · [Bare-board Gerbers](assembly/Ardor_Expression_THT-Gerbers.zip)
 
@@ -82,7 +88,7 @@ Fit 1-2 to enable. Remove if host already has a pull-up.
 
 Fit low-profile axial parts first, then sockets/headers and radial capacitors. Match diode bands, electrolytic polarity and IC notches to the PCB. Install the ICs or ADC breakout last. H1/H2 are 2.2 mm nonplated M2 mounting holes, not electrical terminals. Check enclosure clearance and capacitor/socket height. T1.1 compacts the layouts; hole positions differ from T1 and M1.
 
-Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component references; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.
+Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component values/types; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.
 
 [Assembly accessories](assembly/accessories.csv) list sockets, shunts and panel items in addition to the PCB component BOM.
 

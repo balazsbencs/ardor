@@ -6,7 +6,8 @@
   "tht_numbered_pads": 74,
   "minimum_component_drill_mm": 0.6,
   "manual_parts": 29,
-  "all_manual_parts_have_front_references": true,
+  "all_manual_parts_have_front_references": false,
+  "all_manual_parts_have_front_value_or_connector_labels": true,
   "hestore_1_5ke6_8ca_references": [
     "D301",
     "D302"

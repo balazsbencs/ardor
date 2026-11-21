@@ -1,29 +1,11 @@
 {
-  "result": "PASS",
+  "result": "PARTIAL",
   "kicad_version": "9.0.2",
   "routing": "Frozen board.ses imported into freshly generated placements",
   "modules": {
     "expression": {
-      "result": "PASS",
-      "byte_identical_files": [
-        "Ardor_Expression_THT.kicad_sch",
-        "BOM.csv",
-        "README.md",
-        "assembly/accessories.csv",
-        "verification/design.json"
-      ],
-      "pcb_geometry_and_nets_identical_excluding_uuids": true,
-      "filled_copper_symmetric_difference_mm2": {
-        "F.Cu": 0.0,
-        "B.Cu": 0.0
-      },
-      "filled_copper_max_boundary_drift_mm": {
-        "F.Cu": 0.0,
-        "B.Cu": 0.0
-      },
-      "filled_copper_coordinate_tolerance_mm": 2e-06,
-      "release_pcb_sha256": "678cce0b481a574929bf589fb4a280d3d4bbbc14b70f0ea71f1b9522999fe9a2",
-      "regenerated_native_checks": "PASS"
+      "result": "NOT_RUN",
+      "reason": "56 x 44 mm layout replaces the historical board; native, assembly and package checks pass, but a fresh full regeneration comparison is pending."
     },
     "headphones": {
       "result": "PASS",
