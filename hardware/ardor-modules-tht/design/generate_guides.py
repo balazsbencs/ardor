@@ -117,4 +117,10 @@ for folder in ROOT.iterdir():
               'Use the manual BOM and the bare-board Gerber/drill ZIP. There is no SMT assembly order. Front silkscreen shows component references; the front fabrication drawing shows package outlines and orientation; use the BOM for values. Back silk includes port functions and pin numbers. Native checks and package manifests are under `verification/`; they do not replace prototype measurements.', '',
               '[Assembly accessories](assembly/accessories.csv) list sockets, shunts and panel items in addition to the PCB component BOM.', '',
               '[Family guide](../README.md) · [Substitution sources](../SOURCES.md) · [Native validation](verification/validation.json)', '']
+    if folder.name=='expression':
+        lines[4:4] = [
+            'The denser expression layout reduces the previous 72 × 50 mm carrier to 56 × 44 mm (31.6% less area), with the same circuit, components and pin assignments. Mounting holes are now at (3, 41) and (53, 3) mm from the top-left board corner. All axial parts lie flat; the complete ADC body remains reserved.', '',
+            'Front labels show component values or types instead of reference IDs; connector IDs still link to the complete back pin maps. Each pair of BAT85S clamp diodes shares one label between its two bodies. Some labels are inside component outlines and are covered after assembly. Clamp labels use 0.8 mm text; other labels use 0.9 mm. Electrical references and full ratings remain in the unchanged BOM.', '',
+            'The 3D views omit the custom ADS1115-M, TVS and ferrite bodies; their full embedded courtyards are checked separately. Confirm enclosure, socket and shunt heights before fabrication. This is an unbuilt layout candidate, not a production release.', '']
+        lines=[line.replace('Front silkscreen shows component references;', 'Front silkscreen shows component values/types;') for line in lines]
     (folder/'README.md').write_text('\n'.join(lines))

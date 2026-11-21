@@ -4,223 +4,223 @@
     {
       "text": "1",
       "position_mm": [
-        60.03,
-        68.46
+        56.03,
+        73.46
       ],
       "pin_number_for": "JP301.1"
     },
     {
       "text": "2",
       "position_mm": [
-        65.97,
-        68.46
+        61.97,
+        73.46
       ],
       "pin_number_for": "JP301.2"
     },
     {
       "text": "3",
       "position_mm": [
-        60.03,
-        71.0
+        56.03,
+        76.0
       ],
       "pin_number_for": "JP301.3"
     },
     {
       "text": "4",
       "position_mm": [
-        65.97,
-        71.0
+        61.97,
+        76.0
       ],
       "pin_number_for": "JP301.4"
     },
     {
       "text": "5",
       "position_mm": [
-        60.03,
-        73.54
+        56.03,
+        78.54
       ],
       "pin_number_for": "JP301.5"
     },
     {
       "text": "6",
       "position_mm": [
-        65.97,
-        73.54
+        61.97,
+        78.54
       ],
       "pin_number_for": "JP301.6"
     },
     {
       "text": "JP301",
       "position_mm": [
-        63.0,
-        65.96
+        59.0,
+        70.96
       ],
       "connector_reference": "JP301"
     },
     {
       "text": "1",
       "position_mm": [
-        118.05,
-        70.19
+        102.0,
+        59.69
       ],
       "pin_number_for": "J101.1"
     },
     {
       "text": "2",
       "position_mm": [
-        118.05,
-        72.73
+        102.0,
+        62.23
       ],
       "pin_number_for": "J101.2"
     },
     {
       "text": "3",
       "position_mm": [
-        118.05,
-        75.27
+        102.0,
+        64.77
       ],
       "pin_number_for": "J101.3"
     },
     {
       "text": "4",
       "position_mm": [
-        118.05,
-        77.81
+        102.0,
+        67.31
       ],
       "pin_number_for": "J101.4"
     },
     {
       "text": "J101",
       "position_mm": [
-        119.75,
-        67.69
+        103.7,
+        57.19
       ],
       "connector_reference": "J101"
     },
     {
       "text": "1",
       "position_mm": [
-        55.7,
-        68.46
+        54.7,
+        73.46
       ],
       "pin_number_for": "J302.1"
     },
     {
       "text": "2",
       "position_mm": [
-        55.7,
-        71.0
+        54.7,
+        76.0
       ],
       "pin_number_for": "J302.2"
     },
     {
       "text": "3",
       "position_mm": [
-        55.7,
-        73.54
+        54.7,
+        78.54
       ],
       "pin_number_for": "J302.3"
     },
     {
       "text": "J302",
       "position_mm": [
-        54.0,
-        65.96
+        53.0,
+        70.96
       ],
       "connector_reference": "J302"
     },
     {
       "text": "1",
       "position_mm": [
-        114.3,
-        86.46
+        85.3,
+        86.85
       ],
       "pin_number_for": "JP302.1"
     },
     {
       "text": "2",
       "position_mm": [
-        114.3,
-        89.0
+        85.3,
+        89.39
       ],
       "pin_number_for": "JP302.2"
     },
     {
       "text": "3",
       "position_mm": [
-        114.3,
-        91.54
+        85.3,
+        91.93
       ],
       "pin_number_for": "JP302.3"
     },
     {
       "text": "JP302",
       "position_mm": [
-        116.0,
-        83.96
+        89.0,
+        84.35
       ],
       "connector_reference": "JP302"
     },
     {
       "text": "1",
       "position_mm": [
-        109.7,
-        90.73
+        82.75,
+        84.78
       ],
       "pin_number_for": "JP303.1"
     },
     {
       "text": "2",
       "position_mm": [
-        109.7,
-        93.27
+        81.3,
+        89.22
       ],
       "pin_number_for": "JP303.2"
     },
     {
       "text": "JP303",
       "position_mm": [
-        110.0,
-        88.23
+        78.5,
+        89.45
       ],
       "connector_reference": "JP303"
     },
     {
       "text": "1",
       "position_mm": [
-        110.3,
-        94.98
+        101.3,
+        73.03
       ],
       "pin_number_for": "JP304.1"
     },
     {
       "text": "2",
       "position_mm": [
-        110.3,
-        97.27
+        101.3,
+        75.57
       ],
       "pin_number_for": "JP304.2"
     },
     {
       "text": "JP304",
       "position_mm": [
-        115.5,
-        96.0
+        103.0,
+        70.53
       ],
       "connector_reference": "JP304"
     },
     {
       "text": "ARDOR EXPR T1",
       "position_mm": [
-        86.0,
-        98.3
+        78.0,
+        51.8
       ]
     },
     {
       "text": "JP301 PEDAL JUMPER\n1 TIP   2 RING\n3 PEDAL IN  4 EXC OUT\n5 RING  6 TIP",
       "position_mm": [
-        59.0,
-        77.5
+        66.0,
+        63.5
       ],
       "pin_map_for": "JP301",
       "described_pins": [
@@ -236,8 +236,8 @@
     {
       "text": "J101 PWR IN / I2C\n1 3V3 IN  2 GND 0V\n3 DATA I/O  4 CLOCK IN",
       "position_mm": [
-        107.0,
-        70.5
+        93.5,
+        63.0
       ],
       "pin_map_for": "J101",
       "described_pins": [
@@ -251,8 +251,8 @@
     {
       "text": "J302 PASSIVE PEDAL\n1 TIP I/O  2 RING I/O\n3 GND 0V",
       "position_mm": [
-        73.5,
-        89.0
+        61.0,
+        58.5
       ],
       "pin_map_for": "J302",
       "described_pins": [
@@ -265,8 +265,8 @@
     {
       "text": "JP302 ADDR JUMPER\n1 GND 2 SELECT 3 3V3\n48:1-2  49:2-3",
       "position_mm": [
-        107.5,
-        66.0
+        79.0,
+        58.5
       ],
       "pin_map_for": "JP302",
       "described_pins": [
@@ -279,8 +279,8 @@
     {
       "text": "JP303 DATA PULLUP\n1 PULLUP  2 DATA I/O",
       "position_mm": [
-        99.5,
-        94.5
+        76.0,
+        69.0
       ],
       "pin_map_for": "JP303",
       "described_pins": [
@@ -292,8 +292,8 @@
     {
       "text": "JP304 CLOCK PULLUP\n1 PULLUP  2 CLOCK IN",
       "position_mm": [
-        104.0,
-        76.5
+        93.5,
+        69.0
       ],
       "pin_map_for": "JP304",
       "described_pins": [
@@ -305,37 +305,37 @@
     {
       "text": "U301.2 NC\nNO WIRE",
       "position_mm": [
-        94.0,
-        79.5
+        82.0,
+        63.5
       ],
       "unused_pin": "U301.2"
     },
     {
       "text": "IN=INTO",
       "position_mm": [
-        86.0,
-        76.0
+        78.0,
+        72.0
       ]
     },
     {
       "text": "OUT=FROM",
       "position_mm": [
-        86.0,
-        72.0
+        77.5,
+        74.0
       ]
     },
     {
       "text": "I/O=BOTH",
       "position_mm": [
-        86.0,
-        70.0
+        77.5,
+        76.0
       ]
     },
     {
       "text": "JP=SHUNTS",
       "position_mm": [
-        86.0,
-        81.0
+        77.0,
+        78.0
       ]
     }
   ],
@@ -343,160 +343,160 @@
     "JP301.1": {
       "text": "1",
       "position_mm": [
-        60.03,
-        68.46
+        56.03,
+        73.46
       ],
       "pin_number_for": "JP301.1"
     },
     "JP301.2": {
       "text": "2",
       "position_mm": [
-        65.97,
-        68.46
+        61.97,
+        73.46
       ],
       "pin_number_for": "JP301.2"
     },
     "JP301.3": {
       "text": "3",
       "position_mm": [
-        60.03,
-        71.0
+        56.03,
+        76.0
       ],
       "pin_number_for": "JP301.3"
     },
     "JP301.4": {
       "text": "4",
       "position_mm": [
-        65.97,
-        71.0
+        61.97,
+        76.0
       ],
       "pin_number_for": "JP301.4"
     },
     "JP301.5": {
       "text": "5",
       "position_mm": [
-        60.03,
-        73.54
+        56.03,
+        78.54
       ],
       "pin_number_for": "JP301.5"
     },
     "JP301.6": {
       "text": "6",
       "position_mm": [
-        65.97,
-        73.54
+        61.97,
+        78.54
       ],
       "pin_number_for": "JP301.6"
     },
     "J101.1": {
       "text": "1",
       "position_mm": [
-        118.05,
-        70.19
+        102.0,
+        59.69
       ],
       "pin_number_for": "J101.1"
     },
     "J101.2": {
       "text": "2",
       "position_mm": [
-        118.05,
-        72.73
+        102.0,
+        62.23
       ],
       "pin_number_for": "J101.2"
     },
     "J101.3": {
       "text": "3",
       "position_mm": [
-        118.05,
-        75.27
+        102.0,
+        64.77
       ],
       "pin_number_for": "J101.3"
     },
     "J101.4": {
       "text": "4",
       "position_mm": [
-        118.05,
-        77.81
+        102.0,
+        67.31
       ],
       "pin_number_for": "J101.4"
     },
     "J302.1": {
       "text": "1",
       "position_mm": [
-        55.7,
-        68.46
+        54.7,
+        73.46
       ],
       "pin_number_for": "J302.1"
     },
     "J302.2": {
       "text": "2",
       "position_mm": [
-        55.7,
-        71.0
+        54.7,
+        76.0
       ],
       "pin_number_for": "J302.2"
     },
     "J302.3": {
       "text": "3",
       "position_mm": [
-        55.7,
-        73.54
+        54.7,
+        78.54
       ],
       "pin_number_for": "J302.3"
     },
     "JP302.1": {
       "text": "1",
       "position_mm": [
-        114.3,
-        86.46
+        85.3,
+        86.85
       ],
       "pin_number_for": "JP302.1"
     },
     "JP302.2": {
       "text": "2",
       "position_mm": [
-        114.3,
-        89.0
+        85.3,
+        89.39
       ],
       "pin_number_for": "JP302.2"
     },
     "JP302.3": {
       "text": "3",
       "position_mm": [
-        114.3,
-        91.54
+        85.3,
+        91.93
       ],
       "pin_number_for": "JP302.3"
     },
     "JP303.1": {
       "text": "1",
       "position_mm": [
-        109.7,
-        90.73
+        82.75,
+        84.78
       ],
       "pin_number_for": "JP303.1"
     },
     "JP303.2": {
       "text": "2",
       "position_mm": [
-        109.7,
-        93.27
+        81.3,
+        89.22
       ],
       "pin_number_for": "JP303.2"
     },
     "JP304.1": {
       "text": "1",
       "position_mm": [
-        110.3,
-        94.98
+        101.3,
+        73.03
       ],
       "pin_number_for": "JP304.1"
     },
     "JP304.2": {
       "text": "2",
       "position_mm": [
-        110.3,
-        97.27
+        101.3,
+        75.57
       ],
       "pin_number_for": "JP304.2"
     }
@@ -505,8 +505,8 @@
     "JP301": {
       "text": "JP301 PEDAL JUMPER\n1 TIP   2 RING\n3 PEDAL IN  4 EXC OUT\n5 RING  6 TIP",
       "position_mm": [
-        59.0,
-        77.5
+        66.0,
+        63.5
       ],
       "pin_map_for": "JP301",
       "described_pins": [
@@ -522,8 +522,8 @@
     "J101": {
       "text": "J101 PWR IN / I2C\n1 3V3 IN  2 GND 0V\n3 DATA I/O  4 CLOCK IN",
       "position_mm": [
-        107.0,
-        70.5
+        93.5,
+        63.0
       ],
       "pin_map_for": "J101",
       "described_pins": [
@@ -537,8 +537,8 @@
     "J302": {
       "text": "J302 PASSIVE PEDAL\n1 TIP I/O  2 RING I/O\n3 GND 0V",
       "position_mm": [
-        73.5,
-        89.0
+        61.0,
+        58.5
       ],
       "pin_map_for": "J302",
       "described_pins": [
@@ -551,8 +551,8 @@
     "JP302": {
       "text": "JP302 ADDR JUMPER\n1 GND 2 SELECT 3 3V3\n48:1-2  49:2-3",
       "position_mm": [
-        107.5,
-        66.0
+        79.0,
+        58.5
       ],
       "pin_map_for": "JP302",
       "described_pins": [
@@ -565,8 +565,8 @@
     "JP303": {
       "text": "JP303 DATA PULLUP\n1 PULLUP  2 DATA I/O",
       "position_mm": [
-        99.5,
-        94.5
+        76.0,
+        69.0
       ],
       "pin_map_for": "JP303",
       "described_pins": [
@@ -578,8 +578,8 @@
     "JP304": {
       "text": "JP304 CLOCK PULLUP\n1 PULLUP  2 CLOCK IN",
       "position_mm": [
-        104.0,
-        76.5
+        93.5,
+        69.0
       ],
       "pin_map_for": "JP304",
       "described_pins": [

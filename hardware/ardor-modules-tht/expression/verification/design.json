@@ -3,8 +3,8 @@
   "title": "Passive expression pedal / I2C ADC / HAND ASSEMBLY",
   "slug": "expression",
   "size_mm": [
-    72,
-    50
+    56,
+    44
   ],
   "parts": {
     "J302": {
@@ -13,8 +13,8 @@
       "value": "PASSIVE PEDAL INPUT / EXCITATION\nOUTPUT",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
-        4,
-        21
+        3,
+        26
       ],
       "part": null,
       "dnp": false,
@@ -28,8 +28,8 @@
       "value": "3V3 POWER INPUT + I2C TO HOST",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
       "pcb": [
-        69.75,
-        24
+        53.7,
+        13.5
       ],
       "part": null,
       "dnp": false,
@@ -43,8 +43,8 @@
       "value": "JUMPER ONLY: PEDAL POLARITY",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_2x03_P2.54mm_Vertical",
       "pcb": [
-        13,
-        21
+        9,
+        26
       ],
       "part": null,
       "dnp": false,
@@ -58,8 +58,9 @@
       "value": "800R@100MHz / WE 7427501",
       "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
       "pcb": [
-        26,
-        45
+        17.6,
+        10.5,
+        90
       ],
       "part": {
         "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
@@ -79,8 +80,8 @@
       "value": "10u / 25V polarized",
       "fp": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
       "pcb": [
-        40,
-        46
+        17,
+        24
       ],
       "part": {
         "footprint": "Capacitor_THT:CP_Radial_D6.3mm_P2.50mm",
@@ -100,8 +101,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        40,
-        40
+        17,
+        29.5
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -121,8 +122,8 @@
       "value": "1kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        23,
-        17
+        27,
+        29
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -142,8 +143,8 @@
       "value": "10kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        23,
-        22
+        24.8,
+        32.7
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -163,8 +164,8 @@
       "value": "1MR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        23,
-        28
+        24.8,
+        36.4
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -184,8 +185,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        51,
-        29
+        46,
+        21.6
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -205,9 +206,8 @@
       "value": "10kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        29,
-        9,
-        90
+        27,
+        25.3
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -227,8 +227,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        59,
-        29
+        37,
+        25.3
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -248,8 +248,8 @@
       "value": "ADS1115-M",
       "fp": "Ardor_THT:ADS1115_M_HESTORE_10041798",
       "pcb": [
-        46,
-        24
+        36.1,
+        16.3
       ],
       "part": {
         "footprint": "Ardor_THT:ADS1115_M_HESTORE_10041798",
@@ -269,8 +269,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        35,
-        29
+        38,
+        21.6
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -290,8 +290,8 @@
       "value": "2.2kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        21,
-        12
+        27,
+        21.6
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -311,8 +311,8 @@
       "value": "BAT85S",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        40,
-        33
+        38.3,
+        29
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -332,8 +332,8 @@
       "value": "BAT85S",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        40,
-        37
+        38.3,
+        33.5
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -353,8 +353,8 @@
       "value": "BAT85S",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        53,
-        33
+        48.8,
+        29
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -374,8 +374,8 @@
       "value": "BAT85S",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        53,
-        37
+        48.8,
+        33.5
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -395,9 +395,8 @@
       "value": "33R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        66,
-        13,
-        90
+        46,
+        38.5
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -417,9 +416,8 @@
       "value": "33R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        66,
-        27,
-        90
+        46,
+        42
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -439,8 +437,8 @@
       "value": "JUMPER ONLY: ADC ADDRESS",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical",
       "pcb": [
-        66,
-        39
+        37,
+        39.39
       ],
       "part": null,
       "dnp": false,
@@ -454,8 +452,8 @@
       "value": "JUMPER ONLY: SDA PULLUP",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
-        58,
-        42
+        33,
+        37.95
       ],
       "part": null,
       "dnp": false,
@@ -469,8 +467,8 @@
       "value": "JUMPER ONLY: SCL PULLUP",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
-        62,
-        46
+        53,
+        24.3
       ],
       "part": null,
       "dnp": false,
@@ -484,8 +482,8 @@
       "value": "2.2kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        50,
-        42
+        24,
+        41.5
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -505,8 +503,8 @@
       "value": "2.2kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        50,
-        47
+        10.5,
+        36.8
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -526,8 +524,9 @@
       "value": "1.5KE6.8CA",
       "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
-        14,
-        6
+        3.5,
+        10.5,
+        90
       ],
       "part": {
         "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
@@ -547,8 +546,9 @@
       "value": "1.5KE6.8CA",
       "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
-        14,
-        35
+        10.3,
+        10.5,
+        90
       ],
       "part": {
         "footprint": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
@@ -569,7 +569,7 @@
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
         10,
-        42
+        32.5
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",

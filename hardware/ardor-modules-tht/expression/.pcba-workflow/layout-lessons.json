@@ -1,0 +1,9 @@
+# Project layout lessons
+
+<!-- PROJECT-LAYOUT-LESSONS -->
+### dense-tht-labels
+- **Trigger:** Packing the unchanged expression THT parts into 56 x 44 mm
+- **Rule:** Reserve complete physical courtyards. For references inside their own component outline, collision-test silk strokes rather than treating an unfilled rectangle as a solid obstacle; retain all pad and neighboring-body clearances and native DRC. Document references covered after assembly.
+- **Evidence:** review/layout-notes.md
+- **Check:** All 29 front references present; native DRC clean; 31 nonoverlapping courtyards.
+

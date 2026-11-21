@@ -36,7 +36,7 @@ def label(text,candidates,size=.8,meta=None):
         if area.contains(shape) and not any(shape.intersects(v) for v in blocks):
             b.Add(t);blocks.append(shape);record={'text':text,'position_mm':[round(x,4),round(y,4)],**(meta or {})};placed.append(record);return record
     if meta and meta.get('optional'):return None
-    raise AssertionError((folder.name,'No readable silk position',text))
+    raise AssertionError((folder.name,'No readable silk position',text,meta))
 fps={f.GetReference():f for f in b.GetFootprints()}
 # Place the most constrained markers first: six-terminal polarity jumper.
 refs=sorted(guide['ports'],key=lambda r:(r!='JP301',r))
@@ -54,6 +54,11 @@ for ref in refs:
             candidates=[(x+dx,y+vertical*d) for dx in [0,-.25,.25,-.5,.5]
                         for d in [1.7,1.9,2.1,2.3]]
             candidates += [(x,y-vertical*d) for d in [1.7,1.9,2.1,2.3]]
+        # At a tightly packed vertical header, end-pin numbers can sit just
+        # beyond the row while staying beside their corresponding terminal.
+        if max(xs)-min(xs)<1 and y in [min(ys),max(ys)]:
+            outward=-1 if y==min(ys) else 1
+            candidates += [(x+dx,y+outward*d) for dx in [0,-.25,.25,-.5,.5] for d in [1.7,1.9,2.1,2.3]]
         name=ref+'.'+a.GetNumber();numbers[name]=label(a.GetNumber(),candidates,meta={'pin_number_for':name})
     ys=[p.ToMM(a.GetPosition().y) for a in pads]
     candidates=[(xmid+dx,y) for y in [min(ys)-2.5,max(ys)+2.5,min(ys)-3.5,max(ys)+3.5] for dx in [0,-2,2,-4,4]]

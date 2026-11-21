@@ -51,6 +51,13 @@ def build(folder):
             a.SetNet(nets[pins[ref+'.'+a.GetNumber()]])
             if spec['pins'].get(ref+'.'+a.GetNumber())=='GND' and a.GetAttribute()==p.PAD_ATTRIB_SMD:a.SetLocalZoneConnection(p.ZONE_CONNECTION_FULL)
         b.Add(f);fps[ref]=f
+    if folder.name=='expression':
+        # Diagonal spokes avoid the routed channel beside the address jumper
+        # while retaining thermal relief for hand soldering on both planes.
+        next(a for a in fps['JP302'].Pads() if a.GetNumber()=='1').SetThermalSpokeAngleDegrees(45)
+        # The cathode band remains; the extra K would overlap C302's outline.
+        for item in fps['D303'].GraphicalItems():
+            if isinstance(item,p.PCB_TEXT) and item.GetText()=='K':item.SetText('')
     # Two insulated M2 mounting holes, no accidental chassis bonds via screws.
     for i,xy in enumerate([(3,h-3),(w-3,3)],1):
         ref='H'+str(i);dest=folder/'footprints/MountingHole.pretty';dest.mkdir(parents=True,exist_ok=True);aliases.add('MountingHole')
