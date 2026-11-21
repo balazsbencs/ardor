@@ -258,8 +258,8 @@
         "electrical_footprints": 29,
         "mounting_holes": 2,
         "board_size_mm": [
-          72.0,
-          50.0
+          56.0,
+          44.0
         ],
         "functional_nets": 17,
         "routed_nets": 16,
@@ -283,7 +283,8 @@
         "tht_numbered_pads": 74,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 29,
-        "all_manual_parts_have_front_references": true,
+        "all_manual_parts_have_front_references": false,
+        "all_manual_parts_have_front_value_or_connector_labels": true,
         "hestore_1_5ke6_8ca_references": [
           "D301",
           "D302"
@@ -302,7 +303,7 @@
         "smt_placements": 0,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "678cce0b481a574929bf589fb4a280d3d4bbbc14b70f0ea71f1b9522999fe9a2",
+        "pcb_sha256": "404a92f74b4397474f7fa136f6a07a3d9693f119494f11d927af58f0a6b6c205",
         "schematic_sha256": "b56f3d80ec13c55a035e78517ce0509bd265c90400118fc3683e069ccea16b97",
         "bom_sha256": "9c4fb32be795adafbf8acb64881b6d7a1a6137cac445d2432026020ce19761ea"
       }

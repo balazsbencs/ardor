@@ -1,234 +1,337 @@
 [
   {
-    "reference": "C101",
-    "position_mm": [
-      85.5,
-      91.6
-    ],
-    "angle_degrees": 90
-  },
-  {
-    "reference": "C102",
-    "position_mm": [
-      94.5,
-      85.0
-    ],
-    "angle_degrees": 0
-  },
-  {
-    "reference": "C301",
-    "position_mm": [
-      96.5,
-      78.5
-    ],
-    "angle_degrees": 90
-  },
-  {
-    "reference": "C302",
-    "position_mm": [
-      111.0,
-      75.0
-    ],
-    "angle_degrees": 90
-  },
-  {
-    "reference": "C303",
-    "position_mm": [
-      81.0,
-      75.5
-    ],
-    "angle_degrees": 90
-  },
-  {
-    "reference": "D301",
-    "position_mm": [
-      57.0,
-      52.0
-    ],
-    "angle_degrees": 0
-  },
-  {
-    "reference": "D302",
-    "position_mm": [
-      64.0,
-      80.925
-    ],
-    "angle_degrees": 0
-  },
-  {
-    "reference": "D303",
-    "position_mm": [
-      91.0,
-      80.38
-    ],
-    "angle_degrees": 0
-  },
-  {
-    "reference": "D304",
-    "position_mm": [
-      84.0025,
-      84.88
-    ],
-    "angle_degrees": 90
-  },
-  {
-    "reference": "D305",
-    "position_mm": [
-      109.0,
-      82.88
-    ],
-    "angle_degrees": 90
-  },
-  {
-    "reference": "D306",
-    "position_mm": [
-      103.0,
-      89.275
-    ],
-    "angle_degrees": 0
-  },
-  {
-    "reference": "FB101",
-    "position_mm": [
-      76.0,
-      90.5
-    ],
-    "angle_degrees": 0
-  },
-  {
     "reference": "J101",
+    "label": "J101",
     "position_mm": [
-      119.255,
-      67.6
+      103.45,
+      57.085
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
   },
   {
     "reference": "J302",
+    "label": "J302",
     "position_mm": [
-      54.0,
-      65.82
+      53.0,
+      70.9055
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
   },
   {
     "reference": "JP301",
+    "label": "JP301",
     "position_mm": [
-      63.0,
-      65.82
+      59.0,
+      70.9055
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
   },
   {
     "reference": "JP302",
+    "label": "JP302",
     "position_mm": [
-      118.5,
-      84.08
+      91.0,
+      85.97
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
   },
   {
     "reference": "JP303",
+    "label": "JP303",
     "position_mm": [
-      110.44,
-      88.35
+      83.0,
+      91.795
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
   },
   {
     "reference": "JP304",
+    "label": "JP304",
     "position_mm": [
-      112.0,
-      92.195
+      103.0,
+      70.4945
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
+  },
+  {
+    "reference": "D303",
+    "label": "BAT85S",
+    "position_mm": [
+      88.1,
+      81.25
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.8,
+    "covered_after_assembly": false,
+    "labels_components": [
+      "D303",
+      "D304"
+    ]
+  },
+  {
+    "reference": "D304",
+    "label": "BAT85S",
+    "position_mm": [
+      88.1,
+      81.25
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.8,
+    "covered_after_assembly": false,
+    "labels_components": [
+      "D303",
+      "D304"
+    ]
+  },
+  {
+    "reference": "D305",
+    "label": "BAT85S",
+    "position_mm": [
+      98.8,
+      81.25
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.8,
+    "covered_after_assembly": false,
+    "labels_components": [
+      "D305",
+      "D306"
+    ]
+  },
+  {
+    "reference": "D306",
+    "label": "BAT85S",
+    "position_mm": [
+      98.8,
+      81.25
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.8,
+    "covered_after_assembly": false,
+    "labels_components": [
+      "D305",
+      "D306"
+    ]
+  },
+  {
+    "reference": "C101",
+    "label": "10u",
+    "position_mm": [
+      65.0,
+      68.6
+    ],
+    "angle_degrees": 90,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
+  },
+  {
+    "reference": "C102",
+    "label": "100n",
+    "position_mm": [
+      67.5,
+      83.5
+    ],
+    "angle_degrees": 90,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
+  },
+  {
+    "reference": "C301",
+    "label": "100n",
+    "position_mm": [
+      96.0,
+      74.1208
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
+  },
+  {
+    "reference": "C302",
+    "label": "100n",
+    "position_mm": [
+      91.5,
+      75.3
+    ],
+    "angle_degrees": 90,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
+  },
+  {
+    "reference": "C303",
+    "label": "100n",
+    "position_mm": [
+      83.0,
+      69.6
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": false
+  },
+  {
+    "reference": "D301",
+    "label": "1.5KE\n6.8CA",
+    "position_mm": [
+      53.5,
+      60.5
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
+  },
+  {
+    "reference": "D302",
+    "label": "1.5KE\n6.8CA",
+    "position_mm": [
+      60.3,
+      60.5
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
+  },
+  {
+    "reference": "FB101",
+    "label": "800R\n100MHz",
+    "position_mm": [
+      67.6,
+      60.5
+    ],
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R101",
+    "label": "0R",
     "position_mm": [
       60.0,
-      89.4765
+      82.5
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R301",
+    "label": "1k",
     "position_mm": [
-      73.0,
-      59.3658
+      77.0,
+      79.0
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R302",
+    "label": "10k",
     "position_mm": [
-      73.0,
-      74.63
+      74.8,
+      82.7
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R303",
+    "label": "1M",
     "position_mm": [
-      68.5,
-      75.13
+      74.8,
+      86.4
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R304",
+    "label": "10k",
     "position_mm": [
-      76.4,
-      58.7158
+      77.0,
+      75.3
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R305",
+    "label": "33R",
     "position_mm": [
-      113.48,
-      63.0
+      96.0,
+      88.5
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R306",
+    "label": "33R",
     "position_mm": [
-      113.13,
-      75.5
+      96.0,
+      92.0
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R307",
+    "label": "2.2k",
     "position_mm": [
-      74.5,
-      56.13
+      77.0,
+      71.6
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R308",
+    "label": "2.2k",
     "position_mm": [
-      98.5,
-      89.13
+      74.0,
+      91.5
     ],
-    "angle_degrees": 0
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "R309",
+    "label": "2.2k",
     "position_mm": [
-      107.5,
-      97.13
+      60.5,
+      86.8
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   },
   {
     "reference": "U301",
+    "label": "ADS1115-M",
     "position_mm": [
-      96.0,
-      56.5
+      86.12,
+      59.6
     ],
-    "angle_degrees": 90
+    "angle_degrees": 0,
+    "text_height_mm": 0.9,
+    "covered_after_assembly": true
   }
 ]

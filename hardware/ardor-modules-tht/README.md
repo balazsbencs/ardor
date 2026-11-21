@@ -5,12 +5,14 @@ These are alternative KiCad 9 projects for the five [M1 production modules](../a
 | Project | PCB dimensions | Regulated supply budget | Assembly / differences from M1 |
 |---|---|---|---|
 | [MIDI input](midi-in/README.md) | 58 × 42 mm | 5 V / 10 mA + 3.3 V / 5 mA | DIP H11L1M; two large SMC TVS; axial filters |
-| [Expression](expression/README.md) | 72 × 50 mm | 3.3 V / 15 mA | Hestore ADS1115-M on one ten-pin socket; confirm supplied ADC identity |
+| [Expression](expression/README.md) | 56 × 44 mm | 3.3 V / 15 mA | Hestore ADS1115-M on one ten-pin socket; confirm supplied ADC identity |
 | [Stereo/mono mixer](mixer/README.md) | 70 × 48 mm | 5 V / 10 mA | Socketed MCP6022-I/P; Nichicon 10 µF / 50 V bipolar coupling |
 | [Line output](line-out/README.md) | 70 × 50 mm | 5 V / 50 mA | MCP6022-I/P, through-hole relay, 2N3904 driver |
 | [Stereo headphones](headphones/README.md) | 76 × 58 mm | 5 V / 150 mA | One OPA1656ID SOIC-8, THT supporting parts, DPDT relay mute |
 
 All host and panel **connector pin assignments are the same as M1**. The larger boards and mounting holes are not mechanically interchangeable with M1. Each project has its own schematic, routed PCB, local libraries, manual BOM, connector guide, review drawings and bare-board Gerber/drill ZIP. Each module operates independently with an external host/audio source and the listed supplies. No carrier board or other Ardor module is required.
+
+The expression carrier has a further [56 × 44 mm layout update](expression/review/layout-notes.md), 31.6% smaller than its previous T1.1 outline. Its mounting holes have moved; front labels show values/types and may be covered by fitted parts.
 
 T1.1 replaces the earlier scaled placements with compact functional groups, reducing board area by **45–64%**. It reserves the entire ADC module body, maximum Nichicon can diameters, solder access, edge headers and insulated M2 mounting holes. The headphone feedback/bypass cluster retains its geometry; MIDI retains its 3 mm loop-to-logic clearance. See the [size and courtyard checks](review/compact-layouts.json). T1.1 mounting-hole positions differ from the earlier T1 boards.
 

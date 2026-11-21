@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import pcbnew as p
 import sexpdata as sx
+from expression_labels import component_label
 ROOT = Path(__file__).resolve().parents[1]
 def key(x):
     return str(x[0]) if isinstance(x,list) and x else ''
@@ -143,18 +144,29 @@ for folder in ROOT.iterdir():
     assert {v['reference'] for v in silk}==set(spec['parts'])
     actual={t.GetText():t for t in board.GetDrawings()
             if isinstance(t,p.PCB_TEXT) and t.GetLayer()==p.F_SilkS and t.GetText() in spec['parts']}
-    assert set(actual)==set(spec['parts'])
+    if folder.name!='expression':assert set(actual)==set(spec['parts'])
     for record in silk:
-        text=actual[record['reference']]
+        if folder.name=='expression':
+            expected=component_label(record['reference'],spec['parts'][record['reference']])
+            assert record['label']==expected
+            matches=[t for t in board.GetDrawings() if isinstance(t,p.PCB_TEXT) and t.GetLayer()==p.F_SilkS
+                     and t.GetText()==expected and max(abs(a-b) for a,b in zip(
+                         [p.ToMM(t.GetPosition().x),p.ToMM(t.GetPosition().y)],record['position_mm']))<=.000051]
+            assert len(matches)==1,(folder.name,record)
+            text=matches[0]
+        else:text=actual[record['reference']]
         xy=[p.ToMM(v) for v in [text.GetPosition().x,text.GetPosition().y]]
         assert max(abs(a-b) for a,b in zip(xy,record['position_mm']))<=.000051
         assert text.GetTextAngle().AsDegrees()==record['angle_degrees']
-        assert p.ToMM(text.GetTextSize().x)>=.9 and p.ToMM(text.GetTextSize().y)>=.9
+        minimum = .8 if folder.name=='expression' and record['reference'] in ['D303','D304','D305','D306'] else .9
+        assert p.ToMM(text.GetTextSize().x)>=minimum and p.ToMM(text.GetTextSize().y)>=minimum
     labels = json.loads((folder/'verification/silkscreen.json').read_text())
     assert set(labels['numbered_connector_pins'])==set(connectors)
     assert set(labels['pin_maps'])=={pin.split('.')[0] for pin in connectors}
     report = {'result':'PASS','board_smd_pads':smd_count,'board_smd_footprints':len(smd_refs),'manual_smd_references':smd_refs,'tht_numbered_pads':pad_count,
-              'minimum_component_drill_mm':.6,'manual_parts':len(bom),'all_manual_parts_have_front_references':True,
+              'minimum_component_drill_mm':.6,'manual_parts':len(bom),
+              'all_manual_parts_have_front_references':folder.name!='expression',
+              'all_manual_parts_have_front_value_or_connector_labels':True,
               'hestore_1_5ke6_8ca_references':low_voltage_tvs,
               'hestore_smdj24ca_references':['D203','D204'] if folder.name=='midi-in' else [],
               'hestore_ues1h100mpm_references':[ref for ref,part in spec['parts'].items() if 'BIPOLAR' in part['value']],

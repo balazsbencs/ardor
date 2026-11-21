@@ -1,0 +1,19 @@
+{
+  "result": "PASS",
+  "copper_zones_pads_footprints_outline_unchanged": true,
+  "before_pcb_sha256": "5423a281cbfb403e846cc4c76ade2672f485af353d5f6a7ffa15ff0f1d3c5ddb",
+  "after_pcb_sha256": "404a92f74b4397474f7fa136f6a07a3d9693f119494f11d927af58f0a6b6c205",
+  "label_source": "Unchanged BOM values/types; connector IDs retained",
+  "shared_labels": {
+    "BAT85S": [
+      [
+        "D303",
+        "D304"
+      ],
+      [
+        "D305",
+        "D306"
+      ]
+    ]
+  }
+}
