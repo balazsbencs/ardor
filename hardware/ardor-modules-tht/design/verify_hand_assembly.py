@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 import pcbnew as p
 import sexpdata as sx
-from expression_labels import component_label
+from expression_labels import component_label as expression_label
+from midi_labels import component_label as midi_label
 ROOT = Path(__file__).resolve().parents[1]
 def key(x):
     return str(x[0]) if isinstance(x,list) and x else ''
@@ -14,6 +15,8 @@ for folder in ROOT.iterdir():
     if not (folder/'verification/design.json').exists():
         continue
     spec = json.loads((folder/'verification/design.json').read_text())
+    value_labels = folder.name in ['expression','midi-in']
+    component_label = midi_label if folder.name=='midi-in' else expression_label
     board = p.LoadBoard(str(folder/(spec['name']+'.kicad_pcb')))
     original = json.loads((ROOT/'design/m1-interface-baseline.json').read_text())['pins_by_module'][folder.name]
     connectors = {pin:net for pin,net in spec['pins'].items() if pin.startswith('J')}
@@ -28,7 +31,7 @@ for folder in ROOT.iterdir():
                        'line-out':['D501'], 'headphones':['D601','D602'], 'mixer':[]}[folder.name]
     for ref,part in spec['parts'].items():
         fp = footprints[ref]
-        is_smd = (folder.name=='headphones' and ref=='U601') or (folder.name=='midi-in' and ref in ['D203','D204'])
+        is_smd = (folder.name=='headphones' and ref=='U601') or (folder.name=='midi-in' and ref in ['D203','D204','FB201','FB202'])
         if is_smd:
             assert fp.GetAttributes() & p.FP_SMD
             assert not fp.GetAttributes() & p.FP_THROUGH_HOLE
@@ -36,10 +39,15 @@ for folder in ROOT.iterdir():
                 assert part['fp']=='Package_SO:SOIC-8_3.9x4.9mm_P1.27mm'
                 assert part['mpn']=='Texas Instruments OPA1656ID'
                 assert bom[ref]['Assembly']=='SMD manual / SOIC-8 1.27mm pitch'
-            else:
+            elif ref in ['D203','D204']:
                 assert part['fp']=='Ardor_THT:D_SMC_Bidirectional_Handsolder'
                 assert part['mpn']=='Littelfuse SMDJ24CA (HESTORE 100.461.56)'
                 assert bom[ref]['Assembly']=='SMD manual / SMC large two-terminal package'
+            else:
+                assert part['fp']=='Ardor_THT:FB_0805_Handsolder'
+                assert part['mpn']=='FERROCORE LCBB-601 (HESTORE 100.327.86)'
+                assert bom[ref]['Assembly']=='SMD manual / 0805 extended solder pads'
+                assert all((p.ToMM(a.GetSize().x),p.ToMM(a.GetSize().y))==(1.6,1.8) for a in fp.Pads())
             smd_refs.append(ref)
         else:
             assert fp.GetAttributes() & p.FP_THROUGH_HOLE, (folder.name,ref,'not THT')
@@ -90,6 +98,12 @@ for folder in ROOT.iterdir():
             start,end=get(rect,'start')[1:],get(rect,'end')[1:]
             assert end[0]-start[0]>=7.11 and end[1]-start[1]>=6.22
             assert not any(key(v)=='fp_text' and v[2]=='K' for v in tree)
+        if folder.name=='midi-in' and ref=='U201':
+            assert part['value']=='H11L1'
+            assert part['mpn']=='Everlight H11L1 (HESTORE 100.435.31)'
+            assert part['fp']=='Package_DIP:DIP-6_W7.62mm'
+            pads={a.GetNumber():a for a in fp.Pads()}
+            assert abs(p.ToMM((pads['1'].GetPosition()-pads['6'].GetPosition()).EuclideanNorm())-7.62)<1e-6
         if 'BIPOLAR' in part['value']:
             assert part['value']=='10u / 50V BIPOLAR'
             assert part['mpn']=='Nichicon UES1H100MPM (HESTORE 100.524.69)'
@@ -144,9 +158,9 @@ for folder in ROOT.iterdir():
     assert {v['reference'] for v in silk}==set(spec['parts'])
     actual={t.GetText():t for t in board.GetDrawings()
             if isinstance(t,p.PCB_TEXT) and t.GetLayer()==p.F_SilkS and t.GetText() in spec['parts']}
-    if folder.name!='expression':assert set(actual)==set(spec['parts'])
+    if not value_labels:assert set(actual)==set(spec['parts'])
     for record in silk:
-        if folder.name=='expression':
+        if value_labels:
             expected=component_label(record['reference'],spec['parts'][record['reference']])
             assert record['label']==expected
             matches=[t for t in board.GetDrawings() if isinstance(t,p.PCB_TEXT) and t.GetLayer()==p.F_SilkS
@@ -158,14 +172,15 @@ for folder in ROOT.iterdir():
         xy=[p.ToMM(v) for v in [text.GetPosition().x,text.GetPosition().y]]
         assert max(abs(a-b) for a,b in zip(xy,record['position_mm']))<=.000051
         assert text.GetTextAngle().AsDegrees()==record['angle_degrees']
-        minimum = .8 if folder.name=='expression' and record['reference'] in ['D303','D304','D305','D306'] else .9
+        small = (folder.name=='expression' and record['reference'] in ['D303','D304','D305','D306']) or (folder.name=='midi-in' and record['reference'] in ['D201','D203','D204','C201','C204'])
+        minimum = .8 if small else .9
         assert p.ToMM(text.GetTextSize().x)>=minimum and p.ToMM(text.GetTextSize().y)>=minimum
     labels = json.loads((folder/'verification/silkscreen.json').read_text())
     assert set(labels['numbered_connector_pins'])==set(connectors)
     assert set(labels['pin_maps'])=={pin.split('.')[0] for pin in connectors}
     report = {'result':'PASS','board_smd_pads':smd_count,'board_smd_footprints':len(smd_refs),'manual_smd_references':smd_refs,'tht_numbered_pads':pad_count,
               'minimum_component_drill_mm':.6,'manual_parts':len(bom),
-              'all_manual_parts_have_front_references':folder.name!='expression',
+              'all_manual_parts_have_front_references':not value_labels,
               'all_manual_parts_have_front_value_or_connector_labels':True,
               'hestore_1_5ke6_8ca_references':low_voltage_tvs,
               'hestore_smdj24ca_references':['D203','D204'] if folder.name=='midi-in' else [],

@@ -1,0 +1,13 @@
+{
+  "pcb_sha256": "1317705e8af0b712f4ebeb426f4088b75a4c7f714f9b50f17be1cbd89ec12147",
+  "vias": 0,
+  "component_and_mounting_drills_mm": {
+    "0.8": 24,
+    "1.0": 8,
+    "2.2": 2,
+    "1.3": 2
+  },
+  "layers": 2,
+  "footprints": 20,
+  "tracks": 64
+}

@@ -1,6 +1,6 @@
 {
   "result": "PASS",
-  "kicad_version": "9.0.2",
+  "kicad_version": "Mixed: MIDI 10.0.8; preceding modules 9.0.2",
   "modules": {
     "midi-in": {
       "electrical": {
@@ -11,8 +11,8 @@
         "electrical_footprints": 18,
         "mounting_holes": 2,
         "board_size_mm": [
-          58.0,
-          42.0
+          39.0,
+          35.0
         ],
         "functional_nets": 11,
         "routed_nets": 10,
@@ -30,16 +30,19 @@
       },
       "hand_assembly": {
         "result": "PASS",
-        "board_smd_pads": 4,
-        "board_smd_footprints": 2,
+        "board_smd_pads": 8,
+        "board_smd_footprints": 4,
         "manual_smd_references": [
+          "FB201",
+          "FB202",
           "D203",
           "D204"
         ],
-        "tht_numbered_pads": 38,
+        "tht_numbered_pads": 34,
         "minimum_component_drill_mm": 0.6,
         "manual_parts": 18,
-        "all_manual_parts_have_front_references": true,
+        "all_manual_parts_have_front_references": false,
+        "all_manual_parts_have_front_value_or_connector_labels": true,
         "hestore_1_5ke6_8ca_references": [
           "D202"
         ],
@@ -57,12 +60,12 @@
         "result": "PASS",
         "fabrication_files": 12,
         "zip_crc_and_contents_match": true,
-        "smt_placements": 2,
+        "smt_placements": 4,
         "plated_drill_and_outline_origin_match": true,
         "nonplated_mounting_holes": 2,
-        "pcb_sha256": "83f3d9989320c62942be3e35130962b49bd75144bf391ec62b29ce96e424971a",
-        "schematic_sha256": "5723dbe8fb00ed26a4f778c7dc419663bc814086c6f5413ffed6032b1ac251bb",
-        "bom_sha256": "53c66f9927e7f7e79a3882ab0b0cae53b81ff6327b90c7fb08f3f57c2cc563ef"
+        "pcb_sha256": "1317705e8af0b712f4ebeb426f4088b75a4c7f714f9b50f17be1cbd89ec12147",
+        "schematic_sha256": "9910e317767e676ed8947520e4a12068bd1c77cb3f018b5910f9b88db5d6b1a2",
+        "bom_sha256": "bf13c1376f38bd4bc7ac33490480ac639b63f86f886593baa8ac42028981a2ac"
       }
     },
     "headphones": {
@@ -311,8 +314,8 @@
   },
   "total_numbered_component_pads": 337,
   "total_manual_components": 136,
-  "board_smd_pads": 12,
-  "board_smd_footprints": 3,
+  "board_smd_pads": 16,
+  "board_smd_footprints": 5,
   "preassembled_smd_breakouts": 1,
   "hardware_tested": false
 }

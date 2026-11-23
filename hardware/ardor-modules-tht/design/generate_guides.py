@@ -5,9 +5,9 @@ import csv
 from cad import ROOT
 
 NOTES = {
-    'midi-in': '''Use a female five-pin DIN panel socket. Wire numbered DIN contact 4 to J202.1 and contact 5 to J202.2. Leave DIN 1/2/3 and shell unwired; insulate the socket shell. Bond the enclosure to J203.1. Do not treat MIDI contact 5 as ground. Fit the exact H11L1M optocoupler; other optocouplers have different switching thresholds or pinouts.
+    'midi-in': '''Use a female five-pin DIN panel socket. Wire numbered DIN contact 4 to J202.1 and contact 5 to J202.2. Leave DIN 1/2/3 and shell unwired; insulate the socket shell. Bond the enclosure to J203.1. Do not treat MIDI contact 5 as ground. Fit **Everlight H11L1, Hestore 100.435.31**, standard DIP-6 with 7.62 mm row spacing. It replaces onsemi H11L1M without changing the pin connections, 5 V supply or 3.3 V output pull-up. Everlight's M option has 10.16 mm lead spacing and is not the selected package. A 6N138 is DIP-8 with a different output stage and is not a drop-in replacement.
 
-D203/D204 are **Littelfuse SMDJ24CA**, the agreed pair of large hand-solderable **SMC / DO-214AB** TVS parts. Fit them first with flux and an ordinary iron; the two broad terminal pads are accessible. Either orientation is valid for the bidirectional CA version. All other builder-fitted components are through-hole. D202 remains DC Components 1.5KE6.8CA; the two higher-voltage SMDJ24CA positions must not be populated with that low-voltage part.
+D203/D204 are **Littelfuse SMDJ24CA**, the agreed pair of large hand-solderable **SMC / DO-214AB** TVS parts. FB201/FB202 now use **FERROCORE LCBB-601, Hestore 100.327.86**, 600 Ω at 100 MHz, 2 A, 0.1 Ω maximum DCR, in 0805. Their 1.6 × 1.8 mm pads extend beyond the 2.2 × 1.45 mm maximum body for iron access; use tweezers and flux. Fit all four SMD parts first. Both ferrites and the bidirectional CA TVS parts are nonpolar. All remaining parts are through-hole. The beads replace the former axial 800 Ω parts and have different RF behavior; bench-test cable/EMC performance. D202 remains DC Components 1.5KE6.8CA; the two higher-voltage SMDJ24CA positions must not be populated with that low-voltage part.
 
 Supply 5 V / 10 mA and 3.3 V / 5 mA. Set the host UART to 31250 baud, 8-N-1. J101.4 is a 3.3 V output into the host RX input.
 
@@ -123,4 +123,10 @@ for folder in ROOT.iterdir():
             'Front labels show component values or types instead of reference IDs; connector IDs still link to the complete back pin maps. Each pair of BAT85S clamp diodes shares one label between its two bodies. Some labels are inside component outlines and are covered after assembly. Clamp labels use 0.8 mm text; other labels use 0.9 mm. Electrical references and full ratings remain in the unchanged BOM.', '',
             'The 3D views omit the custom ADS1115-M, TVS and ferrite bodies; their full embedded courtyards are checked separately. Confirm enclosure, socket and shunt heights before fabrication. This is an unbuilt layout candidate, not a production release.', '']
         lines=[line.replace('Front silkscreen shows component references;', 'Front silkscreen shows component values/types;') for line in lines]
+    if folder.name=='midi-in':
+        lines[4:4]=[
+            'The dense MIDI carrier is 39 × 35 mm, replacing the 58 × 42 mm outline. The net connections and connector pin assignments are unchanged; the ferrites and optocoupler use the Hestore selections described below. The native 3 mm MIDI-loop-to-logic clearance rule remains enabled, including filled copper. Mounting holes are at (3, 32) and (36, 3) mm from the top-left board corner.', '',
+            'Front and assembly labels show values/types, with connector IDs retained for wiring. Some labels are covered by fitted parts. The 1N4148, SMC TVS and two 100n capacitor labels use 0.8 mm text; other labels use 0.9 mm. Full references and ratings remain in the BOM.', '',
+            'The 3D views omit the custom TVS bodies; the complete embedded body/courtyard reservations are checked separately. Confirm enclosure, socket and cable access before fabrication. See [layout and sourcing notes](review/layout-notes.md). This remains an unbuilt engineering candidate.', '']
+        lines=[line.replace('Front silkscreen shows component references;', 'Front silkscreen shows component values/types;').replace('Solder and inspect D203/D204 SMC parts first,', 'Solder and inspect the two SMC TVS parts and both 0805 ferrites first,') for line in lines]
     (folder/'README.md').write_text('\n'.join(lines))

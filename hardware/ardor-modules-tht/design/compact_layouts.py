@@ -5,16 +5,16 @@ Reserve module body space, accessible edge headers and the MIDI isolation gap.
 The headphone summing/feedback/bypass cluster retains its original geometry,
 translated by (-15, -10) mm; the surrounding THT components are repacked.
 """
-SIZES = {'midi-in': (58, 42), 'expression': (56, 44), 'mixer': (70, 48),
+SIZES = {'midi-in': (39, 35), 'expression': (56, 44), 'mixer': (70, 48),
          'line-out': (70, 50), 'headphones': (76, 58)}
 PLACEMENTS = {
     'midi-in': {
-        'J202': [4, 26], 'J101': [55, 11.5], 'J203': [55, 35],
-        'FB201': [14, 12, 90], 'FB202': [22, 12, 90], 'R201': [29, 16, 90],
-        'U201': [36, 18], 'D201': [35, 7], 'D202': [5, 12, 90],
-        'D203': [12, 28], 'D204': [24, 28], 'C202': [12, 35], 'C203': [24, 35],
-        'C201': [43, 24], 'C204': [51, 24], 'R202': [47, 14, 90],
-        'R203': [47, 29], 'R101': [38, 35],
+        'J202': [3, 24.5], 'J101': [36.7, 11.5], 'J203': [23.5, 31.5],
+        'FB201': [10, 5], 'FB202': [10, 12], 'R201': [15.5, 8.2, 90],
+        'U201': [26.5, 19], 'D201': [19.5, 7, 90], 'D202': [3.5, 9.8, 90],
+        'D203': [9.6, 24.7, 90], 'D204': [17.2, 24.7, 90], 'C202': [10, 32.1], 'C203': [18, 32.1],
+        'C201': [35.1, 19.5], 'C204': [35.1, 24.5], 'R202': [31.5, 7.4, 90],
+        'R203': [32, 29.5], 'R101': [32, 33],
     },
     'expression': {
         # Keep the complete ADC body above its socket; pack the large axial
@@ -63,5 +63,5 @@ PLACEMENTS = {
     },
 }
 
-MIDI_POUR_KEEPOUT = [(.5, .5), (42, .5), (42, 11), (36, 11),
-                     (36, 25), (32, 25), (32, 38), (.5, 38)]
+MIDI_POUR_KEEPOUT = [(.5, .5), (23, .5), (23, 13), (26.5, 13),
+                     (26.5, 25), (21, 25), (21, 34.5), (.5, 34.5)]

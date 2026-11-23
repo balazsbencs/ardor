@@ -1,4 +1,4 @@
-"""Place assembly labels: expression values/types, other modules' references."""
+"""Place values/types on expression and MIDI; references on other modules."""
 import wx
 app = wx.App(False)
 import pcbnew as p
@@ -8,15 +8,21 @@ import shutil
 from pathlib import Path
 from shapely.geometry import box, Point
 from shapely.strtree import STRtree
-from expression_labels import component_label, SHARED_LABELS, SHARED_POSITIONS
+from shapely.ops import unary_union
+from expression_labels import component_label as expression_label, SHARED_LABELS, SHARED_POSITIONS
+from midi_labels import component_label as midi_label
 import sexpdata as sx
 
 ROOT = Path(__file__).resolve().parents[1]
 folder = ROOT/sys.argv[1]
 spec = json.loads((folder/'verification/design.json').read_text())
 file = folder/(spec['name']+'.kicad_pcb')
+value_labels = folder.name in ['expression','midi-in']
+component_label = midi_label if folder.name=='midi-in' else expression_label
+shared_labels = SHARED_LABELS if folder.name=='expression' else {}
+shared_positions = SHARED_POSITIONS if folder.name=='expression' else {}
 # Replace only labels owned by the preceding generated-label report.
-if folder.name=='expression':
+if value_labels:
     report=folder/'verification/component-silkscreen.json'
     previous=json.loads(report.read_text()) if report.exists() else []
     data=sx.loads(file.read_text())
@@ -43,7 +49,7 @@ for fp in board.GetFootprints():
         if item.GetLayer()==p.F_SilkS or (item.GetLayer()==p.F_Fab and not isinstance(item,p.PCB_TEXT)):
             shape = rect(item.GetBoundingBox()).buffer(.15)
             # An unfilled silk outline occupies its strokes, not its interior.
-            if folder.name=='expression' and item.GetLayer()==p.F_SilkS and isinstance(item,p.PCB_SHAPE):
+            if value_labels and item.GetLayer()==p.F_SilkS and isinstance(item,p.PCB_SHAPE):
                 margin = p.ToMM(item.GetWidth())/2+.15
                 if item.GetShape()==p.SHAPE_T_RECT:
                     a,c=item.GetStart(),item.GetEnd()
@@ -55,6 +61,11 @@ for fp in board.GetFootprints():
             blocks.append(shape)
             if item.GetLayer()==p.F_Fab:
                 body_blocks[fp.GetReference()].append(shape)
+    if folder.name=='midi-in' and body_blocks[fp.GetReference()]:
+        # A DIP body is drawn as separate edges. Reserve its complete envelope
+        # so neighboring values cannot land inside the optocoupler outline.
+        shape=unary_union(body_blocks[fp.GetReference()]).envelope
+        blocks.append(shape);body_blocks[fp.GetReference()].append(shape)
 for item in board.GetTracks():
     if isinstance(item,p.PCB_VIA):
         blocks.append(rect(item.GetBoundingBox()).buffer(.2))
@@ -70,32 +81,34 @@ for first in blocks:
         if 1.7<c[0]-a[2]<4: corridor_x.add((a[2]+c[0])/2)
         if 1.7<c[1]-a[3]<4: corridor_y.add((a[3]+c[1])/2)
 records = []
-for fp in sorted(board.GetFootprints(),key=lambda f:((0 if f.GetReference().startswith('J') else 1 if f.GetReference() in SHARED_LABELS else 2) if folder.name=='expression' else 0,f.GetReference())):
+for fp in sorted(board.GetFootprints(),key=lambda f:((0 if f.GetReference().startswith('J') else 1 if f.GetReference() in shared_labels else 2) if value_labels else 0,f.GetReference())):
     if fp.GetReference() not in spec['parts']:
         continue
     ref = fp.GetReference()
-    if folder.name=='expression' and ref in {r for refs in SHARED_LABELS.values() for r in refs}:continue
-    label = component_label(ref,spec['parts'][ref]) if folder.name=='expression' else ref
+    if value_labels and ref in {r for refs in shared_labels.values() for r in refs}:continue
+    label = component_label(ref,spec['parts'][ref]) if value_labels else ref
     target = fp.Reference().GetPosition()
     tx,ty = p.ToMM(target.x),p.ToMM(target.y)
     text = p.PCB_TEXT(board)
     text.SetText(label)
     text.SetLayer(p.F_SilkS)
-    small_diode = folder.name=='expression' and ref in ['D303','D304','D305','D306']
-    size = .8 if small_diode else .9
+    small_label = (folder.name=='expression' and ref in ['D303','D304','D305','D306']) or (folder.name=='midi-in' and ref in ['D201','D203','D204','C201','C204'])
+    size = .8 if small_label else .9
     text.SetTextSize(p.VECTOR2I(p.FromMM(size),p.FromMM(size)))
-    text.SetTextThickness(p.FromMM(.12 if small_diode else .15))
+    text.SetTextThickness(p.FromMM(.12 if small_label else .15))
     candidates = [(tx+dx/2,ty+dy/2) for dx in range(-20,21) for dy in range(-20,21)]
     xs=sorted((x for x in corridor_x if abs(x-tx)<=10),key=lambda x:abs(x-tx))
     ys=sorted((y for y in corridor_y if abs(y-ty)<=10),key=lambda y:abs(y-ty))
     candidates += [(x,ty) for x in xs]+[(tx,y) for y in ys]+[(x,y) for x in xs[:32] for y in ys[:32]]
     candidates.sort(key=lambda v:(v[0]-tx)**2+(v[1]-ty)**2)
-    if folder.name=='expression' and ref in SHARED_POSITIONS:
-        candidates=[(50+SHARED_POSITIONS[ref][0],50+SHARED_POSITIONS[ref][1])]
+    if value_labels and ref in shared_positions:
+        candidates=[(50+shared_positions[ref][0],50+shared_positions[ref][1])]
+    if folder.name=='midi-in' and ref in ['C201','C204']:
+        candidates=[(85.1,72 if ref=='C201' else 77)]
     obstacles = STRtree(blocks)
     placed = False
-    if folder.name=='expression' and not ref.startswith('J') and ref not in SHARED_LABELS:
-        # Compact expression boards may print a reference inside its own body
+    if value_labels and not ref.startswith('J') and ref not in shared_labels:
+        # Dense boards may print a value/type inside its own body
         # outline (visible before fitting the part). Keep pads, silk, other
         # bodies and previous labels protected; assembly drawings retain it.
         own = {id(shape) for shape in body_blocks[ref]}
@@ -120,7 +133,7 @@ for fp in sorted(board.GetFootprints(),key=lambda f:((0 if f.GetReference().star
                 board.Add(text)
                 fp.Reference().SetPosition(text.GetPosition())
                 fp.Reference().SetTextAngle(text.GetTextAngle())
-                if folder.name=='expression' and not ref.startswith('J'):
+                if value_labels and not ref.startswith('J'):
                     fp.Reference().SetVisible(False)
                     fab=p.PCB_TEXT(board);fab.SetText(label);fab.SetLayer(p.F_Fab)
                     fab.SetPosition(text.GetPosition());fab.SetTextAngle(text.GetTextAngle())
@@ -130,16 +143,16 @@ for fp in sorted(board.GetFootprints(),key=lambda f:((0 if f.GetReference().star
                                 'text_height_mm':size,
                                 'covered_after_assembly':any(shape.intersects(body) for body in body_blocks[ref])}
                 records.append(record)
-                if folder.name=='expression' and ref in SHARED_LABELS:
-                    record['labels_components']=[ref,*SHARED_LABELS[ref]]
-                    for shared in SHARED_LABELS[ref]:
+                if value_labels and ref in shared_labels:
+                    record['labels_components']=[ref,*shared_labels[ref]]
+                    for shared in shared_labels[ref]:
                         board.FindFootprintByReference(shared).Reference().SetVisible(False)
                         records.append({**record,'reference':shared})
                 placed = True
                 break
         if placed:break
     if not placed:
-        raise AssertionError((folder.name,'No readable reference position',ref))
+        raise AssertionError((folder.name,'No readable component label position',ref))
 p.SaveBoard(str(file),board)
 shutil.copyfile(folder/'verification/project-config.json',folder/(spec['name']+'.kicad_pro'))
 (folder/'verification/component-silkscreen.json').write_text(json.dumps(records,indent=2)+'\n')

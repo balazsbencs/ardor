@@ -3,8 +3,8 @@
   "title": "Isolated MIDI input / 3.3 V UART / HAND ASSEMBLY",
   "slug": "midi-in",
   "size_mm": [
-    58,
-    42
+    39,
+    35
   ],
   "parts": {
     "J202": {
@@ -13,8 +13,8 @@
       "value": "MIDI INPUT FROM DIN SOCKET",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
-        4,
-        26
+        3,
+        24.5
       ],
       "part": null,
       "dnp": false,
@@ -28,7 +28,7 @@
       "value": "POWER INPUT + UART OUTPUT TO\nHOST",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical",
       "pcb": [
-        55,
+        36.7,
         11.5
       ],
       "part": null,
@@ -43,8 +43,8 @@
       "value": "METAL CASE BOND + GROUND",
       "fp": "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical",
       "pcb": [
-        55,
-        35
+        23.5,
+        31.5
       ],
       "part": null,
       "dnp": false,
@@ -55,24 +55,23 @@
     "FB201": {
       "ref": "FB201",
       "kind": "FerriteBead",
-      "value": "800R@100MHz / WE 7427501",
-      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "value": "600R@100MHz / LCBB-601",
+      "fp": "Ardor_THT:FB_0805_Handsolder",
       "pcb": [
-        14,
-        12,
-        90
+        10,
+        5
       ],
       "part": {
-        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
-        "mpn": "Wurth Elektronik 7427501",
-        "bom_mpn": "Wurth Elektronik 7427501",
+        "footprint": "Ardor_THT:FB_0805_Handsolder",
+        "mpn": "FERROCORE LCBB-601 (HESTORE 100.327.86)",
+        "bom_mpn": "FERROCORE LCBB-601 (HESTORE 100.327.86)",
         "jlcpcb_part": "",
-        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+        "datasheet": "https://www.tme.eu/Document/b7dfa41fdd99fc196639e656c769ae20/lcb.pdf"
       },
       "dnp": false,
       "uuid": "690269ab-20fe-5048-9c06-2dcbaaecb78e",
-      "mpn": "Wurth Elektronik 7427501",
-      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      "mpn": "FERROCORE LCBB-601 (HESTORE 100.327.86)",
+      "datasheet": "https://www.tme.eu/Document/b7dfa41fdd99fc196639e656c769ae20/lcb.pdf"
     },
     "R201": {
       "ref": "R201",
@@ -80,8 +79,8 @@
       "value": "220R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        29,
-        16,
+        15.5,
+        8.2,
         90
       ],
       "part": {
@@ -99,39 +98,44 @@
     "FB202": {
       "ref": "FB202",
       "kind": "FerriteBead",
-      "value": "800R@100MHz / WE 7427501",
-      "fp": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
+      "value": "600R@100MHz / LCBB-601",
+      "fp": "Ardor_THT:FB_0805_Handsolder",
       "pcb": [
-        22,
-        12,
-        90
+        10,
+        12
       ],
       "part": {
-        "footprint": "Ardor_THT:Ferrite_WE_7427501_P15.24mm",
-        "mpn": "Wurth Elektronik 7427501",
-        "bom_mpn": "Wurth Elektronik 7427501",
+        "footprint": "Ardor_THT:FB_0805_Handsolder",
+        "mpn": "FERROCORE LCBB-601 (HESTORE 100.327.86)",
+        "bom_mpn": "FERROCORE LCBB-601 (HESTORE 100.327.86)",
         "jlcpcb_part": "",
-        "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+        "datasheet": "https://www.tme.eu/Document/b7dfa41fdd99fc196639e656c769ae20/lcb.pdf"
       },
       "dnp": false,
       "uuid": "a983f686-48b5-5f8d-bbe4-cea4e7e1da1a",
-      "mpn": "Wurth Elektronik 7427501",
-      "datasheet": "https://www.we-online.com/components/products/datasheet/7427501.pdf"
+      "mpn": "FERROCORE LCBB-601 (HESTORE 100.327.86)",
+      "datasheet": "https://www.tme.eu/Document/b7dfa41fdd99fc196639e656c769ae20/lcb.pdf"
     },
     "U201": {
       "ref": "U201",
       "kind": "H11L1",
-      "value": "onsemi H11L1M",
+      "value": "H11L1",
       "fp": "Package_DIP:DIP-6_W7.62mm",
       "pcb": [
-        36,
-        18
+        26.5,
+        19
       ],
-      "part": null,
+      "part": {
+        "footprint": "Package_DIP:DIP-6_W7.62mm",
+        "mpn": "Everlight H11L1 (HESTORE 100.435.31)",
+        "bom_mpn": "Everlight H11L1 (HESTORE 100.435.31)",
+        "jlcpcb_part": "",
+        "datasheet": "https://www.hestore.hu/prod_getfile.php?id=14421"
+      },
       "dnp": false,
       "uuid": "159cfeea-333d-5779-a995-56139f16f71f",
-      "mpn": "onsemi H11L1M",
-      "datasheet": "https://www.onsemi.com/download/data-sheet/pdf/h11l3m-d.pdf"
+      "mpn": "Everlight H11L1 (HESTORE 100.435.31)",
+      "datasheet": "https://www.hestore.hu/prod_getfile.php?id=14421"
     },
     "D201": {
       "ref": "D201",
@@ -139,8 +143,9 @@
       "value": "1N4148",
       "fp": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
       "pcb": [
-        35,
-        7
+        19.5,
+        7,
+        90
       ],
       "part": {
         "footprint": "Diode_THT:D_DO-35_SOD27_P7.62mm_Horizontal",
@@ -160,8 +165,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        43,
-        24
+        35.1,
+        19.5
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -181,8 +186,8 @@
       "value": "100n / 50V X7R",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        51,
-        24
+        35.1,
+        24.5
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -202,8 +207,8 @@
       "value": "1kR / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        47,
-        14,
+        31.5,
+        7.4,
         90
       ],
       "part": {
@@ -224,8 +229,8 @@
       "value": "100R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        47,
-        29
+        32,
+        29.5
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -245,8 +250,8 @@
       "value": "1.5KE6.8CA",
       "fp": "Ardor_THT:D_TVS_DC_1.5KE_P15.24mm",
       "pcb": [
-        5,
-        12,
+        3.5,
+        9.8,
         90
       ],
       "part": {
@@ -267,8 +272,8 @@
       "value": "100p / 1kV C0G",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        12,
-        35
+        10,
+        32.1
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -288,8 +293,8 @@
       "value": "100p / 1kV C0G",
       "fp": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
       "pcb": [
-        24,
-        35
+        18,
+        32.1
       ],
       "part": {
         "footprint": "Capacitor_THT:C_Disc_D5.0mm_W2.5mm_P5.00mm",
@@ -309,8 +314,9 @@
       "value": "SMDJ24CA",
       "fp": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
       "pcb": [
-        12,
-        28
+        9.6,
+        24.7,
+        90
       ],
       "part": {
         "footprint": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
@@ -330,8 +336,9 @@
       "value": "SMDJ24CA",
       "fp": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
       "pcb": [
-        24,
-        28
+        17.2,
+        24.7,
+        90
       ],
       "part": {
         "footprint": "Ardor_THT:D_SMC_Bidirectional_Handsolder",
@@ -351,8 +358,8 @@
       "value": "0R / 1% 0.25W",
       "fp": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
       "pcb": [
-        38,
-        35
+        32,
+        33
       ],
       "part": {
         "footprint": "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P10.16mm_Horizontal",
@@ -423,32 +430,32 @@
           0.5
         ],
         [
-          42,
+          23,
           0.5
         ],
         [
-          42,
-          11
+          23,
+          13
         ],
         [
-          36,
-          11
+          26.5,
+          13
         ],
         [
-          36,
+          26.5,
           25
         ],
         [
-          32,
+          21,
           25
         ],
         [
-          32,
-          38
+          21,
+          34.5
         ],
         [
           0.5,
-          38
+          34.5
         ]
       ],
       "pour_only": true

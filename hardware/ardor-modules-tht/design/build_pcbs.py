@@ -44,8 +44,13 @@ def build(folder):
         f.Value().SetVisible(False)
         f.SetPath(p.KIID_PATH(comps[ref].find('sheetpath').attrib['tstamps']+comps[ref].findtext('tstamps').split()[0]))
         for prop in ['MPN','JLCPCB Part #']:
-            field=p.PCB_FIELD(f,f.GetNextFieldId(),prop);field.SetText(comps[ref].findtext("fields/field[@name='"+prop+"']",''));field.SetVisible(False);f.AddField(field)
-        f.GetFieldByName('Datasheet').SetText(comps[ref].findtext('datasheet',''))
+            value=comps[ref].findtext("fields/field[@name='"+prop+"']",'')
+            if hasattr(f,'GetNextFieldOrdinal'):
+                f.SetField(prop,value);f.GetField(prop).SetVisible(False)
+            else:
+                field=p.PCB_FIELD(f,f.GetNextFieldId(),prop);field.SetText(value);field.SetVisible(False);f.AddField(field)
+        field=f.GetField('Datasheet') if hasattr(f,'GetNextFieldOrdinal') else f.GetFieldByName('Datasheet')
+        field.SetText(comps[ref].findtext('datasheet',''))
         for a in f.Pads():
             if not a.GetNumber():continue
             a.SetNet(nets[pins[ref+'.'+a.GetNumber()]])
@@ -91,7 +96,7 @@ def build(folder):
     if folder.name=='midi-in':
         # Keep the LED cathode branch on the loop side of the optocoupler,
         # rather than letting it approach the logic-side supply terminal.
-        track('U201',2,'D201',2,[(31,18),(31,9),(38.81,9)])
+        track('U201',2,'D201',2,[(24,19),(24,3.19)])
     # OPA1656 feedback and bypass connections are fixed local front-layer
     # routes. Keep the summing nodes compact; the router handles long harness,
     # relay and AC-coupled output connections outside these loops.
