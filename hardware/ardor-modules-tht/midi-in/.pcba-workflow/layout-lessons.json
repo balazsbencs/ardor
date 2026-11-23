@@ -1,0 +1,9 @@
+# Project layout lessons
+
+<!-- PROJECT-LAYOUT-LESSONS -->
+### midi-dense-routing-and-labels
+- **Trigger:** Rotating MIDI protection parts and replacing axial ferrites in a smaller layout
+- **Rule:** Recompute fixed cathode routes from actual pad positions; do not cross the other diode terminal. Inset the router work area to preserve native edge clearance. Reserve the full DIP body envelope when placing neighboring value labels.
+- **Evidence:** review/layout-notes.md
+- **Check:** Native DRC/parity zero including 3mm rule; separate 100n labels beside their rows; no labels inside another body.
+

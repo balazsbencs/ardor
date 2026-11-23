@@ -1,3 +1,5 @@
 Ref,Val,Package,PosX,PosY,Rot,Side
-"D203","SMDJ24CA","D_SMC_Bidirectional_Handsolder",62.000000,-78.000000,0.000000,top
-"D204","SMDJ24CA","D_SMC_Bidirectional_Handsolder",74.000000,-78.000000,0.000000,top
+"D203","SMDJ24CA","D_SMC_Bidirectional_Handsolder",59.600000,-74.700000,90.000000,top
+"D204","SMDJ24CA","D_SMC_Bidirectional_Handsolder",67.200000,-74.700000,90.000000,top
+"FB201","600R@100MHz / LCBB-601","FB_0805_Handsolder",60.000000,-55.000000,0.000000,top
+"FB202","600R@100MHz / LCBB-601","FB_0805_Handsolder",60.000000,-62.000000,0.000000,top

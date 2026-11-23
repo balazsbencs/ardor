@@ -52,26 +52,8 @@
       "regenerated_native_checks": "PASS"
     },
     "midi-in": {
-      "result": "PASS",
-      "byte_identical_files": [
-        "Ardor_MIDI_THT.kicad_sch",
-        "BOM.csv",
-        "README.md",
-        "assembly/accessories.csv",
-        "verification/design.json"
-      ],
-      "pcb_geometry_and_nets_identical_excluding_uuids": true,
-      "filled_copper_symmetric_difference_mm2": {
-        "F.Cu": 0.0,
-        "B.Cu": 1.364703368163787e-07
-      },
-      "filled_copper_max_boundary_drift_mm": {
-        "F.Cu": 0.0,
-        "B.Cu": 1.3456146905248547e-06
-      },
-      "filled_copper_coordinate_tolerance_mm": 2e-06,
-      "release_pcb_sha256": "83f3d9989320c62942be3e35130962b49bd75144bf391ec62b29ce96e424971a",
-      "regenerated_native_checks": "PASS"
+      "result": "NOT_RUN",
+      "reason": "New 39 x 35 mm layout and Hestore ferrite/opto substitutions; native and package checks pass, full-family regeneration comparison pending."
     },
     "mixer": {
       "result": "PASS",

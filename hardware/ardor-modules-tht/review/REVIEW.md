@@ -1,3 +1,5 @@
+**MIDI update, 21 November 2026:** 39 × 35 mm, value/type labels, LCBB-601 hand-solder ferrites and standard Everlight H11L1. Native ERC/DRC/parity and 3 mm isolation checks pass. See [current MIDI evidence](../midi-in/review/layout-notes.md). Historical MIDI sizes, assembly counts, sourcing and regeneration results below are superseded.
+
 # Compact T1.1 engineering review
 
 **Expression layout update, 21 November 2026:** the carrier is now 56 × 44 mm (31.6% less area than 72 × 50 mm). See [current layout evidence](../expression/review/layout-notes.md). The table below records the historical family review; its expression dimensions, front-reference policy and regeneration comparison are superseded by that update.

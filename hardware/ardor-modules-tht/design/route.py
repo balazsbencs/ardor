@@ -12,6 +12,15 @@ from cad import ROOT, key, get, S
 def configure(folder):
     spec=json.loads((folder/'verification/design.json').read_text());mapping=json.loads((folder/'verification/logical-net-map.json').read_text())
     dsn=sx.loads((folder/'routing/board.dsn').read_text().replace('(string_quote ")','(string_quote double_quote)').replace('[','__LB__').replace(']','__RB__'));network=get(dsn,'network')
+    if folder.name=='midi-in':
+        # The router uses 0.2 mm obstacle clearance; the PCB requires 0.5 mm
+        # copper-to-edge clearance. Inset only the router's rectangular work
+        # area by the missing 0.3 mm, keeping the real outline unchanged.
+        path=get(get(get(dsn,'structure'),'boundary'),'path')
+        w,h=spec['size_mm'];bounds=[(50000,50000+w*1000),(-50000-h*1000,-50000)]
+        for i in range(3,len(path)):
+            lo,hi=bounds[(i-3)%2]
+            path[i]=lo+300 if path[i]<(lo+hi)/2 else hi-300
     network[:]=[v for v in network if not (key(v)=='class' and str(v[1]) in ['Ground','Chassis'])]
     default=next(v for v in network if key(v)=='class')
     split={mapping['GND']:'Ground'}

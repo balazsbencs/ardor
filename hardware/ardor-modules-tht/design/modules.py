@@ -96,6 +96,14 @@ class THTModule(Module):
     def add(self, kind, ref, nets, sch, pcb, proto=None, value=None, fp=None, unit=1, dnp=False):
         old = CAT.get(proto or ref)
         selection = purchasing(kind, old, ref)
+        if self.slug=='midi-in' and kind=='FerriteBead':
+            selection = ('Ardor_THT:FB_0805_Handsolder', '600R@100MHz / LCBB-601',
+                         'FERROCORE LCBB-601 (HESTORE 100.327.86)',
+                         'https://www.tme.eu/Document/b7dfa41fdd99fc196639e656c769ae20/lcb.pdf')
+        if self.slug=='midi-in' and kind=='H11L1':
+            selection = ('Package_DIP:DIP-6_W7.62mm', 'H11L1',
+                         'Everlight H11L1 (HESTORE 100.435.31)',
+                         'https://www.hestore.hu/prod_getfile.php?id=14421')
         if selection:
             fp, value, mpn, datasheet = selection
             if kind == 'AO3400A':
@@ -132,7 +140,8 @@ def write_bom(module):
             writer.writerow([ref,c['value'],c['fp'],c['mpn'],
                 'Preassembled module; THT sockets' if ref=='U301' and module.slug=='expression' else
                 'SMD manual / SOIC-8 1.27mm pitch' if module.slug=='headphones' and ref=='U601' else
-                'SMD manual / SMC large two-terminal package' if module.slug=='midi-in' and ref in ['D203','D204'] else 'THT manual'])
+                'SMD manual / SMC large two-terminal package' if module.slug=='midi-in' and ref in ['D203','D204'] else
+                'SMD manual / 0805 extended solder pads' if module.slug=='midi-in' and ref in ['FB201','FB202'] else 'THT manual'])
 
 
 def headphones():

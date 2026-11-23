@@ -1,0 +1,97 @@
+{
+  "schema": "pcb-layout-review-v1",
+  "status": "USER_REVIEW",
+  "board_revision": "midi-dense-hestore-2026-11-21",
+  "board_sha256": "1317705e8af0b712f4ebeb426f4088b75a4c7f714f9b50f17be1cbd89ec12147",
+  "project_sha256": "f3923959457746a1d7536c61488f8af14ff4523b98baf179085865f86f086054",
+  "baseline": {
+    "board_sha256": "7551a42348cdfd392771040cb17ac640ddf9cf39ba04576af71924de95474f45",
+    "project_sha256": "10ad3a4dd772d6f8bf1c8c640c95d400589575c7d12cee704b216f0bac31d83d",
+    "size_mm": [
+      58,
+      42
+    ],
+    "raw_disconnects": 0,
+    "drc_violations": 0
+  },
+  "size_mm": [
+    39,
+    35
+  ],
+  "area_reduction_from_baseline_percent": 43.966,
+  "stackup": [
+    "F.Cu",
+    "FR4 core",
+    "B.Cu"
+  ],
+  "placement": {
+    "logical": "PASS",
+    "embedded_courtyards": "PASS",
+    "visual_mechanical": "USER_REVIEW"
+  },
+  "connectivity": {
+    "raw_disconnects": 0,
+    "signal_splits": 0,
+    "power_disconnects": 0
+  },
+  "drc": {
+    "real_errors": 0,
+    "warnings": 0,
+    "waivers": []
+  },
+  "layout_checks": {
+    "failures": 0,
+    "warnings": [
+      "Some value/type labels are covered by fitted parts."
+    ]
+  },
+  "critical_nets": [
+    "MIDI_4",
+    "MIDI_5",
+    "MIDI_4_F",
+    "MIDI_A",
+    "MIDI_K",
+    "MIDI_OC",
+    "MIDI_RX",
+    "+5V",
+    "+3V3",
+    "GND"
+  ],
+  "functional_isolation_clearance_mm": 3,
+  "via_drill_histogram": {
+    "0.8": 24,
+    "1.0": 8,
+    "2.2": 2,
+    "1.3": 2
+  },
+  "vias": 0,
+  "manufacturing_findings": [],
+  "renders": {
+    "top": "review/pcb-3d-top.png",
+    "bottom": "review/pcb-3d-bottom.png",
+    "isometric": "review/pcb-3d-isometric.png",
+    "layers": [
+      "review/pcb-front.svg",
+      "review/pcb-back.svg",
+      "review/pcb-assembly.svg"
+    ]
+  },
+  "unresolved": [
+    "Unbuilt prototype: confirm enclosure/socket/cable clearances and real transmitter/long-cable timing.",
+    "RF behavior changes with LCBB-601; no EMC/ESD equivalence or live supplier DFM approval.",
+    "Custom TVS bodies are missing from 3D; complete maximum-body courtyards are checked separately.",
+    "No full-family regeneration rerun or production-release approval."
+  ],
+  "evidence": [
+    "verification/drc.json",
+    "verification/erc.json",
+    "verification/validation.json",
+    "verification/compact-layout.json",
+    "verification/ground-stitching.json",
+    "verification/hand-assembly.json",
+    "verification/package-validation.json",
+    "verification/netlist-comparison.json",
+    "review/layout-notes.md"
+  ],
+  "hardware_tested": false
+}

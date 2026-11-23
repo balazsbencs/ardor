@@ -5,16 +5,16 @@
     70
   ],
   "size_mm": [
-    58,
-    42
+    39,
+    35
   ],
   "previous_area_mm2": 5950,
-  "area_mm2": 2436,
-  "area_reduction_percent": 59.06,
+  "area_mm2": 1365,
+  "area_reduction_percent": 77.06,
   "embedded_courtyards_checked": 20,
   "courtyard_overlaps": 0,
   "courtyards_inside_outline_with_0_25mm_margin": true,
-  "minimum_courtyard_gap_mm": 0.45,
-  "assembly_courtyard_area_fraction": 0.401,
+  "minimum_courtyard_gap_mm": 0.19,
+  "assembly_courtyard_area_fraction": 0.5366,
   "hardware_tested": false
 }

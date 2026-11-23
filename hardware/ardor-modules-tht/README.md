@@ -1,16 +1,18 @@
 # Ardor hand-assembled function modules — compact T1.1
 
-These are alternative KiCad 9 projects for the five [M1 production modules](../ardor-modules/README.md). Order bare PCBs and solder them with an ordinary iron. Mixer and line-out contain **only through-hole components**. MIDI uses **two large hand-solderable SMDJ24CA SMC TVS parts**, with all other components through-hole. The headphone board uses **one hand-solderable OPA1656ID SOIC-8**, with all supporting components through-hole. Expression uses the **purchased, preassembled Hestore ADS1115-M**: it contains SMD parts, but the builder only solders headers and a socket. The OPA1656 has exposed leads at 1.27 mm pitch and no underside pad; the SMC parts have two broad extended terminal pads. An ordinary iron and flux are sufficient. No hot-air tool or stencil is required.
+These are alternative KiCad projects (MIDI: KiCad 10; other modules: KiCad 9 or newer) for the five [M1 production modules](../ardor-modules/README.md). Order bare PCBs and solder them with an ordinary iron. Mixer and line-out contain **only through-hole components**. MIDI uses **two large SMDJ24CA SMC TVS parts and two 0805 LCBB-601 ferrites with extended hand-solder pads**, with all other components through-hole. The headphone board uses **one hand-solderable OPA1656ID SOIC-8**, with all supporting components through-hole. Expression uses the **purchased, preassembled Hestore ADS1115-M**: it contains SMD parts, but the builder only solders headers and a socket. The OPA1656 has exposed leads at 1.27 mm pitch and no underside pad; the SMC parts have two broad extended terminal pads. An ordinary iron and flux are sufficient. No hot-air tool or stencil is required.
 
 | Project | PCB dimensions | Regulated supply budget | Assembly / differences from M1 |
 |---|---|---|---|
-| [MIDI input](midi-in/README.md) | 58 × 42 mm | 5 V / 10 mA + 3.3 V / 5 mA | DIP H11L1M; two large SMC TVS; axial filters |
+| [MIDI input](midi-in/README.md) | 39 × 35 mm | 5 V / 10 mA + 3.3 V / 5 mA | Everlight H11L1 DIP-6; two SMC TVS; two hand-solder 0805 ferrites |
 | [Expression](expression/README.md) | 56 × 44 mm | 3.3 V / 15 mA | Hestore ADS1115-M on one ten-pin socket; confirm supplied ADC identity |
 | [Stereo/mono mixer](mixer/README.md) | 70 × 48 mm | 5 V / 10 mA | Socketed MCP6022-I/P; Nichicon 10 µF / 50 V bipolar coupling |
 | [Line output](line-out/README.md) | 70 × 50 mm | 5 V / 50 mA | MCP6022-I/P, through-hole relay, 2N3904 driver |
 | [Stereo headphones](headphones/README.md) | 76 × 58 mm | 5 V / 150 mA | One OPA1656ID SOIC-8, THT supporting parts, DPDT relay mute |
 
 All host and panel **connector pin assignments are the same as M1**. The larger boards and mounting holes are not mechanically interchangeable with M1. Each project has its own schematic, routed PCB, local libraries, manual BOM, connector guide, review drawings and bare-board Gerber/drill ZIP. Each module operates independently with an external host/audio source and the listed supplies. No carrier board or other Ardor module is required.
+
+The MIDI carrier has a further [39 × 35 mm layout and Hestore sourcing update](midi-in/review/layout-notes.md), with value/type labels, preserved 3 mm functional isolation and new mounting-hole positions.
 
 The expression carrier has a further [56 × 44 mm layout update](expression/review/layout-notes.md), 31.6% smaller than its previous T1.1 outline. Its mounting holes have moved; front labels show values/types and may be covered by fitted parts.
 
@@ -19,7 +21,7 @@ T1.1 replaces the earlier scaled placements with compact functional groups, redu
 ## Build choices
 
 - Use 1% 0.25 W axial resistors, formed to 10.16 mm lead spacing, except headphone feedback resistors R651/R652: stand these upright at 2.54 mm pitch with short folded leads. R101 may be a wire link.
-- On the headphone board, solder and inspect the OPA1656 SOIC-8 first; no IC socket or adapter is used. On MIDI, solder the two SMC TVS parts first. Solder DIP sockets before fitting ICs. Match the IC notch to the socket and PCB pin-1 marking. The MIDI H11L1M uses a six-pin DIP footprint; an optional 7.62 mm-wide socket fits it.
+- On the headphone board, solder and inspect the OPA1656 SOIC-8 first; no IC socket or adapter is used. On MIDI, solder the two SMC TVS parts and both 0805 ferrites first. Solder DIP sockets before fitting ICs. Match the IC notch to the socket and PCB pin-1 marking. The MIDI Everlight H11L1 uses a standard six-pin DIP footprint; an optional 7.62 mm-wide socket fits it.
 - Use the capacitor dimensions and lead pitch in each BOM. All nine audio coupling capacitors marked **BIPOLAR** are **Nichicon UES1H100MPM, 10 µF / 50 V**, 3.5 mm pitch, nominal 8 × 11.5 mm can; the footprints allow maximum 8.5 mm diameter and 12.5 mm height. Either orientation is valid. Ordinary polarized electrolytics are not substitutes. Polarized radial capacitors have pin 1 = positive and a `+` on the PCB. The can's stripe indicates negative.
 - Use **bidirectional** DC Components **1.5KE6.8CA** protection diodes ([HESTORE 100.430.71](https://www.hestore.hu/prod_10043071.html)), formed to **15.24 mm** lead spacing. MIDI D203/D204 instead use **Littelfuse SMDJ24CA** ([HESTORE 100.461.56](https://www.hestore.hu/prod_10046156.html)), large SMC packages with extended hand-solder pads, for their higher-voltage protection function; do not fit 1.5KE6.8CA there. Either orientation is valid for both bidirectional types. The `CA` suffix matters. Small-signal 1N4148 and BAT85S diodes are polarized: their band goes to the cathode, footprint pad 1.
 - Filter beads are Würth 7427501 axial parts, formed to 15.24 mm spacing. Their RF characteristics and the axial TVS capacitance differ from M1; EMC/ESD equivalence is not claimed.

@@ -14,7 +14,9 @@ for f in b.GetFootprints():
             if a.GetNumber()=='17':a.SetLocalZoneConnection(p.ZONE_CONNECTION_FULL)
 assert p.ImportSpecctraSES(b,str(folder/'routing/board.ses'))
 for keepout in spec['keepouts']:
-    z=p.ZONE(b);z.SetIsRuleArea(True);z.SetLayerSet(p.LSET.AllCuMask());z.SetDoNotAllowTracks(False);z.SetDoNotAllowVias(False);z.SetDoNotAllowCopperPour(True);z.SetDoNotAllowPads(False);z.SetDoNotAllowFootprints(False)
+    z=p.ZONE(b);z.SetIsRuleArea(True);z.SetLayerSet(p.LSET.AllCuMask());z.SetDoNotAllowTracks(False);z.SetDoNotAllowVias(False);z.SetDoNotAllowPads(False);z.SetDoNotAllowFootprints(False)
+    if hasattr(z,'SetDoNotAllowZoneFills'):z.SetDoNotAllowZoneFills(True)
+    else:z.SetDoNotAllowCopperPour(True)
     poly=z.Outline();poly.NewOutline()
     for x,y in keepout['polygon']:poly.Append(p.FromMM(50+x),p.FromMM(50+y))
     b.Add(z)

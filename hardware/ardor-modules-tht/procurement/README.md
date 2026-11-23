@@ -1,3 +1,5 @@
+**MIDI sourcing update — 21 November 2026:** FB201/FB202 now use Hestore LCBB-601 on new hand-solder 0805 pads; U201 now selects standard Everlight H11L1. The BOM and shopping groups reflect these three selections. See [electrical/package comparison](../midi-in/review/layout-notes.md). The former six-bead THT sourcing issue below now applies to the four remaining axial beads; older stock dates elsewhere have not been refreshed.
+
 # Hestore purchasing audit — compact T1.1
 
 Supplier product pages refreshed **12 October 2026** against all five current hand-assembly BOMs and accessory lists: **136 component positions and 22 accessory entries**, for one of each board. Exact source-file hashes are recorded in the snapshot. M1 SMD production BOMs are outside this audit.
@@ -27,7 +29,7 @@ The exact [OPA1656ID](https://www.hestore.hu/prod_10043729.html), [MCP6022-I/P](
 
 | Requirement | Hestore candidate / limitation |
 |---|---|
-| Six axial Würth 7427501 ferrites, 800 Ω @ 100 MHz / 3 A / 20 mΩ | No verified THT equivalent found. [LCBB-601](https://www.hestore.hu/prod_10032786.html) is 0805 / 600 Ω / 2 A / 100 mΩ; larger [YI321611U101-4R0T](https://www.hestore.hu/prod_10043952.html) is 1206 / 100 Ω / 4 A. Neither matches package/RF characteristics. **Keep Würth from another supplier** to preserve THT. Adoption needs new SMD pads and per-net filtering/current review. |
+| Four remaining axial Würth 7427501 ferrites, 800 Ω @ 100 MHz / 3 A / 20 mΩ | No verified THT equivalent found. [LCBB-601](https://www.hestore.hu/prod_10032786.html) is 0805 / 600 Ω / 2 A / 100 mΩ; larger [YI321611U101-4R0T](https://www.hestore.hu/prod_10043952.html) is 1206 / 100 Ω / 4 A. Neither matches package/RF characteristics. **Keep Würth from another supplier** to preserve THT. Adoption needs new SMD pads and per-net filtering/current review. |
 | Headphone 100 pF / 50 V C0G, 2.5 mm-thick envelope | [CT40805N101J500F3R](https://www.hestore.hu/prod_10052526.html) is electrically suitable THT, but [maximum thickness is 3.8 mm](https://www.hestore.hu/prod_getfile.php?id=24624). Not approved for current footprint. A future adoption needs moving/reviewing the local feedback cluster. Source a confirmed thinner C0G part elsewhere for this PCB. |
 | MIDI 100 pF / 1 kV C0G, 5 mm body | [CCH-100P/1000V](https://www.hestore.hu/prod_10044974.html) retains value/voltage but [uses SL dielectric, ±10%, maximum 7 mm diameter](https://www.hestore.hu/prod_getfile.php?id=15898). Requires package and RF/temperature/surge review. No exact match found; do not replace with a 50 V part. |
 | Ordinary X7R bypass capacitors and small headphone C641 | [RM5](https://www.hestore.hu/prod_10044815.html) and [RM2.5](https://www.hestore.hu/prod_10023472.html) descriptions specify X7R/pitch but omit body drawings. Confirm dimensions, especially C641 ≤3.8 × 2.6 mm. Preserve its short supply track. [CC-100N](https://www.hestore.hu/prod_10025992.html) is Y5V, not the required X7R. |

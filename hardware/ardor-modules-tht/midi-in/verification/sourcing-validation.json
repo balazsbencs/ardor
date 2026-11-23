@@ -1,0 +1,22 @@
+{
+  "schema": "sourcing-lock-v1",
+  "file": "hardware/ardor-modules-tht/midi-in/.pcba-workflow/sourcing-lock.csv",
+  "status": "BLOCKED",
+  "rows": 2,
+  "references": 3,
+  "assembly_quantity": 1,
+  "currency": "HUF",
+  "total_assembled_cost": 372.84,
+  "errors": [
+    "row 2: lifecycle is not orderable (unknown)",
+    "row 3: selected alternate is not approved",
+    "row 3: lifecycle is not orderable (unknown)"
+  ],
+  "warnings": [],
+  "scope": "Draft for three changed references and a one-board shopping quantity; not a production release.",
+  "notes": [
+    "Stock counts are conservative lower bounds from >250 and >15 listings. Prices exclude VAT and shipping.",
+    "Manufacturer lifecycle declarations have not been established; current supplier stock is not treated as proof of active production.",
+    "Generic 3D bodies are illustrative; package dimensions and complete courtyards are independently checked."
+  ]
+}

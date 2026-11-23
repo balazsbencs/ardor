@@ -1,0 +1,12 @@
+{
+  "result": "PASS",
+  "baseline_git_revision": "7df4e89441c7e54e182b4e68e6d3deb78f5e57a9",
+  "pin_net_assignments_identical": true,
+  "unused_pin_assignments_identical": true,
+  "changed_component_metadata": [
+    "FB201",
+    "FB202",
+    "U201"
+  ],
+  "connector_pinout_unchanged": true
+}
