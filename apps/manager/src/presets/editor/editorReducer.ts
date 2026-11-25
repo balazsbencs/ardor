@@ -110,6 +110,23 @@ export function findPresetBlockInPreset(preset: Preset, blockId: string | undefi
   return allPresetBlocksInPreset(preset).find(({ id }) => id === blockId);
 }
 
+function removeBlockReferences(preset: Preset, matches: (blockId: string, parameter?: string) => boolean) {
+  for (const scene of preset.sceneSet?.scenes ?? []) {
+    scene.targets = scene.targets.filter((target) => !("blockId" in target
+      && matches(target.blockId, target.target === "parameter" ? target.parameter : undefined)));
+  }
+  if (preset.expression && matches(preset.expression.blockId, preset.expression.parameter)) {
+    delete preset.expression;
+  }
+  if (preset.midiMappings?.length) {
+    for (const mapping of preset.midiMappings) {
+      mapping.actions = mapping.actions.filter((action) => !matches(action.blockId, action.parameter));
+    }
+    preset.midiMappings = preset.midiMappings.filter(({ actions }) => actions.length > 0);
+    if (!preset.midiMappings.length) delete preset.midiMappings;
+  }
+}
+
 function updateBlockTree(
   blocks: PresetBlock[],
   blockId: string,
@@ -464,15 +481,17 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           return next;
         });
       }
-      return withMutation(state, (present) => ({
-        ...clonePreset(present),
-        version: present.sceneSet ? 4 : 2,
-        routing: "serial",
-        blocks: present.wdw?.dry.blocks.length || present.wdw?.wet.blocks.length
-          ? [...(present.wdw?.dry.blocks ?? []), ...(present.wdw?.wet.blocks ?? [])]
-          : present.blocks,
-        wdw: undefined,
-      }));
+      return withMutation(state, (present) => {
+        const next = clonePreset(present);
+        next.version = next.sceneSet ? 4 : 2;
+        next.routing = "serial";
+        if (next.wdw) next.blocks = [...next.wdw.dry.blocks, ...next.wdw.wet.blocks];
+        delete next.wdw;
+        for (const scene of next.sceneSet?.scenes ?? []) {
+          scene.targets = scene.targets.filter((target) => target.target !== "wdwLane");
+        }
+        return next;
+      });
     }
     case "set-wdw-mix": {
       const current = state.history.present.wdw;
@@ -661,7 +680,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       const removeFrom = (blocks: PresetBlock[], parentId?: string): boolean => {
         const index = blocks.findIndex(({ id }) => id === action.blockId);
         if (index >= 0) {
-          blocks.splice(index, 1);
+          const [block] = blocks.splice(index, 1);
+          const deletedIds = new Set(allPresetBlocks([block]).map(({ id }) => id));
+          removeBlockReferences(next, (blockId) => deletedIds.has(blockId));
           selected = parentId ?? blocks[Math.min(index, blocks.length - 1)]?.id;
           return true;
         }
@@ -702,11 +723,18 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (sourceLane && (target.blockType === "nam" || target.blockType === "cab")
           && state.history.present.wdw![sourceLane].blocks.some(({ id, type }) =>
             id !== source.id && type === target.blockType)) return state;
-      return withMutation(state, (present) => updatedBlock(present, action.blockId, (block) => {
-        const defaults = defaultsForDefinition(target.id);
-        const params = { ...defaults, ...block.params, mode: target.mode };
-        return { ...block, params };
-      }));
+      return withMutation(state, (present) => {
+        const next = updatedBlock(present, action.blockId, (block) => {
+          const defaults = defaultsForDefinition(target.id);
+          const params = { ...defaults, ...block.params, mode: target.mode };
+          return { ...block, params };
+        });
+        if (next?.sceneSet && source.params.mode !== target.mode) {
+          // Parameter keys can be reused with different meanings between algorithms.
+          removeBlockReferences(next, (blockId, parameter) => blockId === source.id && parameter !== undefined);
+        }
+        return next;
+      });
     }
     case "reset-block":
       return withMutation(state, (present) => updatedBlock(present, action.blockId, resetKnownParams));

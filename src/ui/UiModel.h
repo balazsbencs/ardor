@@ -45,6 +45,7 @@ struct UiBlock {
   std::array<std::vector<UiBlock>, 2> lanes;
   nlohmann::json modelParameterSpecs = nlohmann::json::array();
   bool modelSlimmable = false;
+  PresetSceneBypassPolicy sceneBypass = PresetSceneBypassPolicy::Cut;
 };
 
 struct UiPreset {

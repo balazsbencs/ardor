@@ -4,6 +4,7 @@ import type { Preset } from "../../api/types";
 import { createEditorState, editorReducer, isEditorDirty } from "./editorReducer";
 import type { EditorAction, EditorState } from "./editorTypes";
 import { createEmptyPreset, createWdwPreset, enableScenes } from "./presetFactory";
+import { validatePreset } from "./presetValidation";
 
 function preset(): Preset {
   return {
@@ -212,6 +213,19 @@ describe("editorReducer", () => {
     expect(flattened.history.present.wdw).toBeUndefined();
   });
 
+  it("drops WDW lane targets when converting scenes to serial and restores them on undo", () => {
+    const source = enableScenes(createWdwPreset(), [
+      { target: "wdwLane", lane: "wet", parameter: "width", value: 0.5 },
+      { target: "inputGainDb", value: -3 },
+    ]);
+    const serial = editorReducer(state(source), { type: "set-routing", routing: "serial" });
+    expect(serial.history.present.version).toBe(4);
+    for (const scene of serial.history.present.sceneSet!.scenes) {
+      expect(scene.targets).toEqual([{ target: "inputGainDb", value: -3 }]);
+    }
+    expect(editorReducer(serial, { type: "undo" }).history.present).toEqual(source);
+  });
+
   it("toggles, updates assets, and clamps known parameters", () => {
     const edited = reduce(
       state(),
@@ -260,6 +274,44 @@ describe("editorReducer", () => {
     expect(last.selectedBlockId).toBe("block-1");
   });
 
+  it.each(["delay", "split"])("removes scene, expression and MIDI references when deleting %s", (blockId) => {
+    const delay = { id: "delay", type: "delay", enabled: false, asset: "", params: { mode: "digital" } };
+    const trem = { ...preset().blocks[1], id: "tremolo" };
+    const rig = reduce(state(createEmptyPreset()), { type: "add-block", definitionId: "dualRig", index: 0 })
+      .history.present.blocks[0];
+    rig.id = "split";
+    rig.enabled = false;
+    for (const lane of Object.values(rig.lanes!)) {
+      lane.blocks[0].asset = "models/test.nam";
+      lane.blocks[1].asset = "irs/test.wav";
+    }
+    rig.lanes!.left.blocks.push(delay);
+    const source = enableScenes({ ...createEmptyPreset(), blocks: [rig, trem] }, [
+      { target: "parameter", blockId: delay.id, parameter: "mix", value: 0.2 },
+      { target: "blockEnabled", blockId: delay.id, value: false },
+      { target: "blockEnabled", blockId: trem.id, value: true },
+    ]);
+    source.expression = { blockId: delay.id, parameter: "mix", minimum: 0, maximum: 1, inverted: false };
+    source.midiMappings = [10, 11].map((controlChange) => ({
+      channel: 1, controlChange, mode: "toggle",
+      actions: [
+        { target: "blockEnabled", blockId: delay.id, value1: 0, value2: 1 },
+        ...(controlChange === 10 ? [{ target: "blockEnabled" as const, blockId: trem.id, value1: 0, value2: 1 }] : []),
+      ],
+    }));
+    source.sceneMidiMappings = [{ channel: 1, controlChange: 12, action: "selectScene", sceneId: "scene-2" }];
+    const removed = editorReducer(state(source), { type: "remove-block", blockId });
+    const result = removed.history.present;
+    for (const scene of result.sceneSet!.scenes) expect(scene.targets).toEqual(source.sceneSet!.scenes[0].targets.slice(2));
+    expect(result.expression).toBeUndefined();
+    expect(result.midiMappings).toEqual([{ ...source.midiMappings[0], actions: source.midiMappings[0].actions.slice(1) }]);
+    expect(result.sceneMidiMappings).toEqual(source.sceneMidiMappings);
+    expect(validatePreset(result).issues.filter(({ severity }) => severity === "error")).toEqual([]);
+    const undone = editorReducer(removed, { type: "undo" });
+    expect(undone.history.present).toEqual(source);
+    expect(editorReducer(undone, { type: "redo" }).history.present).toEqual(result);
+  });
+
   it("changes modes within a family while preserving shared and unknown parameters", () => {
     const edited = editorReducer(state(), {
       type: "change-definition", blockId: "block-2", definitionId: "mod:flanger",
@@ -274,6 +326,28 @@ describe("editorReducer", () => {
     expect(editorReducer(edited, {
       type: "change-definition", blockId: "block-2", definitionId: "delay:digital",
     })).toBe(edited);
+  });
+
+  it("reconciles scene and controller references when replacing an effect algorithm", () => {
+    const block = { id: "drive", type: "distortion", enabled: true, asset: "", params: { mode: "tape", drive: 6 } };
+    const source = enableScenes({ ...createEmptyPreset(), blocks: [block] }, [
+      { target: "parameter", blockId: block.id, parameter: "drive", value: 6 },
+      { target: "blockEnabled", blockId: block.id, value: true },
+    ]);
+    source.midiMappings = [{
+      channel: 1, controlChange: 10, mode: "toggle", actions: [
+        { target: "parameter", blockId: block.id, parameter: "drive", value1: 0, value2: 6 },
+        { target: "blockEnabled", blockId: block.id, value1: 0, value2: 1 },
+      ],
+    }];
+    const changed = editorReducer(state(source), {
+      type: "change-definition", blockId: block.id, definitionId: "distortion:rat",
+    });
+    for (const scene of changed.history.present.sceneSet!.scenes) {
+      expect(scene.targets).toEqual(source.sceneSet!.scenes[0].targets.slice(1));
+    }
+    expect(changed.history.present.midiMappings?.[0].actions).toEqual(source.midiMappings[0].actions.slice(1));
+    expect(editorReducer(changed, { type: "undo" }).history.present).toEqual(source);
   });
 
   it("resets known parameters while preserving unknown block data and parameters", () => {

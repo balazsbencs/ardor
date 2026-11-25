@@ -43,6 +43,7 @@ function mockClient(overrides: Partial<ArdorApiClient> = {}): ArdorApiClient {
 function Probe() {
   const session = useDeviceSession();
   const [refreshResult, setRefreshResult] = useState("idle");
+  const [recallResult, setRecallResult] = useState("idle");
   return (
     <div>
       <span data-testid="status">{session.status}</span>
@@ -65,7 +66,10 @@ function Probe() {
       <button type="button" onClick={() => void session.connect("http://pedal", "secret")}>Connect</button>
       <button type="button" onClick={session.disconnect}>Disconnect</button>
       <button type="button" onClick={() => session.current && void session.saveCurrent(session.current.preset)}>Save current</button>
-      <button type="button" onClick={() => void session.recallScene?.("solo")}>Recall solo</button>
+      <button type="button" onClick={() => void session.recallScene?.("solo").then(
+        (accepted) => setRecallResult(String(accepted)), (error: Error) => setRecallResult(error.message))}>Recall solo</button>
+      <span data-testid="recall-result">{recallResult}</span>
+      <span data-testid="live-scene">{session.device?.active?.liveSceneId}</span>
       <button type="button" onClick={() => void session.selectLocation({ bank: 0, slot: 1 })}>Open slot 2</button>
     </div>
   );
@@ -80,6 +84,7 @@ function renderSession(factory: DeviceClientFactory, autoConnect = false) {
 afterEach(() => {
   localStorage.clear();
   vi.restoreAllMocks();
+  vi.unstubAllGlobals();
 });
 
 describe("DeviceSessionProvider", () => {
@@ -308,17 +313,24 @@ describe("DeviceSessionProvider", () => {
     await waitFor(() => expect(screen.getByTestId("revision-match")).toHaveTextContent("false"));
   });
 
-  it("binds scene recall to the active generation", async () => {
+  it("queues scene recall over HTTP with a unique request ID and waits for live status", async () => {
+    vi.stubGlobal("crypto", { getRandomValues: crypto.getRandomValues.bind(crypto) });
     const recallScene = vi.fn(async () => ({ accepted: true, generation: 72, sceneId: "solo", requestId: "request" }));
     const client = mockClient({
-      getDevice: vi.fn(async () => ({ ...device, active: { bank: 0, slot: 0, generation: 72, storedRevisionMatches: true } })),
+      getDevice: vi.fn(async () => ({ ...device, active: { bank: 0, slot: 0, generation: 72, storedRevisionMatches: true, liveSceneId: "clean" } })),
       recallScene,
     });
     renderSession(() => client);
     await userEvent.click(screen.getByRole("button", { name: "Connect" }));
     await screen.findByText("connected");
     await userEvent.click(screen.getByRole("button", { name: "Recall solo" }));
-    expect(recallScene).toHaveBeenCalledWith("solo", 72, expect.any(String));
+    expect(screen.getByTestId("recall-result")).toHaveTextContent(/^true$/);
+    expect(screen.getByTestId("live-scene")).toHaveTextContent("clean");
+    await userEvent.click(screen.getByRole("button", { name: "Recall solo" }));
+    const uuid = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
+    expect(recallScene).toHaveBeenNthCalledWith(1, "solo", 72, expect.stringMatching(uuid));
+    expect(recallScene).toHaveBeenNthCalledWith(2, "solo", 72, expect.stringMatching(uuid));
+    expect(recallScene.mock.calls[0]).not.toEqual(recallScene.mock.calls[1]);
   });
 
   it("keeps the load token on save and changes it on a real load", async () => {

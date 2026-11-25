@@ -585,6 +585,25 @@ int main()
                      .targets[*scopedIndex].value == otherSceneValue,
               "capture should replace only the selected scene's settled owned values")) return 1;
 
+  auto sceneDeleteState = sceneScopeState;
+  const auto beforeSceneDelete = ardor::activePresetToPreset(sceneDeleteState);
+  const auto deletedSceneBlockId = beforeSceneDelete.blocks[1].id;
+  if (require(ardor::deleteSelectedBlock(sceneDeleteState),
+              "deleting a scene-owned block should succeed")) return 1;
+  const auto afterSceneDelete = ardor::activePresetToPreset(sceneDeleteState);
+  for (const auto& scene : afterSceneDelete.sceneSet->scenes) {
+    if (require(std::none_of(scene.targets.begin(), scene.targets.end(),
+                            [&](const auto& target) { return target.blockId == deletedSceneBlockId; }),
+                "deleting a block should remove its targets from every scene")) return 1;
+  }
+  const auto roundTripped = ardor::presetFromJson(ardor::toJson(afterSceneDelete));
+  if (require(ardor::samePreset(afterSceneDelete, roundTripped),
+              "a scene preset should round-trip after block deletion")) return 1;
+  ardor::completeStructuralPreview(sceneDeleteState);
+  if (require(ardor::undoLastBlockEdit(sceneDeleteState)
+                && ardor::samePreset(beforeSceneDelete, ardor::activePresetToPreset(sceneDeleteState)),
+              "undo should restore the deleted block and its scene targets together")) return 1;
+
   ardor::Preset wdwPreset;
   wdwPreset.version = 3;
   wdwPreset.routing = "wdw";
@@ -641,6 +660,36 @@ int main()
                 && wdwDeleteState.bank.presets[wdwDeleteState.activePreset].blocks[0].lanes[0][0].type == "cab"
                 && !wdwDeleteState.statusIsError,
               "deleting the last WDW NAM should leave an editable draft")) return 1;
+
+  auto wdwSceneDeleteState = ardor::makeDemoUiState();
+  ardor::replaceActivePreset(wdwSceneDeleteState, wdwPreset);
+  if (require(ardor::enableScenes(wdwSceneDeleteState),
+              "WDW deletion test should enable scenes")) return 1;
+  ardor::completeStructuralPreview(wdwSceneDeleteState);
+  auto wdwScenes = ardor::activePresetToPreset(wdwSceneDeleteState);
+  wdwScenes.wdw->wet.blocks.back().sceneBypass = ardor::PresetSceneBypassPolicy::LetRing;
+  ardor::replaceActivePreset(wdwSceneDeleteState, ardor::presetFromJson(ardor::toJson(wdwScenes)));
+  const auto beforeWdwSceneDelete = ardor::activePresetToPreset(wdwSceneDeleteState);
+  if (require(beforeWdwSceneDelete.wdw->wet.blocks.back().sceneBypass
+                == ardor::PresetSceneBypassPolicy::LetRing,
+              "an existing tail policy should survive an edit")) return 1;
+  ardor::selectLaneBlock(wdwSceneDeleteState, 0, 1, 2);
+  if (require(ardor::deleteSelectedBlock(wdwSceneDeleteState),
+              "deleting a WDW effect should keep the remaining scene targets valid")) return 1;
+  const auto afterWetDelete = ardor::activePresetToPreset(wdwSceneDeleteState);
+  ardor::presetFromJson(ardor::toJson(afterWetDelete));
+  if (require(afterWetDelete.sceneSet->scenes[0].targets.size()
+                < beforeWdwSceneDelete.sceneSet->scenes[0].targets.size(),
+              "deleting a WDW effect should remove its scene targets")) return 1;
+  ardor::completeStructuralPreview(wdwSceneDeleteState);
+  ardor::selectBlock(wdwSceneDeleteState, 0);
+  if (require(ardor::deleteSelectedBlock(wdwSceneDeleteState),
+              "deleting the WDW routing container should succeed")) return 1;
+  const auto serialScenes = ardor::presetFromJson(ardor::toJson(ardor::activePresetToPreset(wdwSceneDeleteState)));
+  if (require(serialScenes.routing == "serial" && !serialScenes.wdw
+                && serialScenes.sceneSet->scenes[0].targets.size() == 1
+                && serialScenes.sceneSet->scenes[0].targets[0].target == ardor::PresetSceneTargetType::InputGainDb,
+              "deleting WDW routing should preserve scene input gain and remove lane targets")) return 1;
 
   auto pendingWdwDeleteState = ardor::makeDemoUiState();
   ardor::replaceActivePreset(pendingWdwDeleteState, wdwPreset);
@@ -1050,6 +1099,10 @@ int main()
   }
 
   ardor::PresetStore store(root);
+  store.save({1, 0}, beforeSceneDelete);
+  store.save({1, 0}, afterSceneDelete);
+  if (require(ardor::samePreset(store.load({1, 0}), afterSceneDelete),
+              "saving after a block deletion should leave the scene preset reloadable")) return 1;
   ardor::Preset diskPreset;
   diskPreset.name = "Disk Clean";
   diskPreset.blocks.push_back({"amp-1", "nam", true, "models/clean.nam", nlohmann::json::object()});

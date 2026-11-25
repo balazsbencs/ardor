@@ -1,6 +1,7 @@
 import type { Asset, Preset, PresetBlock } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import type { EffectControl, EffectDefinition } from "../../effects/types";
+import { sceneCanOwnBlockEnabled } from "../scenes/sharedParameters";
 import { isWdwBlockAllowed } from "./wdwPolicy";
 
 export type ValidationIssue = {
@@ -435,12 +436,11 @@ function validateSceneSet(source: Record<string, unknown>, ids: Set<string>,
           issues.push(error("scene-target-shape", "Parameter scene targets require an existing block, parameter, and finite value.", targetField));
         } else address = `parameter\u001f${targetValue.blockId}\u001f${targetValue.parameter}`;
       } else if (targetValue.target === "blockEnabled") {
-        const sceneBypassTypes = new Set(["mod", "delay", "reverb", "irreverb", "stereo", "dynamics", "distortion", "wah", "eq"]);
         if (typeof targetValue.blockId !== "string" || !ids.has(targetValue.blockId)
             || typeof targetValue.value !== "boolean"
             || targetValue.parameter !== undefined || targetValue.lane !== undefined) {
           issues.push(error("scene-target-shape", "Block scene targets require an existing block and on/off value.", targetField));
-        } else if (!sceneBypassTypes.has(blockTypes.get(targetValue.blockId) ?? "")) {
+        } else if (!sceneCanOwnBlockEnabled(blockTypes.get(targetValue.blockId) ?? "")) {
           issues.push(error("scene-bypass-shared", "This structural block enable is shared by all scenes.", targetField));
         } else address = `blockEnabled\u001f${targetValue.blockId}`;
       } else if (targetValue.target === "wdwLane") {

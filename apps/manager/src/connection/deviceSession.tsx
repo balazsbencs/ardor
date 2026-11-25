@@ -10,6 +10,7 @@ import {
 
 import { ArdorApiClient, type ApiClientConfig } from "../api/client";
 import { ArdorApiError } from "../api/errors";
+import { newRequestId } from "../api/requestId";
 import type { ManagerTransport } from "../api/transport";
 import type {
   ApplyPresetResponse,
@@ -345,13 +346,9 @@ export function DeviceSessionProvider({
     const generation = device?.active?.generation;
     if (!client?.recallScene || !generation || !current) return false;
     if (device.active?.bank !== current.location.bank || device.active.slot !== current.location.slot) return false;
-    const response = await client.recallScene(sceneId, generation, crypto.randomUUID());
-    if (!response.accepted) return false;
-    setDevice((previous) => previous?.active ? {
-      ...previous,
-      active: { ...previous.active, liveSceneId: response.sceneId },
-    } : previous);
-    return true;
+    // Acceptance acknowledges queueing. The status poll reports what is live.
+    const response = await client.recallScene(sceneId, generation, newRequestId());
+    return response.accepted;
   };
 
   const uploadAsset = async (kind: AssetKind, file: File, overwrite: boolean) => {

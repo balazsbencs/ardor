@@ -3,12 +3,16 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Preset } from "../../api/types";
+import { findEffectDefinition } from "../../effects/catalog";
 import { EditorProvider, usePresetEditorContext } from "./EditorContext";
 
 const scene = (id: string, name: string) => ({ id, name, enterTimeMs: 0, outputTrimDb: 0, targets: [] });
 const preset: Preset = {
   version: 4, name: "Scenes", routing: "serial", global: { inputGainDb: 0, outputGainDb: 0, safetyLimitDb: -1 },
-  blocks: [{ id: "d1", type: "delay", enabled: true, asset: "", params: { mode: "tape", mix: 0.25 } }],
+  blocks: [
+    { id: "d1", type: "delay", enabled: true, asset: "", params: { mode: "tape", mix: 0.25, time: 0.25 } },
+    { id: "amp", type: "nam", enabled: true, asset: "models/test.nam", params: {} },
+  ],
   sceneSet: {
     defaultSceneId: "verse", openIn: "presets",
     scenes: [scene("verse", "Verse"), scene("chorus", "Chorus"), scene("solo", "Solo"), scene("outro", "Outro")],
@@ -19,6 +23,7 @@ const session = {
   device: { active: { bank: 0, slot: 0 }, capabilities: {} }, models: [], irs: [], reverbIrs: [], presets: [],
   busy: { save: false, apply: false, upload: false },
   saveCurrent: vi.fn(), applyCurrent: vi.fn(), refreshPresets: vi.fn(), selectLocation: vi.fn(async () => undefined),
+  recallScene: vi.fn(async () => true),
 };
 vi.mock("../../connection/deviceSession", () => ({ useDeviceSession: () => session }));
 
@@ -45,6 +50,22 @@ describe("usePresetEditor scene rule", () => {
     expect(result.current.present.blocks[0].params.mix).toBe(0.6);
   });
 
+  it("uses the effect default in untouched scenes when the preset omits a parameter", () => {
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    const sparse = structuredClone(preset);
+    delete sparse.blocks[0].params.mix;
+    const control = findEffectDefinition(sparse.blocks[0])?.controls.find((item) =>
+      item.kind === "number" && item.key === "mix");
+    if (control?.kind !== "number") throw new Error("Mix control is missing");
+    act(() => result.current.dispatch({ type: "replace-present", preset: sparse }));
+    act(() => result.current.editParameter("d1", "mix", 0.75));
+    const [editedScene, otherScene] = result.current.present.sceneSet!.scenes;
+    expect(editedScene.targets[0]).toMatchObject({ value: 0.75 });
+    expect(otherScene.targets[0]).toMatchObject({ value: control.defaultValue });
+    act(() => result.current.dispatch({ type: "undo" }));
+    expect(result.current.present).toEqual(sparse);
+  });
+
   it("makes the scenes own the enabled state on the first scene toggle", () => {
     const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
     act(() => result.current.dispatch({ type: "select-scene", sceneId: "solo" }));
@@ -54,5 +75,21 @@ describe("usePresetEditor scene rule", () => {
     expect(enabledOf("solo")).toMatchObject({ value: false });
     expect(enabledOf("verse")).toMatchObject({ value: true });
     expect(result.current.present.blocks[0].enabled).toBe(true);
+  });
+
+  it("keeps amp bypass and delay time shared while editing a scene", () => {
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    act(() => result.current.editBlockEnabled("amp", false));
+    act(() => result.current.editParameter("d1", "time", 0.5));
+    expect(result.current.present.blocks[1].enabled).toBe(false);
+    expect(result.current.present.blocks[0].params.time).toBe(0.5);
+    expect(result.current.present.sceneSet!.scenes.every((scene) => scene.targets.length === 0)).toBe(true);
+  });
+
+  it("recalls the default scene shown in the drawer when editing shared values", async () => {
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    act(() => result.current.dispatch({ type: "clear-scene" }));
+    await act(() => result.current.recallScene());
+    expect(session.recallScene).toHaveBeenCalledWith("verse");
   });
 });

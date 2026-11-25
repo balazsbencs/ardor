@@ -266,7 +266,7 @@ describe("BlockDrawer, ported from the old inspector", () => {
     session.current.preset = { ...structuredClone(scenePreset), blocks: [{ ...createBlockFromDefinition("delay:tape", []), id: "t1" }] };
     render(<EditorProvider><Harness id="t1" /></EditorProvider>);
     await userEvent.click(screen.getByRole("button", { name: /^1 Scene 1/ }));
-    fireEvent.keyDown(screen.getByRole("slider", { name: "Time" }), { key: "ArrowRight" });
+    fireEvent.keyDown(screen.getByRole("slider", { name: "Mix" }), { key: "ArrowRight" });
     expect(screen.getAllByText("SCENE").length).toBeGreaterThan(0);
     await userEvent.click(screen.getAllByRole("button", { name: "Share" })[0]);
     expect(screen.queryByText("SCENE")).not.toBeInTheDocument();

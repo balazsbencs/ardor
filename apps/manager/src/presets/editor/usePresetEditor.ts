@@ -8,7 +8,7 @@ import type { NumberControl } from "../../effects/types";
 import { activeRevisionMatchesDraft } from "../scenes/sceneRevision";
 import type { SharedComparisonRow } from "../scenes/SceneWorkspaceBar";
 import { applySceneToBlock, applySceneToBlocks, sceneOwns } from "../scenes/sceneView";
-import { isSharedOnlyParameter } from "../scenes/sharedParameters";
+import { isSharedOnlyParameter, sceneCanOwnBlockEnabled } from "../scenes/sharedParameters";
 import { allPresetBlocksInPreset, createEditorState, editorReducer, findPresetBlockInPreset, isEditorDirty } from "./editorReducer";
 import type { EditorAction, EditorState, PresetLocation } from "./editorTypes";
 import { validatePreset, type PresetValidationResult } from "./presetValidation";
@@ -65,7 +65,7 @@ export type PresetEditor = {
   presentSceneTarget(target: PresetSceneTarget, value: number | boolean): { label: string; value: string };
 };
 
-let toggleSeq = 0;
+let sceneEditSequence = 0;
 
 export function usePresetEditor(): PresetEditor {
   const session = useDeviceSession();
@@ -118,12 +118,13 @@ export function usePresetEditor(): PresetEditor {
   const sceneScopeFor = (blockId: string, parameter?: string): "shared" | "scene" =>
     sceneOwns(editingScene, blockId, parameter) ? "scene" : "shared";
   const editBlockEnabled = (blockId: string, enabled: boolean) => {
-    if (editingScene) {
+    const block = findPresetBlockInPreset(present, blockId);
+    if (!block) return;
+    if (editingScene && sceneCanOwnBlockEnabled(block.type)) {
       // The scope and the value share one gesture, so the first scene edit is one undo step.
-      const gesture = `scene-enabled-${++toggleSeq}`;
+      const gesture = `scene-enabled-${++sceneEditSequence}`;
       if (!sceneOwns(editingScene, blockId)) {
-        const current = findPresetBlockInPreset(present, blockId)?.enabled ?? enabled;
-        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, scope: "scene", value: current, gesture });
+        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, scope: "scene", value: block.enabled, gesture });
       }
       dispatch({ type: "set-scene-block-enabled", sceneId: editingScene.id, blockId, value: enabled, gesture });
       return;
@@ -132,12 +133,17 @@ export function usePresetEditor(): PresetEditor {
   };
   const editParameter = (blockId: string, parameter: string, value: unknown, gesture?: string) => {
     const block = findPresetBlockInPreset(present, blockId);
-    if (editingScene && typeof value === "number" && !(block && isSharedOnlyParameter(block.type, parameter))) {
+    if (!block) return;
+    if (editingScene && typeof value === "number" && !isSharedOnlyParameter(block.type, parameter, block.params.mode)) {
+      const sceneGesture = gesture ?? `scene-parameter-${++sceneEditSequence}`;
       if (!sceneOwns(editingScene, blockId, parameter)) {
-        const current = block?.params[parameter];
-        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, parameter, scope: "scene", value: typeof current === "number" ? current : value, gesture });
+        const current = block.params[parameter];
+        const control = findEffectDefinition(block)?.controls.find((item): item is NumberControl =>
+          item.kind === "number" && item.key === parameter);
+        const sharedValue = typeof current === "number" ? current : control?.defaultValue ?? value;
+        dispatch({ type: "set-scene-scope", sceneId: editingScene.id, blockId, parameter, scope: "scene", value: sharedValue, gesture: sceneGesture });
       }
-      dispatch({ type: "set-scene-parameter", sceneId: editingScene.id, blockId, parameter, value, gesture });
+      dispatch({ type: "set-scene-parameter", sceneId: editingScene.id, blockId, parameter, value, gesture: sceneGesture });
       return;
     }
     dispatch({ type: "set-block-param", blockId, key: parameter, value, gesture });
@@ -369,11 +375,12 @@ export function usePresetEditor(): PresetEditor {
   const saveAndApply = async () => { if (await save()) await apply(true); };
 
   const recallScene = async () => {
-    if (!editor.editingSceneId) return;
+    const sceneId = editingScene?.id ?? present.sceneSet?.defaultSceneId;
+    if (!sceneId) return;
     setActionError(undefined);
     setRecallingScene(true);
     try {
-      if (!session.recallScene || !(await session.recallScene(editor.editingSceneId))) {
+      if (!session.recallScene || !(await session.recallScene(sceneId))) {
         setActionError("The pedal did not accept the scene recall.");
       }
     } catch (reason) {
