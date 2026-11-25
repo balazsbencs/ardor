@@ -148,13 +148,14 @@ bool PedalEngine::addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLane
 
 bool PedalEngine::addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
                              NamInputMode inputMode, double sampleRate, int maxBlockSize,
-                             bool requestParallel, int workerCpu, std::string& error)
+                             bool requestParallel, int workerCpu, std::string& error,
+                             DualRigJoin join)
 {
   setSampleRate(sampleRate);
   prepareBlockSize(static_cast<size_t>(std::max(1, maxBlockSize)));
   return chain_.addDualRig(std::move(id), std::move(left), std::move(right), inputMode,
                            sampleRate, static_cast<std::size_t>(maxBlockSize),
-                           requestParallel, workerCpu, error);
+                           requestParallel, workerCpu, error, join);
 }
 
 void PedalEngine::loadIr(std::vector<float> impulse)

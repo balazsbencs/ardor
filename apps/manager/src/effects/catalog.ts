@@ -218,6 +218,7 @@ export function defaultsForDefinition(id: string): Record<string, unknown> {
   if (definition.id === "dualRig") {
     return {
       inputMode: "sum",
+      join: "stereo",
       leftLevelDb: 0,
       leftPolarityInvert: false,
       rightLevelDb: 0,

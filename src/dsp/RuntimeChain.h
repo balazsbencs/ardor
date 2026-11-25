@@ -54,7 +54,8 @@ public:
                   bool requestParallel, int workerCpu, std::string& error);
   bool addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
                   NamInputMode inputMode, double sampleRate, std::size_t blockSize,
-                  bool requestParallel, int workerCpu, std::string& error);
+                  bool requestParallel, int workerCpu, std::string& error,
+                  DualRigJoin join = DualRigJoin::Stereo);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   // Convolution reverb. `right` may be empty for a mono impulse.
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,

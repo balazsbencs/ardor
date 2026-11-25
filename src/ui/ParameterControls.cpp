@@ -235,6 +235,9 @@ std::vector<ParameterControl> controlsForBlock(const UiBlock& block)
     return {
       choiceControl("inputMode", "Input source", {"L+R Average", "Left / Mono", "Right"},
                     inputModeIndex, ParameterControlKind::Choice),
+      choiceControl("join", "Join", {"Stereo", "Mono Sum"},
+                    block.params.value("join", std::string{"stereo"}) == "monoSum" ? 1 : 0,
+                    ParameterControlKind::Choice),
       control("leftLevelDb", "Left lane level", -60.0f, 12.0f, 1.0f,
               block.params.value("leftLevelDb", 0.0f), formatDb),
       choiceControl("leftPolarityInvert", "Invert left", {"Off", "On"},
@@ -537,6 +540,8 @@ bool applyParameterDelta(UiState& state, const ParameterControl& control, int de
     if (control.key == "inputMode") {
       constexpr const char* kInputModes[] = {"sum", "left", "right"};
       setSelectedBlockParamValue(state, control.key, kInputModes[std::min<std::size_t>(selected, 2)]);
+    } else if (control.key == "join") {
+      setSelectedBlockParamValue(state, control.key, selected == 0 ? "stereo" : "monoSum");
     } else if (control.key == "speed") {
       setSelectedBlockParamValue(state, control.key, selected == 0 ? "15" : "30");
     } else {

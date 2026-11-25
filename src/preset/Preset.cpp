@@ -418,6 +418,10 @@ PresetBlock blockFromJson(const nlohmann::json& json, bool insideLane, int versi
     if (insideLane) {
       throw std::invalid_argument("nested dual rig blocks are not supported");
     }
+    const auto join = block.params.find("join");
+    if (join != block.params.end() && *join != "stereo" && *join != "monoSum") {
+      throw std::invalid_argument("dual rig join must be stereo or monoSum");
+    }
     const auto& lanes = json.at("lanes");
     for (const auto& child : lanes.at("left").at("blocks")) {
       block.lanes[0].push_back(blockFromJson(child, true, version));

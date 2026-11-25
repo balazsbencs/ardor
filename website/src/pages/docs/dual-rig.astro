@@ -45,6 +45,7 @@ import dualRigScreen from '../../assets/device/90-dual-rig.png';
     <li>Add blocks to the <strong>Right</strong> lane.</li>
     <li>Save the preset, then apply it.</li>
   </ol>
+  <p>The default <strong>Stereo</strong> join sends each lane to its own output:</p>
   <ul>
     <li>Both lanes receive the same mono guitar signal.</li>
     <li>Each lane runs from left to right.</li>
@@ -56,6 +57,18 @@ import dualRigScreen from '../../assets/device/90-dual-rig.png';
     The editor marks the layout with <strong>SPLIT</strong>, <strong>LEFT</strong>, <strong>RIGHT</strong>,
     and <strong>JOIN</strong>. This keeps the two lanes
     clear while you edit.
+  </p>
+
+  <h2>Blend both lanes in mono</h2>
+  <p>
+    Open the Dual Rig block settings and set <strong>Join</strong> to <strong>Mono Sum</strong>.
+    Put a NAM block in each lane and add a cabinet after either NAM if needed. Use the lane
+    levels to balance the two sounds.
+  </p>
+  <p>
+    Ardor folds each lane to mono, aligns the processing latency, and averages the two lane
+    signals after level and polarity. Both channels carry the same blend at the join. Place
+    stereo effects after Dual Rig if you want stereo output from the blended amp sound.
   </p>
 
   <h2>Good uses for two rigs</h2>

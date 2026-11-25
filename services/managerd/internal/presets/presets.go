@@ -655,6 +655,11 @@ func validateBlocks(blocks []any, version float64, insideLane bool) error {
 			if insideLane {
 				return errors.New("nested dual rig blocks are not supported")
 			}
+			if params, ok := block["params"].(map[string]any); ok {
+				if join, exists := params["join"]; exists && join != "stereo" && join != "monoSum" {
+					return errors.New("dual rig join must be stereo or monoSum")
+				}
+			}
 			lanes, ok := block["lanes"].(map[string]any)
 			if !ok {
 				return errors.New("dual rig lanes must be an object")

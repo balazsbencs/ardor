@@ -317,6 +317,20 @@ bool namInputMode(const ChainBlockPlan& block, NamInputMode& mode, std::string& 
   return true;
 }
 
+bool dualRigJoin(const ChainBlockPlan& block, DualRigJoin& join, std::string& error)
+{
+  const auto it = block.params.find("join");
+  if (it == block.params.end() || *it == "stereo") {
+    join = DualRigJoin::Stereo;
+  } else if (*it == "monoSum") {
+    join = DualRigJoin::MonoSum;
+  } else {
+    error = "Dual Rig join must be stereo or monoSum: " + block.id;
+    return false;
+  }
+  return true;
+}
+
 bool boolParameter(const ChainBlockPlan& block, const char* key, bool fallback,
                    bool& value, std::string& error)
 {
@@ -775,7 +789,9 @@ bool preflightChainPlan(const ChainPlan& plan, const EngineLoadOptions& options,
       NamInputMode ignoredMode = NamInputMode::Sum;
       DualRigLaneConfig left;
       DualRigLaneConfig right;
+      DualRigJoin join;
       if (!namInputMode(block, ignoredMode, error)
+          || !dualRigJoin(block, join, error)
           || !makeDualRigLane(block, 0, options, left, error)
           || !makeDualRigLane(block, 1, options, right, error)) {
         return false;
@@ -908,14 +924,16 @@ bool prepareChainPlan(PedalEngine& engine, const ChainPlan& plan, const EngineLo
       DualRigLaneConfig left;
       DualRigLaneConfig right;
       NamInputMode inputMode = NamInputMode::Sum;
+      DualRigJoin join;
       if (!namInputMode(block, inputMode, error)
+          || !dualRigJoin(block, join, error)
           || !makeDualRigLane(block, 0, options, left, error)
           || !makeDualRigLane(block, 1, options, right, error)) {
         return false;
       }
       if (!engine.addDualRig(block.id, std::move(left), std::move(right), inputMode,
                              options.sampleRate, static_cast<int>(options.blockSize),
-                             options.parallelRigs, options.rigWorkerCpu, error)) {
+                             options.parallelRigs, options.rigWorkerCpu, error, join)) {
         return false;
       }
       loadedNam = true;

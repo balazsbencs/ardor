@@ -221,6 +221,13 @@ are retained at the fixed merge. Child block IDs are globally unique, both
 lanes must be non-empty, and split blocks cannot be nested. Version-1 presets
 and the fixed `dualAmp` block remain supported.
 
+Set the Dual Rig block's **Join** to **Mono Sum** to blend two NAM lanes, each
+with an optional cabinet. Ardor folds each lane to mono, aligns their reported
+latencies, applies lane level and polarity, and averages the two contributions.
+The joined signal is identical on both channels. Stereo effects after the join
+can still create stereo output. The preset stores `params.join: "monoSum"`.
+When the field is absent, the join defaults to Stereo.
+
 ### Wet/Dry/Wet routing
 
 Wet/Dry/Wet (WDW) routing splits the mono guitar input into two processed
