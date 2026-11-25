@@ -1,4 +1,5 @@
 import { ArdorApiError } from "../api/errors";
+import { newRequestId } from "../api/requestId";
 import type { ManagerTransport } from "../api/transport";
 import type {
   ApplyPresetResponse, Asset, AssetKind, DeviceStatus, Preset, PresetSlot,
@@ -68,14 +69,14 @@ export class CloudTransport implements ManagerTransport {
 
   savePreset(bank: number, slot: number, preset: Preset): Promise<PresetSlot> {
     return this.request<PresetSlot>(this.slotPath(bank, slot), {
-      method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+      method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": newRequestId() },
       body: JSON.stringify(preset),
     });
   }
 
   applyPreset(bank: number, slot: number, _sceneId?: string): Promise<ApplyPresetResponse> {
     return this.request<ApplyPresetResponse>(`${this.slotPath(bank, slot)}/apply`, {
-      method: "POST", headers: { "Idempotency-Key": crypto.randomUUID() },
+      method: "POST", headers: { "Idempotency-Key": newRequestId() },
     });
   }
 

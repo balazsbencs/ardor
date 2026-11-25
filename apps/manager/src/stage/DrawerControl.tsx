@@ -25,7 +25,8 @@ export function DrawerControl({ block, control: c, focusedKey, onFocusKey, onMan
   }
   if (c.kind === "number") {
     const value = valueOf(c.key, c.defaultValue);
-    const ownScene = scene && !isSharedOnlyParameter(block.type, c.key) ? scene : undefined;
+    const ownScene = scene && (sceneOwns(scene, block.id, c.key)
+      || !isSharedOnlyParameter(block.type, c.key, block.params.mode)) ? scene : undefined;
     return <TravelScale control={c} value={value} family={family}
       focused={focusedKey === c.key} onFocusControl={() => onFocusKey(c.key)}
       description={parameterHelp(block.type, c.key, Boolean(editor.present.sceneSet))}

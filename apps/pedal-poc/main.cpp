@@ -993,6 +993,7 @@ int main(int argc, char** argv)
         activePreset.sceneSet.has_value(), sceneLayerActive, sceneLayerChordEnabled);
       std::uint64_t nextSceneRequestId = 1;
       std::uint64_t pendingSceneRequestId = 0;
+      std::uint64_t pendingSceneGeneration = 0;
       bool sceneAltered = false;
       bool scenePedalOverride = false;
       bool sceneMidiOverride = false;
@@ -1675,6 +1676,7 @@ int main(int argc, char** argv)
           return false;
         }
         pendingSceneRequestId = requestId;
+        pendingSceneGeneration = request.presetGeneration;
         sceneAltered = false;
         scenePedalOverride = false;
         sceneMidiOverride = false;
@@ -1690,13 +1692,6 @@ int main(int argc, char** argv)
 #if defined(__linux__)
         armControllerPickupForScene(scene);
 #endif
-        std::string stateError;
-        if (!ardor::writeRuntimeActivePreset(
-              args.dataRoot, activeSelection.bank, activeSelection.slot, activePreset.name,
-              stateError, liveEngine->scenePresetGeneration(), scene.id, index,
-              activePresetRevision)) {
-          std::cerr << "Warning: could not publish live scene state: " << stateError << "\n";
-        }
         return true;
       };
 #if defined(ARDOR_HAS_UI)
@@ -2417,24 +2412,40 @@ int main(int argc, char** argv)
             }
           }
         }
-        if (args.enableUi && ui && now >= nextSceneTelemetryPoll) {
+#endif
+        if (now >= nextSceneTelemetryPoll) {
           nextSceneTelemetryPoll = now + std::chrono::milliseconds(50);
           const auto scene = liveEngine->sceneTransitionTelemetry();
-          const bool pending = pendingSceneRequestId != 0
-            && scene.lastAppliedRequestId < pendingSceneRequestId;
-          if (!pending && scene.lastAppliedRequestId >= pendingSceneRequestId) {
+          if (pendingSceneGeneration != liveEngine->scenePresetGeneration()) {
             pendingSceneRequestId = 0;
           }
-          const float progress = scene.totalFrames == 0 ? 1.0f
-            : std::clamp(static_cast<float>(scene.elapsedFrames)
-                / static_cast<float>(scene.totalFrames), 0.0f, 1.0f);
-          ardor::updateSceneTelemetry(uiState, {
-            scene.currentSceneIndex, scene.destinationSceneIndex, progress,
-            pending, scene.transitioning, sceneAltered, scenePedalOverride,
-            uiState.scenes.rejection,
-          });
-        }
+          const bool pending = pendingSceneRequestId != 0
+            && scene.lastAppliedRequestId < pendingSceneRequestId;
+          if (!pending && pendingSceneRequestId != 0 && !scene.transitioning
+              && activePreset.sceneSet && scene.currentSceneIndex < activePreset.sceneSet->scenes.size()) {
+            std::string stateError;
+            const auto& live = activePreset.sceneSet->scenes[scene.currentSceneIndex];
+            if (!ardor::writeRuntimeActivePreset(
+                  args.dataRoot, activeSelection.bank, activeSelection.slot, activePreset.name,
+                  stateError, pendingSceneGeneration, live.id, scene.currentSceneIndex,
+                  activePresetRevision)) {
+              std::cerr << "Warning: could not publish live scene state: " << stateError << "\n";
+            }
+            pendingSceneRequestId = 0;
+          }
+#if defined(ARDOR_HAS_UI)
+          if (args.enableUi && ui) {
+            const float progress = scene.totalFrames == 0 ? 1.0f
+              : std::clamp(static_cast<float>(scene.elapsedFrames)
+                  / static_cast<float>(scene.totalFrames), 0.0f, 1.0f);
+            ardor::updateSceneTelemetry(uiState, {
+              scene.currentSceneIndex, scene.destinationSceneIndex, progress,
+              pending, scene.transitioning, sceneAltered, scenePedalOverride,
+              uiState.scenes.rejection,
+            });
+          }
 #endif
+        }
         if (now >= nextRuntimeCommandPoll) {
           nextRuntimeCommandPoll = now + std::chrono::milliseconds(100);
           bool reloadAssets = false;

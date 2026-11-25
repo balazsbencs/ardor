@@ -1200,6 +1200,48 @@ void moveBlock(UiState& state, std::size_t from, std::size_t to)
   markUiChanged(state, UiChange::Header | UiChange::Chain | UiChange::Parameters);
 }
 
+namespace {
+
+bool blockTreeContains(const UiBlock& block, const std::string& id)
+{
+  if (block.id == id) return true;
+  for (const auto& lane : block.lanes) {
+    for (const auto& child : lane) {
+      if (blockTreeContains(child, id)) return true;
+    }
+  }
+  return false;
+}
+
+void removeBlockReferences(UiPreset& preset, const UiBlock& block)
+{
+  const auto referencesBlock = [&](const std::string& id) {
+    return blockTreeContains(block, id);
+  };
+  if (preset.expression && referencesBlock(preset.expression->blockId)) {
+    preset.expression.reset();
+  }
+  for (auto& binding : preset.midiBindings) {
+    std::erase_if(binding.actions, [&](const PresetMidiAction& action) {
+      return referencesBlock(action.blockId);
+    });
+  }
+  std::erase_if(preset.midiBindings, [](const PresetMidiBinding& binding) {
+    return binding.actions.empty();
+  });
+  if (preset.sceneSet) {
+    const bool removingWdw = isWdwRig(block);
+    for (auto& scene : preset.sceneSet->scenes) {
+      std::erase_if(scene.targets, [&](const PresetSceneTarget& target) {
+        if (target.target == PresetSceneTargetType::WdwLane) return removingWdw;
+        return !target.blockId.empty() && referencesBlock(target.blockId);
+      });
+    }
+  }
+}
+
+} // namespace
+
 bool deleteSelectedBlock(UiState& state)
 {
   if (!previewIsSynchronized(state)) {
@@ -1209,7 +1251,8 @@ bool deleteSelectedBlock(UiState& state)
     setUiStatus(state, "Effect chain is still applying", true);
     return false;
   }
-  auto& blocks = state.bank.presets[state.activePreset].blocks;
+  auto& preset = state.bank.presets[state.activePreset];
+  auto& blocks = preset.blocks;
   if (state.selectedBlock >= blocks.size()) {
     return false;
   }
@@ -1224,20 +1267,9 @@ bool deleteSelectedBlock(UiState& state)
       if (found == lane.end()) continue;
       const auto previewRollback = previewSnapshot(state);
       const std::string deletedName = found->assetName;
-      const std::string deletedId = found->id;
       rememberBlockEdit(state);
+      removeBlockReferences(preset, *found);
       lane.erase(found);
-      auto& assignment = state.bank.presets[state.activePreset].expression;
-      if (assignment && assignment->blockId == deletedId) assignment.reset();
-      auto& bindings = state.bank.presets[state.activePreset].midiBindings;
-      for (auto& binding : bindings) {
-        std::erase_if(binding.actions, [&](const PresetMidiAction& action) {
-          return action.blockId == deletedId;
-        });
-      }
-      std::erase_if(bindings, [](const PresetMidiBinding& binding) {
-        return binding.actions.empty();
-      });
       updateLaneSummary(rig);
       state.selectedBlockId = rig.id;
       state.dirty = true;
@@ -1264,32 +1296,9 @@ bool deleteSelectedBlock(UiState& state)
   rememberBlockEdit(state);
   const std::string deletedName = blocks[state.selectedBlock].assetName;
   const bool deletingWdwRig = isWdwRig(blocks[state.selectedBlock]);
-  const auto containsAssignedBlock = [&](const auto& self, const UiBlock& block,
-                                         const std::string& id) -> bool {
-    if (block.id == id) return true;
-    for (const auto& lane : block.lanes) {
-      for (const auto& child : lane) if (self(self, child, id)) return true;
-    }
-    return false;
-  };
-  auto& assignment = state.bank.presets[state.activePreset].expression;
-  if (assignment && containsAssignedBlock(containsAssignedBlock,
-                                           blocks[state.selectedBlock], assignment->blockId)) {
-    assignment.reset();
-  }
-  auto& midiBindings = state.bank.presets[state.activePreset].midiBindings;
-  for (auto& binding : midiBindings) {
-    std::erase_if(binding.actions, [&](const PresetMidiAction& action) {
-      return containsAssignedBlock(containsAssignedBlock,
-                                   blocks[state.selectedBlock], action.blockId);
-    });
-  }
-  std::erase_if(midiBindings, [](const PresetMidiBinding& binding) {
-    return binding.actions.empty();
-  });
+  removeBlockReferences(preset, blocks[state.selectedBlock]);
   blocks.erase(blocks.begin() + static_cast<std::ptrdiff_t>(state.selectedBlock));
   if (deletingWdwRig) {
-    auto& preset = state.bank.presets[state.activePreset];
     preset.routing = "serial";
     preset.version = preset.sceneSet ? 4 : 2;
     preset.wdw.reset();
@@ -1801,6 +1810,7 @@ Preset activePresetToPreset(const UiState& state)
   const auto convertBlock = [&](const auto& self, const UiBlock& block) -> PresetBlock {
     PresetBlock converted{block.id, block.type, block.enabled, block.assetPath,
                           block.params.is_null() ? nlohmann::json::object() : block.params};
+    converted.sceneBypass = block.sceneBypass;
     for (std::size_t lane = 0; lane < converted.lanes.size(); ++lane) {
       for (const auto& child : block.lanes[lane]) converted.lanes[lane].push_back(self(self, child));
     }
@@ -1895,6 +1905,7 @@ void replaceActivePreset(UiState& state, const Preset& preset)
                       source.asset,
                       source.enabled,
                       paramsWithKnownDefaults(source.type, source.params)};
+    converted.sceneBypass = source.sceneBypass;
     for (const auto& asset : state.assets) {
       if (asset.path == source.asset) {
         converted.modelParameterSpecs = asset.modelParameterSpecs;
