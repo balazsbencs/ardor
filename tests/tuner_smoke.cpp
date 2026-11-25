@@ -36,8 +36,29 @@ int main()
 {
   try {
     ardor::TunerAnalyzer tuner;
-    feedTone(tuner, 82.4069f, 0.2f, 8192);
+    feedTone(tuner, 41.2034f, 0.2f, 8192);
     auto reading = tuner.reading();
+    require(reading.signalDetected && reading.note == "E" && reading.octave == 1,
+            "bass E1 should be detected in the correct octave");
+    require(std::fabs(reading.cents) < 8.0f, "bass E1 cents accuracy");
+
+    tuner.reset();
+    feedTone(tuner, 55.0f, 0.2f, 8192);
+    reading = tuner.reading();
+    require(reading.signalDetected && reading.note == "A" && reading.octave == 1,
+            "bass A1 should be detected in the correct octave");
+    require(std::fabs(reading.cents) < 8.0f, "bass A1 cents accuracy");
+
+    tuner.reset();
+    feedTone(tuner, 30.8677f, 0.2f, 8192);
+    reading = tuner.reading();
+    require(reading.signalDetected && reading.note == "B" && reading.octave == 0,
+            "five-string bass B0 should be detected in the correct octave");
+    require(std::fabs(reading.cents) < 8.0f, "bass B0 cents accuracy");
+
+    tuner.reset();
+    feedTone(tuner, 82.4069f, 0.2f, 8192);
+    reading = tuner.reading();
     require(reading.signalDetected, "low E should be detected");
     require(reading.note == "E" && reading.octave == 2, "low E note label");
     require(std::fabs(reading.frequencyHz - 82.4069f) < 0.8f, "low E frequency accuracy");

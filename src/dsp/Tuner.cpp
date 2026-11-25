@@ -9,9 +9,8 @@ namespace ardor {
 
 namespace {
 
-// Chromatic guitar range: covers extended-range low strings and notes above
-// standard high E while keeping the lag search compact.
-constexpr float kMinimumFrequency = 55.0f;
+// Chromatic guitar and bass range with room below a five-string bass's B0.
+constexpr float kMinimumFrequency = 30.0f;
 constexpr float kMaximumFrequency = 500.0f;
 constexpr float kMinimumRms = 0.0025f;
 constexpr float kYinThreshold = 0.16f;
