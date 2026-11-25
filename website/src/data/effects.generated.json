@@ -449,8 +449,19 @@
           "default": "L+R Average"
         },
         {
+          "key": "join",
+          "label": "Join",
+          "kind": "choice",
+          "unit": "",
+          "choices": [
+            "Stereo",
+            "Mono Sum"
+          ],
+          "default": "Stereo"
+        },
+        {
           "key": "leftLevelDb",
-          "label": "Left output level",
+          "label": "Left lane level",
           "kind": "number",
           "unit": "dB",
           "min": -60,
@@ -467,7 +478,7 @@
         },
         {
           "key": "rightLevelDb",
-          "label": "Right output level",
+          "label": "Right lane level",
           "kind": "number",
           "unit": "dB",
           "min": -60,

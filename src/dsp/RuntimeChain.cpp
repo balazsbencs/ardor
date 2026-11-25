@@ -220,16 +220,18 @@ bool RuntimeChain::addDualAmp(std::string id, DualAmpLaneConfig left, DualAmpLan
 
 bool RuntimeChain::addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
                               NamInputMode inputMode, double sampleRate, std::size_t blockSize,
-                              bool requestParallel, int workerCpu, std::string& error)
+                              bool requestParallel, int workerCpu, std::string& error,
+                              DualRigJoin join)
 {
   auto dualRig = std::make_unique<DualRigProcessor>();
   if (!dualRig->configure(std::move(left), std::move(right), inputMode, sampleRate,
-                          blockSize, requestParallel, workerCpu, error)) {
+                          blockSize, requestParallel, workerCpu, error, join)) {
     return false;
   }
   Block block;
   block.kind = Block::Kind::DualRig;
   block.id = std::move(id);
+  block.bypassDryDelay.resize(dualRig->latencyFrames());
   block.dualRig = std::move(dualRig);
   blocks_.push_back(std::move(block));
   return true;
@@ -1079,7 +1081,7 @@ void RuntimeChain::processBlock(const float* input, float* left, float* right, s
       break;
     case Block::Kind::DualRig:
       block.dualRig->processBlock(currentLeft, currentRight, nextLeft, nextRight, frames);
-      currentIsStereo = true;
+      currentIsStereo = block.dualRig->outputsStereo();
       break;
     }
 

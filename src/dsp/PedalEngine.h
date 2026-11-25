@@ -33,7 +33,8 @@ public:
                   bool requestParallel, int workerCpu, std::string& error);
   bool addDualRig(std::string id, DualRigLaneConfig left, DualRigLaneConfig right,
                   NamInputMode inputMode, double sampleRate, int maxBlockSize,
-                  bool requestParallel, int workerCpu, std::string& error);
+                  bool requestParallel, int workerCpu, std::string& error,
+                  DualRigJoin join = DualRigJoin::Stereo);
   void loadIr(std::vector<float> impulse);
   void addCab(std::vector<float> impulse, float level, float mix, std::string id = "cab");
   bool addIrReverb(std::string id, std::vector<float> left, std::vector<float> right,

@@ -85,7 +85,7 @@ function Rig({ rig, props }: { rig: PresetBlock; props: Props }) {
         <div className="rig__lane"><span className="rig__tag rig__tag--a">A</span><List listId={`lane:${rig.id}:left`} blocks={lanes.left.blocks} props={props} laneTag="A" emptyLabel="Empty lane. Drop a block here." /></div>
         <div className="rig__lane"><span className="rig__tag rig__tag--b">B</span><List listId={`lane:${rig.id}:right`} blocks={lanes.right.blocks} props={props} laneTag="B" emptyLabel="Empty lane. Drop a block here." /></div>
       </div>
-      <div className="rig__node"><b>JOIN</b>L / R</div>
+      <div className="rig__node"><b>JOIN</b>{rig.params.join === "monoSum" ? "Mono Sum" : "L / R"}</div>
     </div>
   );
 }

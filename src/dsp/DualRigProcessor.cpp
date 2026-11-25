@@ -54,7 +54,8 @@ DualRigProcessor::~DualRigProcessor()
 bool DualRigProcessor::configure(DualRigLaneConfig left, DualRigLaneConfig right,
                                  NamInputMode inputMode, double sampleRate,
                                  std::size_t blockSize, bool requestParallel,
-                                 int workerCpu, std::string& error)
+                                 int workerCpu, std::string& error,
+                                 DualRigJoin join)
 {
   error.clear();
   if (!left.chain || !right.chain || blockSize == 0
@@ -72,6 +73,14 @@ bool DualRigProcessor::configure(DualRigLaneConfig left, DualRigLaneConfig right
   right_.level = std::isfinite(right.level) ? std::max(0.0f, right.level) : 1.0f;
   left_.polarity = left.polarityInverted ? -1.0f : 1.0f;
   right_.polarity = right.polarityInverted ? -1.0f : 1.0f;
+  join_ = join;
+  if (join_ == DualRigJoin::MonoSum) {
+    const auto leftLatency = left_.chain->latencyFrames();
+    const auto rightLatency = right_.chain->latencyFrames();
+    latencyFrames_ = std::max(leftLatency, rightLatency);
+    left_.alignmentDelay.resize(latencyFrames_ - leftLatency);
+    right_.alignmentDelay.resize(latencyFrames_ - rightLatency);
+  }
   prepareBlockSize(blockSize_);
 
 #if defined(__linux__)
@@ -171,13 +180,42 @@ void DualRigProcessor::processLaneBlock(Lane& lane, bool takeRightOutput,
   lane.chain->processBlock(input, lane.firstOutput.data(), lane.secondOutput.data(), frames);
   const float* selected = takeRightOutput ? lane.secondOutput.data() : lane.firstOutput.data();
   const float gain = lane.level * lane.polarity;
-  for (std::size_t i = 0; i < frames; ++i) output[i] = selected[i] * gain;
+  if (outputsStereo()) {
+    for (std::size_t i = 0; i < frames; ++i) output[i] = selected[i] * gain;
+  } else {
+    for (std::size_t i = 0; i < frames; ++i) {
+      output[i] = (0.5f * lane.firstOutput[i] + 0.5f * lane.secondOutput[i]) * gain;
+    }
+  }
 }
 
 float DualRigProcessor::processLaneSample(Lane& lane, bool takeRightOutput, float input)
 {
   const auto result = lane.chain->process({input, input});
-  return (takeRightOutput ? result.right : result.left) * lane.level * lane.polarity;
+  const float contribution = outputsStereo()
+    ? (takeRightOutput ? result.right : result.left)
+    : 0.5f * result.left + 0.5f * result.right;
+  return contribution * lane.level * lane.polarity;
+}
+
+float DualRigProcessor::Lane::align(float sample)
+{
+  if (alignmentDelay.empty()) return sample;
+  const float delayed = alignmentDelay[alignmentIndex];
+  alignmentDelay[alignmentIndex] = sample;
+  alignmentIndex = (alignmentIndex + 1) % alignmentDelay.size();
+  return delayed;
+}
+
+void DualRigProcessor::joinMonoBlock(float* left, float* right,
+                                     const float* rightLane, std::size_t frames)
+{
+  for (std::size_t i = 0; i < frames; ++i) {
+    const float a = left_.align(left[i]);
+    const float b = right_.align(rightLane ? rightLane[i] : 0.0f);
+    const float mix = 0.5f * a + (rightLane ? 0.5f * b : 0.0f);
+    left[i] = right[i] = mix;
+  }
 }
 
 void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRight,
@@ -197,7 +235,8 @@ void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRi
       // Keep the worker's buffers untouched until its overdue job finishes.
       // A later block can submit work again once completed catches up.
       processLaneBlock(left_, false, monoInput_.data(), outputLeft, frames);
-      std::copy(outputLeft, outputLeft + frames, outputRight);
+      if (outputsStereo()) std::copy(outputLeft, outputLeft + frames, outputRight);
+      else joinMonoBlock(outputLeft, outputRight, nullptr, frames);
       return;
     }
     const uint64_t generation = submitted + 1;
@@ -217,7 +256,10 @@ void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRi
     }
     if (parallel_->completed.load(std::memory_order_acquire) != generation) {
       parallel_->waitsOverBudget.fetch_add(1, std::memory_order_relaxed);
-      std::copy(outputLeft, outputLeft + frames, outputRight);
+      if (outputsStereo()) std::copy(outputLeft, outputLeft + frames, outputRight);
+      else joinMonoBlock(outputLeft, outputRight, nullptr, frames);
+    } else if (!outputsStereo()) {
+      joinMonoBlock(outputLeft, outputRight, parallel_->output.data(), frames);
     } else {
       std::copy(parallel_->output.begin(),
                 parallel_->output.begin() + static_cast<std::ptrdiff_t>(frames), outputRight);
@@ -228,14 +270,21 @@ void DualRigProcessor::processBlock(const float* inputLeft, const float* inputRi
 
   processLaneBlock(left_, false, monoInput_.data(), outputLeft, frames);
   processLaneBlock(right_, true, monoInput_.data(), outputRight, frames);
+  if (!outputsStereo()) joinMonoBlock(outputLeft, outputRight, outputRight, frames);
 }
 
 void DualRigProcessor::process(float inputLeft, float inputRight,
                                float& outputLeft, float& outputRight)
 {
   const float mono = routeNamInput(inputMode_, inputLeft, inputRight);
-  outputLeft = processLaneSample(left_, false, mono);
-  outputRight = processLaneSample(right_, true, mono);
+  const float a = processLaneSample(left_, false, mono);
+  const float b = processLaneSample(right_, true, mono);
+  if (outputsStereo()) {
+    outputLeft = a;
+    outputRight = b;
+  } else {
+    outputLeft = outputRight = 0.5f * left_.align(a) + 0.5f * right_.align(b);
+  }
 }
 
 bool DualRigProcessor::setNamParameter(const std::string& id, const std::string& name, float value)
@@ -338,11 +387,16 @@ void DualRigProcessor::reset()
 {
   left_.chain->reset();
   right_.chain->reset();
+  for (auto* lane : {&left_, &right_}) {
+    std::fill(lane->alignmentDelay.begin(), lane->alignmentDelay.end(), 0.0f);
+    lane->alignmentIndex = 0;
+  }
 }
 
 std::size_t DualRigProcessor::tailFrames() const noexcept
 {
-  return std::max(left_.chain->tailFrames(), right_.chain->tailFrames());
+  return std::max(left_.chain->tailFrames() + left_.alignmentDelay.size(),
+                  right_.chain->tailFrames() + right_.alignmentDelay.size());
 }
 
 bool DualRigProcessor::parallelEnabled() const noexcept

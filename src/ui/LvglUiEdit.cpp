@@ -879,7 +879,9 @@ void LvglUi::renderEditMode(lv_obj_t* root, UiState& state)
       lv_obj_set_style_pad_all(join, 0, 0);
       lv_obj_remove_flag(join, LV_OBJ_FLAG_SCROLLABLE);
       lv_obj_remove_flag(join, LV_OBJ_FLAG_CLICKABLE);
-      lv_obj_t* joinLabel = label(join, "JOIN", LV_ALIGN_CENTER, 0, 0, lb::type::jack.font, text);
+      const bool monoSum = !wdw && block.params.value("join", std::string{"stereo"}) == "monoSum";
+      lv_obj_t* joinLabel = label(join, monoSum ? "MONO SUM" : "JOIN",
+                                  LV_ALIGN_CENTER, 0, 0, lb::type::jack.font, text);
       lv_obj_set_style_text_letter_space(joinLabel, lb::type::jack.letterSpace(), 0);
 
       for (std::size_t laneIndex = 0; laneIndex < block.lanes.size(); ++laneIndex) {

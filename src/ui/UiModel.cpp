@@ -2166,6 +2166,9 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
         || key == "leftPolarityInvert" || key == "rightPolarityInvert");
   const bool dualRigInputValue = block.type == "dualRig" && key == "inputMode" && value.is_string()
     && (value == "sum" || value == "left" || value == "right");
+  const bool dualRigJoinValue = block.type == "dualRig"
+    && block.params.value("routing", std::string{}) != "wdw"
+    && key == "join" && (value == "stereo" || value == "monoSum");
   const bool dualRigToggleValue = block.type == "dualRig" && value.is_boolean()
     && (key == "leftPolarityInvert" || key == "rightPolarityInvert");
   const bool wdwToggleValue = block.type == "dualRig"
@@ -2173,7 +2176,7 @@ void setSelectedBlockParamValue(UiState& state, const std::string& key, nlohmann
     && value.is_boolean() && (key == "dryEnabled" || key == "wetEnabled");
   if (!compressorValue && !tapeSpeedValue && !namNanoValue && !namInputValue
       && !dualAmpInputValue && !dualAmpToggleValue
-      && !dualRigInputValue && !dualRigToggleValue && !wdwToggleValue) {
+      && !dualRigInputValue && !dualRigJoinValue && !dualRigToggleValue && !wdwToggleValue) {
     return;
   }
   if (selectedParameterSceneScope(state, key) == UiSceneScope::ThisScene) {

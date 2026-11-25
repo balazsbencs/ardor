@@ -8,6 +8,8 @@ enum class NamInputMode {
   Right
 };
 
+enum class DualRigJoin { Stereo, MonoSum };
+
 inline float routeNamInput(NamInputMode mode, float left, float right) noexcept
 {
   if (mode == NamInputMode::Left) return left;

@@ -29,7 +29,10 @@ public:
 
   bool configure(DualRigLaneConfig left, DualRigLaneConfig right,
                  NamInputMode inputMode, double sampleRate, std::size_t blockSize,
-                 bool requestParallel, int workerCpu, std::string& error);
+                 bool requestParallel, int workerCpu, std::string& error,
+                 DualRigJoin join = DualRigJoin::Stereo);
+  bool outputsStereo() const noexcept { return join_ == DualRigJoin::Stereo; }
+  std::size_t latencyFrames() const noexcept { return latencyFrames_; }
   void prepareBlockSize(std::size_t frames);
   void processBlock(const float* inputLeft, const float* inputRight,
                     float* outputLeft, float* outputRight, std::size_t frames);
@@ -62,12 +65,21 @@ private:
     float polarity = 1.0f;
     std::vector<float> firstOutput;
     std::vector<float> secondOutput;
+    std::vector<float> alignmentDelay;
+    std::size_t alignmentIndex = 0;
+
+    float align(float sample);
   };
 
   void processLaneBlock(Lane& lane, bool takeRightOutput, const float* input,
                         float* output, std::size_t frames);
   float processLaneSample(Lane& lane, bool takeRightOutput, float input);
 
+  void joinMonoBlock(float* left, float* right, const float* rightLane,
+                     std::size_t frames);
+
+  DualRigJoin join_ = DualRigJoin::Stereo;
+  std::size_t latencyFrames_ = 0;
   Lane left_;
   Lane right_;
   NamInputMode inputMode_ = NamInputMode::Sum;

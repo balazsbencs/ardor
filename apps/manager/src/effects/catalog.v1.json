@@ -369,9 +369,19 @@
           "defaultValue": "sum"
         },
         {
+          "kind": "choice",
+          "key": "join",
+          "label": "Join",
+          "choices": [
+            { "value": "stereo", "label": "Stereo" },
+            { "value": "monoSum", "label": "Mono Sum" }
+          ],
+          "defaultValue": "stereo"
+        },
+        {
           "kind": "number",
           "key": "leftLevelDb",
-          "label": "Left output level",
+          "label": "Left lane level",
           "minimum": -60,
           "maximum": 12,
           "step": 1,
@@ -387,7 +397,7 @@
         {
           "kind": "number",
           "key": "rightLevelDb",
-          "label": "Right output level",
+          "label": "Right lane level",
           "minimum": -60,
           "maximum": 12,
           "step": 1,
