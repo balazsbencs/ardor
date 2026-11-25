@@ -17,7 +17,7 @@ struct TunerReading {
   uint64_t revision = 0;
 };
 
-// Monophonic guitar tuner using a downsampled YIN-style difference function.
+// Monophonic guitar and bass tuner using a downsampled YIN-style difference function.
 // It runs on the control thread; the audio callback only copies raw capture
 // samples into a lock-free monitor ring.
 class TunerAnalyzer {
