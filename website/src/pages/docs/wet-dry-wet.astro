@@ -1,0 +1,94 @@
+---
+import DocsLayout from '../../layouts/DocsLayout.astro';
+import DeviceScreen from '../../components/DeviceScreen.astro';
+import { url } from '../../lib/url';
+import wdwScreen from '../../assets/device/91-wdw.png';
+---
+
+<DocsLayout
+  title="Wet/Dry/Wet Routing"
+  description="Build an Ardor wet/dry/wet rig with a mono dry lane and a stereo wet lane."
+  lede="Wet/Dry/Wet routing runs two amp paths from the same guitar input. Ardor mixes the dry lane with a stereo wet lane at the output."
+>
+  <h2>How the lanes work</h2>
+  <DeviceScreen
+    src={wdwScreen}
+    alt="Wet dry wet editor with a Dry lane containing a Clean Twin NAM and cabinet IR, and a Wet lane containing a British Crunch NAM and digital delay, joined at the stereo output."
+    caption="The WDW editor shows the mono Dry lane above the stereo Wet lane. Both lanes join at the stereo output."
+    sizes="(max-width: 860px) 100vw, 52rem"
+  />
+  <p>
+    Ardor splits the mono guitar input into two processed lanes. Each lane has its own Neural
+    Amp Modeler (NAM) block. The Dry lane is mono and is usually centred. The Wet lane keeps
+    a stereo output through its time effects. Ardor mixes both lane outputs to the stereo
+    output.
+  </p>
+  <table>
+    <thead><tr><th>Lane</th><th>Purpose</th><th>Blocks</th><th>Mix control</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Dry</strong></td>
+        <td>Mono amp path without stereo time effects.</td>
+        <td>NAM, optional cab, dynamics, EQ, distortion, and wah.</td>
+        <td>Level and pan.</td>
+      </tr>
+      <tr>
+        <td><strong>Wet</strong></td>
+        <td>Amp path with stereo time effects.</td>
+        <td>NAM, optional cab, modulation, delay, reverb, and stereo blocks.</td>
+        <td>Level and stereo width.</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="callout">
+    <p>
+      The Dry lane is still processed by its amp model. WDW does not add an unprocessed
+      guitar signal to the mix. A cabinet IR is optional when the NAM capture already
+      includes a cabinet sound.
+    </p>
+  </div>
+
+  <h2>Build a WDW preset</h2>
+  <ol>
+    <li>Open the preset in the Manager and choose <strong>Global</strong>.</li>
+    <li>Set <strong>Topology</strong> to <strong>Wet dry wet</strong>.</li>
+    <li>Choose a NAM block for the Dry lane and another for the Wet lane.</li>
+    <li>Add an optional cabinet after each NAM when you need a separate cab IR.</li>
+    <li>Add drive or tone blocks to Dry, and stereo effects to Wet.</li>
+    <li>Adjust each lane's level. Pan Dry or set Wet width to balance the stereo image.</li>
+    <li>Save the preset and choose <strong>Apply</strong>.</li>
+  </ol>
+  <p>
+    Each lane requires exactly one enabled NAM block and supports up to ten blocks. A lane can
+    be switched off while you compare the mix. Both lanes use the preset's shared input gain,
+    output gain, and safety limit. Scenes can store lane enable, level, pan, and width values.
+  </p>
+
+  <h2>WDW and Dual Rig</h2>
+  <p>
+    Use WDW when you want one mono amp contribution alongside a stereo effects path. Use
+    <a href={url('/docs/dual-rig')}>Dual Rig</a> when you want separate left and right chains
+    that feed the left and right outputs. The two layouts have different lane rules and are
+    separate preset topologies.
+  </p>
+  <p>
+    Read <a href={url('/docs/signal-chain')}>Signal Chain &amp; Routing</a> for the other
+    routing options, or <a href={url('/docs/presets')}>Presets &amp; Storage</a> for preset
+    files and version details.
+  </p>
+
+  <details>
+    <summary>Advanced: preset format</summary>
+    <p>
+      WDW presets use version 3. A preset with scenes uses version 4. Set
+      <code>routing</code> to <code>wdw</code>, keep the top-level <code>blocks</code> array
+      empty, and store each lane under <code>wdw.dry</code> and <code>wdw.wet</code>. The
+      dry lane stores <code>levelDb</code>, <code>pan</code>, and <code>enabled</code>. The
+      wet lane stores <code>levelDb</code>, <code>width</code>, and <code>enabled</code>.
+    </p>
+    <p>
+      Each lane can have one cab after its NAM. Wet time effects must follow the NAM and any
+      cab. Nested Dual Amp and Dual Rig blocks are not supported inside WDW lanes.
+    </p>
+  </details>
+</DocsLayout>

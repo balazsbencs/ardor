@@ -39,6 +39,17 @@ import { url } from '../../lib/url';
     See <a href={url('/docs/dual-rig')}>Dual Rig &amp; Dual Amp</a> for the two-lane layout.
   </p>
 
+  <h2>Use Wet/Dry/Wet routing</h2>
+  <p>
+    Wet/Dry/Wet (WDW) uses two processed lanes: a mono Dry amp path and a stereo Wet amp
+    path. The Wet lane can carry modulation, delay, and reverb. Ardor mixes both lanes at
+    the stereo output. The Dry lane is not a raw guitar path; it has its own amp model.
+  </p>
+  <p>
+    See the <a href={url('/docs/wet-dry-wet')}>Wet/Dry/Wet guide</a> for lane rules, mix
+    controls, and setup steps.
+  </p>
+
   <h2>Keep the level clear</h2>
   <p>
     Use the input level to change how hard you drive the amp model. Use the output level to
@@ -88,7 +99,7 @@ import { url } from '../../lib/url';
       <li>Dual Amp and Dual Rig create stereo with separate left and right paths.</li>
     </ul>
     <h3>Input mode</h3>
-    <p>An amp model can choose how it folds a stereo input into mono:</p>
+    <p>An amp model can choose how it folds a stereo input into mono. WDW starts from a mono guitar input:</p>
     <table>
       <thead><tr><th>Mode</th><th>Input used</th></tr></thead>
       <tbody>

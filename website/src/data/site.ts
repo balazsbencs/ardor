@@ -26,6 +26,7 @@ export const docsNav: DocLink[] = [
   { label: 'Effects Reference', href: '/docs/effects', blurb: 'Find every block, its controls, and its value ranges.' },
   { label: 'UI & Controls', href: '/docs/ui-guide', blurb: 'Use the screen, the footswitches, and the encoder.' },
   { label: 'Dual Rig & Dual Amp', href: '/docs/dual-rig', blurb: 'Split the sound into a left lane and a right lane.' },
+  { label: 'Wet/Dry/Wet', href: '/docs/wet-dry-wet', blurb: 'Build a mono dry amp lane and a stereo effects lane.' },
   { label: 'Presets & Storage', href: '/docs/presets', blurb: 'Choose, save, and organize your sounds.' },
   { label: 'Hardware', href: '/docs/hardware', blurb: 'See the parts and build the pedal safely.' },
   { label: 'Manager App', href: '/docs/manager', blurb: 'Manage sounds from a browser on your computer.' },

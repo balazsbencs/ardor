@@ -84,6 +84,18 @@ const presetExample = `{
     screen layout.
   </p>
 
+  <h2>Wet/Dry/Wet presets</h2>
+  <p>
+    A Wet/Dry/Wet preset has a mono Dry lane and a stereo Wet lane. Both lanes have their own
+    amp model. Use Dry for a centred or panned amp sound, then add stereo effects to Wet.
+    Ardor mixes the lanes to the stereo output. WDW presets use the separate version-3
+    topology; a preset with scenes uses version 4.
+  </p>
+  <p>
+    See the <a href={url('/docs/wet-dry-wet')}>Wet/Dry/Wet guide</a> for lane rules and
+    setup steps.
+  </p>
+
   <details>
     <summary>Advanced: where preset files are stored</summary>
     <p>
@@ -109,7 +121,8 @@ presets/bank-000/preset-3.json</code></pre>
     <pre><code>{presetExample}</code></pre>
     <p>
       Version 1 supports serial chains and the fixed Dual Amp block. Version 2 adds the Dual
-      Rig block. Version-1 presets remain supported.
+      Rig block. Version 3 adds Wet/Dry/Wet routing. Version 4 adds scenes. Earlier preset
+      versions remain supported.
     </p>
     <table>
       <thead><tr><th>Field</th><th>Meaning</th></tr></thead>

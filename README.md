@@ -13,6 +13,9 @@ and a safety limiter. The same
 LVGL interface runs in the SDL desktop simulator and on the Raspberry Pi Touch
 Display 2.
 
+Presets support serial chains, Dual Rig's separate left and right paths, and
+Wet/Dry/Wet routing with a mono amp lane mixed alongside a stereo effects lane.
+
 The pedal is an appliance rather than a plugin host. Plugin formats and an OTA
 update workflow are outside the current scope.
 
@@ -217,6 +220,37 @@ declared order; the left lane's left output and the right lane's right output
 are retained at the fixed merge. Child block IDs are globally unique, both
 lanes must be non-empty, and split blocks cannot be nested. Version-1 presets
 and the fixed `dualAmp` block remain supported.
+
+### Wet/Dry/Wet routing
+
+Wet/Dry/Wet (WDW) routing splits the mono guitar input into two processed
+chains and mixes them to stereo. Both lanes have their own Neural Amp Modeler
+(NAM) block. The **Dry** lane is a mono amp path that can include drive and
+tone processing; its output can be panned. The **Wet** lane is an amp path with
+stereo modulation, delay, and reverb; its output width is adjustable. “Dry”
+means the lane without stereo time effects, not an unprocessed guitar signal.
+There is no raw-input bypass lane.
+
+Each lane requires exactly one enabled NAM block and may have one cabinet IR
+after the NAM. A separate cab is optional when the NAM capture already
+contains its cabinet response. The Dry lane admits dynamics, EQ, distortion,
+and wah blocks. The Wet lane admits modulation, delay, reverb, and stereo
+blocks. A lane can be switched off or adjusted from −60 to +12 dB; Dry also
+has pan, and Wet has width. Each lane supports up to ten blocks.
+
+WDW is a separate preset topology from Dual Rig: Dual Rig sends its left and
+right lanes to separate output channels, while WDW combines a mono Dry
+contribution with a stereo Wet contribution. Choose Wet/Dry/Wet in the
+preset's routing controls, then edit blocks in the Dry and Wet lanes. The
+Manager exposes the topology under **Global → Topology**. See the
+[Wet/Dry/Wet guide](website/src/pages/docs/wet-dry-wet.astro) for the editor
+workflow and examples.
+
+WDW presets use version 3 (or version 4 when scenes are enabled),
+`routing: "wdw"`, and explicit `wdw.dry` and `wdw.wet` lane objects. The
+top-level `blocks` array is empty. Both lanes share the preset's global input
+gain, output gain, and safety limit. Scenes can change either lane's enabled
+state and mix controls without rebuilding the audio engine.
 
 Daisy effect blocks use no asset path and store catalog-defined normalized
 `0.0..1.0` parameters. The built-in catalog currently contains 35 modes:
