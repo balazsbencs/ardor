@@ -30,6 +30,7 @@ enum class SceneRuntimeTargetKind : std::uint8_t {
   WahParameter,
   WdwLaneParameter,
   ConsoleEqParameter,
+  Inactive,
 };
 
 enum class SceneBlockContainer : std::uint8_t {
@@ -91,6 +92,7 @@ struct SceneRuntimeAddress {
   std::uint16_t parameterIndex = 0;
   SceneWdwLane lane = SceneWdwLane::None;
   bool child = false;
+  bool operator==(const SceneRuntimeAddress&) const = default;
 };
 
 struct SceneTransitionTarget {
@@ -104,6 +106,8 @@ struct SceneTransitionProgram {
   std::array<float, 4> outputTrimDb{};
   std::uint8_t defaultSceneIndex = 0;
   std::uint64_t presetGeneration = 0;
+  std::array<std::uint64_t, 4> sceneIdentities{0, 1, 2, 3};
+  std::uint32_t instantGainFrames = 0;
 };
 
 struct SceneTransitionRequest {
@@ -120,6 +124,8 @@ struct SceneTransitionTelemetry {
   std::uint32_t elapsedFrames = 0;
   std::uint32_t totalFrames = 0;
   bool transitioning = false;
+  std::uint64_t currentIdentity = 0;
+  std::uint64_t destinationIdentity = 0;
 };
 
 // Single-producer, single-consumer latest-value mailbox. Publishing never
@@ -151,6 +157,7 @@ public:
   bool prepared() const noexcept { return prepared_; }
   bool request(const SceneTransitionRequest& request) noexcept;
   bool requestOverride(std::size_t targetIndex, float value) noexcept;
+  bool publishSceneBank(const SceneTransitionProgram& program) noexcept;
 
   void beginBlock() noexcept;
   void advanceFrame() noexcept;
@@ -166,10 +173,19 @@ private:
                            float position) noexcept;
   void startRequest(const SceneTransitionRequest& request) noexcept;
   void consumeOverrides() noexcept;
+  bool consumeSceneBank() noexcept;
+  bool hasOverrides() const noexcept;
   void publishTelemetry() noexcept;
 
   SceneTransitionProgram program_;
   SceneRequestMailbox mailbox_;
+  struct SceneBank {
+    std::array<std::atomic<float>, kMaximumTargets * 4> values{};
+    std::array<std::atomic<float>, 4> trims{};
+    std::array<std::atomic<std::uint64_t>, 4> identities{};
+    std::atomic<std::uint64_t> serial{0};
+  } bank_;
+  std::uint64_t consumedBankSerial_ = 0;
   std::vector<float> currentValues_;
   std::vector<float> startValues_;
   std::vector<float> destinationValues_;
@@ -195,6 +211,8 @@ private:
   std::atomic<std::uint32_t> telemetryElapsedFrames_{0};
   std::atomic<std::uint32_t> telemetryTotalFrames_{0};
   std::atomic<bool> telemetryTransitioning_{false};
+  std::atomic<std::uint64_t> telemetryCurrentIdentity_{0};
+  std::atomic<std::uint64_t> telemetryDestinationIdentity_{0};
 };
 
 } // namespace ardor

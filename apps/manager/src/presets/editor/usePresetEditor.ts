@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useReducer, useState, type Dispatch } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type Dispatch } from "react";
 
+import { ArdorApiError } from "../../api/errors";
 import type { Preset, PresetBlock, PresetScene, PresetSceneTarget, WdwRouting } from "../../api/types";
 import { displayValue } from "../../effects/display";
 import { useDeviceSession } from "../../connection/deviceSession";
@@ -56,6 +57,12 @@ export type PresetEditor = {
   saving: boolean;
   recallingScene: boolean;
   actionError?: string;
+  actionNotice?: string;
+  saveConflict?: {
+    copyLocation?: PresetLocation;
+    reload(): Promise<void>;
+    saveCopy(): Promise<void>;
+  };
   setActionError(message?: string): void;
   applied?: PresetLocation;
   /** The pedal's live scene, only while the open slot is the live slot (scene ids repeat across presets). */
@@ -69,6 +76,8 @@ let sceneEditSequence = 0;
 
 export function usePresetEditor(): PresetEditor {
   const session = useDeviceSession();
+  const loadId = useRef(session.current?.loadId);
+  loadId.current = session.current?.loadId;
   const [editor, dispatch] = useReducer(editorReducer, undefined, () => session.current
     ? createEditorState(session.current.location, session.current.preset)
     : createEditorState({ bank: 0, slot: 0 }, {
@@ -77,6 +86,8 @@ export function usePresetEditor(): PresetEditor {
   const [addTarget, setAddTarget] = useState<AddTarget>();
   const [pendingLocation, setPendingLocation] = useState<PresetLocation>();
   const [actionError, setActionError] = useState<string>();
+  const [actionNotice, setActionNotice] = useState<string>();
+  const [conflict, setConflict] = useState(false);
   const [applied, setApplied] = useState<PresetLocation>();
   const [recallingScene, setRecallingScene] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -84,6 +95,8 @@ export function usePresetEditor(): PresetEditor {
   // Reload only on a real load. A save keeps the loadId, so the drawer, scene and undo history stay.
   useEffect(() => {
     if (!session.current) return;
+    setConflict(false);
+    setActionNotice(undefined);
     dispatch({ type: "load", location: session.current.location, preset: session.current.preset });
   }, [session.current?.loadId]);
 
@@ -149,8 +162,7 @@ export function usePresetEditor(): PresetEditor {
     dispatch({ type: "set-block-param", blockId, key: parameter, value, gesture });
   };
   const editWdwMix = (lane: "dry" | "wet", key: "levelDb" | "pan" | "width" | "enabled", value: number | boolean, gesture?: string) => {
-    if (editingScene?.targets.some((target) => target.target === "wdwLane"
-        && target.lane === lane && target.parameter === key)) {
+    if (editingScene) {
       dispatch({ type: "set-scene-wdw-mix", sceneId: editingScene.id, lane, key, value, gesture });
     } else dispatch({ type: "set-wdw-mix", lane, key, value, gesture });
   };
@@ -341,18 +353,61 @@ export function usePresetEditor(): PresetEditor {
     setActionError(undefined);
     setSaving(true);
     try {
+      const savingLoadId = loadId.current;
       const response = await session.saveCurrent(present);
-      if (!response) return false;
-      dispatch({ type: "mark-saved", preset: response.preset });
-      await session.refreshPresets();
+      if (!response || loadId.current !== savingLoadId) return false;
+      dispatch({ type: "mark-saved", preset: response.preset, submitted: present });
+      setConflict(false);
+      void session.refreshPresets()?.catch(() => undefined);
       return true;
     } catch (reason) {
+      if (reason instanceof ArdorApiError && reason.code === "preset_revision_conflict") {
+        setConflict(true);
+        void session.refreshPresets()?.catch(() => undefined);
+      }
       setActionError(reason instanceof Error ? reason.message : "Could not save preset.");
       return false;
     } finally {
       setSaving(false);
     }
   };
+
+  const saveConflict = useMemo(() => {
+    if (!conflict || !session.client) return undefined;
+    const occupied = new Set(session.presets.filter(({ exists }) => exists).map(({ bank, slot }) => bank * 4 + slot));
+    const currentSlot = editor.location.bank * 4 + editor.location.slot;
+    const empty = Array.from({ length: 400 }, (_, offset) => (currentSlot + offset + 1) % 400)
+      .find((index) => index !== currentSlot && !occupied.has(index));
+    const copyLocation = empty === undefined ? undefined : { bank: Math.floor(empty / 4), slot: empty % 4 };
+    return {
+      copyLocation,
+      reload: async () => {
+        setSaving(true);
+        try {
+          await session.selectLocation(editor.location);
+          setActionError(undefined);
+        } catch (reason) {
+          setActionError(reason instanceof Error ? reason.message : "Could not reload the preset.");
+        } finally {
+          setSaving(false);
+        }
+      },
+      saveCopy: async () => {
+        if (!copyLocation || !validation.canSave) return;
+        setSaving(true);
+        try {
+          await session.client!.savePreset(copyLocation.bank, copyLocation.slot, present, "missing");
+          setActionError(undefined);
+          setActionNotice(`Draft copied to bank ${copyLocation.bank + 1}, slot ${copyLocation.slot + 1}.`);
+        } catch (reason) {
+          setActionError(reason instanceof Error ? reason.message : "Could not save a copy.");
+        } finally {
+          void session.refreshPresets()?.catch(() => undefined);
+          setSaving(false);
+        }
+      },
+    };
+  }, [conflict, editor.location, present, session, validation.canSave]);
 
   const apply = async (savedFirst = false): Promise<boolean> => {
     if (!validation.canApply) return false;
@@ -399,7 +454,7 @@ export function usePresetEditor(): PresetEditor {
     await session.selectLocation(destination);
   };
 
-  const runtimeMatchesDraft = activeRevisionMatchesDraft(session.device, editor.location, dirty);
+  const runtimeMatchesDraft = activeRevisionMatchesDraft(session.device, editor.location, dirty, session.current?.revision);
   const active = session.device?.active;
   const liveSceneId = active && active.bank === editor.location.bank && active.slot === editor.location.slot
     ? active.liveSceneId : undefined;
@@ -409,7 +464,7 @@ export function usePresetEditor(): PresetEditor {
     inspectorBlock, displayedInputGain, sceneInputOwned, sceneScopeFor, editBlockEnabled, editParameter,
     editWdwMix, expressionTargets, expressionTarget, expressionParameter, enableExpression, patchExpression,
     addTarget, setAddTarget, disabledDefinitions, selectLocation, pendingLocation, resolveNavigation, save,
-    apply, saveAndApply, recallScene, saving, recallingScene, actionError, setActionError, applied,
+    apply, saveAndApply, recallScene, saving, recallingScene, actionError, actionNotice, saveConflict, setActionError, applied,
     liveSceneId, runtimeMatchesDraft, sharedComparisonRows, presentSceneTarget,
   };
 }

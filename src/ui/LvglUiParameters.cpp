@@ -197,12 +197,11 @@ bool LvglUi::applyFocusedParameterDelta(UiState& state, int delta, bool continuo
       bool liveUpdateSucceeded = true;
       const bool sceneOwned = control.sceneScope == UiSceneScope::ThisScene;
       if (sceneOwned) {
-        const auto targetIndex = selectedParameterSceneTargetIndex(state, control.key);
-        if (targetIndex) {
-          const auto& target = state.bank.presets[state.activePreset].sceneSet
-            ->scenes[state.editingScene].targets[*targetIndex];
-          const float targetValue = target.value.is_boolean()
-            ? (target.value.get<bool>() ? 1.0f : 0.0f) : target.value.get<float>();
+        const auto targetIndex = selectedParameterRuntimeTargetIndex(state, control.key);
+        const auto value = selectedParameterSceneValue(state, control.key);
+        if (targetIndex && value) {
+          const float targetValue = value->is_boolean()
+            ? (value->get<bool>() ? 1.0f : 0.0f) : value->get<float>();
           liveUpdateSucceeded = actions_.updateSceneTarget
             && actions_.updateSceneTarget(*targetIndex, targetValue);
         } else {

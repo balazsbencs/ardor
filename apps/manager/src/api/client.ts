@@ -10,6 +10,7 @@ import type {
   PresetSlotSummary,
   RenameAssetResponse,
   RecallSceneResponse,
+  SceneRecallStatus,
   WiFiSettings,
   WiFiSettingsUpdate,
   UpdateStatus,
@@ -124,18 +125,18 @@ export class ArdorApiClient implements ManagerTransport {
     return this.request<PresetSlot>(`/api/presets/banks/${bank}/slots/${slot}`);
   }
 
-  savePreset(bank: number, slot: number, preset: Preset): Promise<PresetSlot> {
+  savePreset(bank: number, slot: number, preset: Preset, revision?: string): Promise<PresetSlot> {
     return this.request<PresetSlot>(`/api/presets/banks/${bank}/slots/${slot}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(revision ? { "If-Match": `"${revision}"` } : {}) },
       body: JSON.stringify(preset),
     });
   }
 
-  applyPreset(bank: number, slot: number, sceneId?: string): Promise<ApplyPresetResponse> {
+  applyPreset(bank: number, slot: number, sceneId?: string, revision?: string): Promise<ApplyPresetResponse> {
     return this.request<ApplyPresetResponse>(`/api/presets/banks/${bank}/slots/${slot}/apply`, {
       method: "POST",
-      ...(sceneId ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sceneId }) } : {}),
+      ...(sceneId || revision ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sceneId, revision }) } : {}),
     });
   }
 
@@ -149,6 +150,12 @@ export class ArdorApiClient implements ManagerTransport {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ generation, requestId }),
     });
+  }
+
+  getSceneRecallStatus(generation: number, requestId: string): Promise<SceneRecallStatus> {
+    return this.request<SceneRecallStatus>(
+      `/api/runtime/scenes/recalls/${encodeURIComponent(requestId)}?generation=${generation}`,
+    );
   }
 
   private async request<T>(

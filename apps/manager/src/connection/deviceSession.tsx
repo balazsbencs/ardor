@@ -33,6 +33,7 @@ export type SessionPreset = {
   location: PresetLocation;
   preset: Preset;
   exists: boolean;
+  revision?: string;
   /** Changes on every real load (connect, slot select, reload). A save keeps it, so the editor keeps its state. */
   loadId: number;
 };
@@ -160,25 +161,25 @@ async function loadInitialPreset(
   if (device.active && hasPreset(summaries, device.active)) {
     try {
       const response = await client.getPreset(device.active.bank, device.active.slot);
-      return { location: { bank: response.bank, slot: response.slot }, preset: response.preset, exists: true };
+      return { location: { bank: response.bank, slot: response.slot }, preset: response.preset, exists: true, revision: response.revision };
     } catch {
       // A stale optional active location falls through to the local selection.
     }
   }
   const location = storedLocation(baseUrl) ?? { bank: 0, slot: 0 };
   if (!hasPreset(summaries, location)) {
-    return { location, preset: createEmptyPreset(), exists: false };
+    return { location, preset: createEmptyPreset(), exists: false, revision: "missing" };
   }
   try {
     const response = await client.getPreset(location.bank, location.slot);
-    return { location, preset: response.preset, exists: true };
+    return { location, preset: response.preset, exists: true, revision: response.revision };
   } catch {
     const fallback = { bank: 0, slot: 0 };
     if (hasPreset(summaries, fallback)) {
       const response = await client.getPreset(fallback.bank, fallback.slot);
-      return { location: fallback, preset: response.preset, exists: true };
+      return { location: fallback, preset: response.preset, exists: true, revision: response.revision };
     }
-    return { location: fallback, preset: createEmptyPreset(), exists: false };
+    return { location: fallback, preset: createEmptyPreset(), exists: false, revision: "missing" };
   }
 }
 
@@ -209,6 +210,7 @@ export function DeviceSessionProvider({
   const autoConnectAttempted = useRef(false);
   const operationBusy = useRef(defaultBusy);
   const activeRefreshRevision = useRef(0);
+  const savedRevision = useRef<{ loadId: number; revision?: string } | undefined>(undefined);
 
   const setOperationBusy = (kind: keyof BusyState, value: boolean) => {
     operationBusy.current = { ...operationBusy.current, [kind]: value };
@@ -279,9 +281,9 @@ export function DeviceSessionProvider({
     let next: LoadedPreset;
     if (hasPreset(presets, location)) {
       const response = await client.getPreset(location.bank, location.slot);
-      next = { location, preset: response.preset, exists: true };
+      next = { location, preset: response.preset, exists: true, revision: response.revision };
     } else {
-      next = { location, preset: createEmptyPreset(), exists: false };
+      next = { location, preset: createEmptyPreset(), exists: false, revision: "missing" };
     }
     localStorage.setItem(locationKey(baseUrl), JSON.stringify(location));
     setCurrent(loaded(next));
@@ -310,9 +312,15 @@ export function DeviceSessionProvider({
     if (!client || !current || operationBusy.current.save) return undefined;
     setOperationBusy("save", true);
     try {
-      const response = await client.savePreset(current.location.bank, current.location.slot, preset);
+      const revision = savedRevision.current?.loadId === current.loadId ? savedRevision.current?.revision : current.revision;
+      const response = revision
+        ? await client.savePreset(current.location.bank, current.location.slot, preset, revision)
+        : await client.savePreset(current.location.bank, current.location.slot, preset);
+      savedRevision.current = { loadId: current.loadId, revision: response.revision };
+      ++activeRefreshRevision.current;
       // Same loadId: the editor marks the draft saved and keeps selection, scene and undo history.
-      setCurrent({ ...current, preset: response.preset, exists: true });
+      setCurrent((loaded) => loaded?.loadId === current.loadId
+        ? { ...loaded, preset: response.preset, exists: true, revision: response.revision } : loaded);
       setDevice((previous) => previous?.active
         && previous.active.bank === current.location.bank
         && previous.active.slot === current.location.slot
@@ -329,7 +337,10 @@ export function DeviceSessionProvider({
     ++activeRefreshRevision.current;
     setOperationBusy("apply", true);
     try {
-      const response = await client.applyPreset(current.location.bank, current.location.slot, sceneId);
+      const revision = savedRevision.current?.loadId === current.loadId ? savedRevision.current?.revision : current.revision;
+      const response = revision
+        ? await client.applyPreset(current.location.bank, current.location.slot, sceneId, revision)
+        : await client.applyPreset(current.location.bank, current.location.slot, sceneId);
       const result = await waitForApplyResult(client, response);
       if (result.state === "applied") {
         const refreshed = await client.getDevice();
@@ -347,8 +358,18 @@ export function DeviceSessionProvider({
     if (!client?.recallScene || !generation || !current) return false;
     if (device.active?.bank !== current.location.bank || device.active.slot !== current.location.slot) return false;
     // Acceptance acknowledges queueing. The status poll reports what is live.
-    const response = await client.recallScene(sceneId, generation, newRequestId());
-    return response.accepted;
+    const requestId = newRequestId();
+    const response = await client.recallScene(sceneId, generation, requestId);
+    if (!response.accepted) throw new Error(response.message ?? "The pedal rejected the scene recall.");
+    if (response.state !== "queued" || !client.getSceneRecallStatus) return true;
+    const deadline = Date.now() + 13_000;
+    while (Date.now() < deadline) {
+      const result = await client.getSceneRecallStatus(generation, requestId);
+      if (result.state === "applied") return true;
+      if (result.state !== "queued") throw new Error(result.message ?? `Scene recall ${result.state}.`);
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw new Error("The pedal did not confirm the scene recall.");
   };
 
   const uploadAsset = async (kind: AssetKind, file: File, overwrite: boolean) => {
@@ -381,8 +402,9 @@ export function DeviceSessionProvider({
           setDevice((previous) => previous ? { ...previous, active: nextDevice.active } : nextDevice);
         }
       } catch {
-        // A transient status failure must not disconnect an otherwise usable
-        // editing session. The next interval retries it.
+        if (!cancelled && revision === activeRefreshRevision.current) {
+          setDevice((previous) => previous ? { ...previous, active: undefined } : previous);
+        }
       } finally {
         refreshing = false;
       }

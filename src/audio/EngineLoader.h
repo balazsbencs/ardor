@@ -60,6 +60,9 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
                          const std::filesystem::path& dataRoot,
                          const EngineLoadOptions& options, std::string& error);
 
+bool publishPresetSceneBank(PedalEngine& engine, const Preset& preset,
+                           const EngineLoadOptions& options, std::string& error);
+
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error);
 bool applyPresetSlot(PedalEngine& engine, const PresetStore& store, PresetSlot slot,

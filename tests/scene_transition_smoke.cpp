@@ -70,6 +70,31 @@ int main()
   require(!controller.telemetry().transitioning, "transition did not settle");
   require(controller.telemetry().currentSceneIndex == 2, "destination did not become current");
 
+  ardor::SceneTransitionController repeated;
+  require(repeated.prepare(program()), "repeat test should prepare");
+  require(repeated.request({42, 1, 4, 1}), "recall should publish");
+  repeated.beginBlock();
+  repeated.advanceFrame();
+  require(repeated.request({42, 2, 4, 1}), "repeat should publish");
+  repeated.beginBlock();
+  require(repeated.telemetry().elapsedFrames == 1, "repeat restarted a pending destination");
+  for (int frame = 0; frame < 3; ++frame) repeated.advanceFrame();
+  require(!repeated.telemetry().transitioning, "repeat extended the original enter time");
+
+  auto changed = program();
+  std::swap(changed.sceneIdentities[1], changed.sceneIdentities[2]);
+  for (auto& target : changed.targets) std::swap(target.values[1], target.values[2]);
+  std::swap(changed.outputTrimDb[1], changed.outputTrimDb[2]);
+  changed.targets[0].values[3] = 0.6f;
+  require(repeated.publishSceneBank(changed), "updated scene values should publish");
+  repeated.beginBlock();
+  require(repeated.telemetry().currentSceneIndex == 2
+            && near(repeated.currentValues()[0], 1.0f),
+          "swapping scenes must keep the live identity and sound");
+  require(repeated.request({42, 3, 0, 3}), "recall edited scene");
+  repeated.beginBlock();
+  require(near(repeated.currentValues()[0], 0.6f), "recall did not use revised scene data");
+
   // Multiple unread requests collapse to the latest publication.
   require(controller.request({42, 3, 20, 1}), "first latest-wins request failed");
   require(controller.request({42, 4, 0, 3}), "second latest-wins request failed");
@@ -147,9 +172,13 @@ int main()
   require(near(left[3], 0.25f), "default scene changed transparent engine gain");
   require(engine.tryRequestScene({42, 1, 0, 1}), "engine scene request failed");
   engine.processBlock(input, left, right, 4);
+  require(near(left[0], 0.25f), "instant input gain stepped on the first sample");
+  for (int block = 0; block < 61; ++block) engine.processBlock(input, left, right, 4);
   require(near(left[3], 0.5f, 0.001f), "scene input gain was not applied before the rig");
   require(engine.tryRequestScene({42, 2, 0, 2}), "engine trim request failed");
   engine.processBlock(input, left, right, 4);
+  require(near(left[0], 0.5f, 0.001f), "instant trim stepped on the first sample");
+  for (int block = 0; block < 61; ++block) engine.processBlock(input, left, right, 4);
   require(near(left[3], 0.125f, 0.001f), "scene trim was not applied to preset output");
   require(engine.sceneTransitionTelemetry().currentSceneIndex == 2,
           "engine scene telemetry did not settle");

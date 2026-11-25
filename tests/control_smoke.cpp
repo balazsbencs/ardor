@@ -117,6 +117,16 @@ int main()
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 2, 0}, start + 2s);
   gesture.handle({ardor::ControlEventType::FootswitchReleased, 3, 0}, start + 2s);
 
+  gesture.configureScenes(true, true);
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 0}, start);
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 1}, start + 10ms);
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 2}, start + 20ms);
+  gesture.handle({ardor::ControlEventType::FootswitchReleased, 1}, start + 30ms);
+  gesture.handle({ardor::ControlEventType::FootswitchReleased, 2}, start + 40ms);
+  gesture.handle({ardor::ControlEventType::FootswitchPressed, 3}, start + 50ms);
+  if (require(!gesture.poll(start + 120ms),
+              "a canceled chord must not rearm until all switches are released")) return 1;
+
   gesture.configureScenes(true, true, false);
   const auto chordDisabledRight = gesture.handle(
     {ardor::ControlEventType::FootswitchPressed, 3, 0}, start);

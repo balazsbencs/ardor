@@ -1,8 +1,11 @@
-// These controls require shared preparation or lack a live scene transition.
-const SHARED_ONLY: Readonly<Record<string, readonly string[]>> = {
-  delay: ["time"],
-  irreverb: ["reverbTimeRatio"],
-};
+import sceneParameters from "../../../../../services/managerd/internal/presets/scene-parameters.json";
+
+const ranges: Readonly<Record<string, Record<string, Record<string, number[]>>>> = sceneParameters;
+
+export function sceneParameterRange(blockType: string, parameter: string, mode?: unknown): number[] | undefined {
+  const modeIndependent = ["cab", "irreverb", "stereo"].includes(blockType);
+  return ranges[blockType]?.[modeIndependent || typeof mode !== "string" ? "" : mode]?.[parameter];
+}
 
 // Keep bypass eligibility aligned with bypassCapabilityFor in ScenePlan.cpp.
 const sceneBypassTypes = new Set(["mod", "delay", "reverb", "irreverb", "stereo", "dynamics", "distortion", "wah", "eq"]);
@@ -12,9 +15,7 @@ export function sceneCanOwnBlockEnabled(blockType: string): boolean {
 }
 
 export function isSharedOnlyParameter(blockType: string, parameter: string, mode?: unknown): boolean {
-  return blockType === "dualAmp" || blockType === "dualRig"
-    || (blockType === "mod" && mode === "pog3" && parameter === "expression_mode")
-    || (SHARED_ONLY[blockType]?.includes(parameter) ?? false);
+  return !sceneParameterRange(blockType, parameter, mode);
 }
 
 /** Help text shown under a control, or undefined when the control has none. */

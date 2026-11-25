@@ -132,6 +132,7 @@ struct PresetSceneTarget {
   std::string parameter;
   std::string lane;
   nlohmann::json value;
+  bool operator==(const PresetSceneTarget&) const = default;
 };
 
 struct PresetScene {

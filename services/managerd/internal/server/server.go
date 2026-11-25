@@ -3,8 +3,6 @@ package server
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +16,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -248,8 +247,9 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 		if active, err := runtimecontrol.ReadActivePreset(cfg.DataRoot); err == nil {
 			active.StoredRevisionMatches = false
 			if stored, loadErr := presetStore.Load(active.Bank, active.Slot); loadErr == nil {
-				active.StoredRevisionMatches = active.Revision != "" && active.Revision == presetRevision(stored.Preset)
+				active.StoredRevisionMatches = active.Revision != "" && active.Revision == stored.Revision
 			}
+			active.SceneRecalls = nil
 			status["active"] = active
 		}
 		writeJSON(w, http.StatusOK, status)
@@ -649,7 +649,11 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			writeError(w, http.StatusBadRequest, "invalid_json", err.Error())
 			return
 		}
-		presetSlot, err := presetStore.Save(bank, slot, preset)
+		presetSlot, err := presetStore.SaveIfMatch(bank, slot, preset, strings.Trim(r.Header.Get("If-Match"), `"`))
+		if errors.Is(err, presets.ErrRevisionConflict) {
+			writeError(w, http.StatusPreconditionFailed, "preset_revision_conflict", err.Error())
+			return
+		}
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "preset_save_failed", err.Error())
 			return
@@ -675,9 +679,14 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			return
 		}
 		var request struct {
-			SceneID string `json:"sceneId"`
+			SceneID  string `json:"sceneId"`
+			Revision string `json:"revision"`
 		}
 		if r.ContentLength != 0 && !decodeLocalJSON(w, r, &request, 4096) {
+			return
+		}
+		if request.Revision != "" && request.Revision != preset.Revision {
+			writeError(w, http.StatusPreconditionFailed, "preset_revision_conflict", presets.ErrRevisionConflict.Error())
 			return
 		}
 		if len(request.SceneID) > 128 {
@@ -688,7 +697,7 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			writeError(w, http.StatusBadRequest, "scene_not_found", "Scene does not exist in this preset revision")
 			return
 		}
-		id, err := runtimecontrol.QueueApplyPresetSceneWithID(cfg.DataRoot, bank, slot, request.SceneID, presetRevision(preset.Preset))
+		id, err := runtimecontrol.QueueApplyPresetSceneWithID(cfg.DataRoot, bank, slot, request.SceneID, preset.Revision)
 		if err != nil {
 			writeError(w, http.StatusServiceUnavailable, "runtime_command_failed", err.Error())
 			return
@@ -744,14 +753,56 @@ func Build(ctx context.Context, cfg config.Config, webFiles fs.FS) (http.Handler
 			writeError(w, http.StatusBadRequest, "invalid_scene_recall", "Scene and request identifiers are required")
 			return
 		}
+		for _, previous := range active.SceneRecalls {
+			if previous.RequestID == request.RequestID {
+				if previous.SceneID != sceneID {
+					writeError(w, http.StatusConflict, "scene_request_id_reused", "Request ID belongs to a different scene")
+					return
+				}
+				writeJSON(w, http.StatusOK, map[string]any{
+					"accepted":   previous.State == "queued" || previous.State == "applied",
+					"generation": active.Generation, "sceneId": sceneID, "requestId": request.RequestID,
+					"state": previous.State, "message": previous.Message,
+				})
+				return
+			}
+		}
+		if active.SceneRecallBlocked != "" {
+			writeError(w, http.StatusConflict, "scene_recall_blocked", active.SceneRecallBlocked)
+			return
+		}
+		if !slices.Contains(active.SceneIDs, sceneID) {
+			writeError(w, http.StatusNotFound, "scene_not_found", "Scene does not exist in the active preset")
+			return
+		}
 		if err := runtimecontrol.QueueSceneRecall(cfg.DataRoot, request.Generation, sceneID, request.RequestID); err != nil {
 			writeError(w, http.StatusServiceUnavailable, "runtime_command_failed", err.Error())
 			return
 		}
 		writeJSON(w, http.StatusAccepted, map[string]any{
 			"accepted": true, "generation": request.Generation, "sceneId": sceneID,
-			"requestId": request.RequestID,
+			"requestId": request.RequestID, "state": "queued",
 		})
+	})
+
+	mux.HandleFunc("GET /api/runtime/scenes/recalls/{requestId}", func(w http.ResponseWriter, r *http.Request) {
+		if !authorized(w, r, cfg, authStore) {
+			return
+		}
+		generation, parseErr := strconv.ParseUint(r.URL.Query().Get("generation"), 10, 64)
+		active, err := runtimecontrol.ReadActivePreset(cfg.DataRoot)
+		if parseErr != nil || err != nil || generation == 0 || generation != active.Generation {
+			writeError(w, http.StatusConflict, "stale_scene_generation", "The pedal is running a different preset revision")
+			return
+		}
+		requestID := r.PathValue("requestId")
+		for _, result := range active.SceneRecalls {
+			if result.RequestID == requestID {
+				writeJSON(w, http.StatusOK, result)
+				return
+			}
+		}
+		writeJSON(w, http.StatusAccepted, runtimecontrol.SceneRecallStatus{RequestID: requestID, State: "queued"})
 	})
 
 	mux.Handle("GET /", webUIHandler(webFiles))
@@ -779,15 +830,6 @@ func presetContainsScene(preset presets.Preset, sceneID string) bool {
 		}
 	}
 	return false
-}
-
-func presetRevision(preset presets.Preset) string {
-	body, err := json.Marshal(preset)
-	if err != nil {
-		return ""
-	}
-	sum := sha256.Sum256(body)
-	return hex.EncodeToString(sum[:])
 }
 
 func stringOrDefault(value, fallback string) string {
@@ -862,7 +904,7 @@ func withCORS(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, If-Match")
 			w.Header().Set("Access-Control-Max-Age", "600")
 			w.Header().Add("Vary", "Origin")
 		}

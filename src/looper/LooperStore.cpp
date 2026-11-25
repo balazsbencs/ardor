@@ -296,7 +296,7 @@ bool LooperStore::save(const LooperSaveRequest& request,
     if (populatedTracks == 0) throw std::runtime_error("loop has no populated tracks");
 
     const std::string savedAt = isoUtcNow();
-    const nlohmann::json manifest = {
+    nlohmann::json manifest = {
       {"version", kManifestVersion}, {"id", id},
       {"name", request.name.empty() ? defaultLoopName() : request.name},
       {"savedAt", savedAt}, {"sampleRate", 48000}, {"channels", 2},
@@ -306,6 +306,12 @@ bool LooperStore::save(const LooperSaveRequest& request,
                          {"name", request.sourcePreset.name}}},
       {"tracks", std::move(tracks)},
     };
+    if (!request.destinationSceneId.empty()) {
+      if (!request.preset.sceneSet || std::none_of(request.preset.sceneSet->scenes.begin(),
+            request.preset.sceneSet->scenes.end(), [&](const auto& scene) { return scene.id == request.destinationSceneId; }))
+        throw std::runtime_error("Loop destination scene does not exist in its preset snapshot");
+      manifest["destinationSceneId"] = request.destinationSceneId;
+    }
     const auto manifestTemporary = directory / "manifest.json.tmp";
     temporaryFiles.push_back(manifestTemporary);
     std::error_code removeError;
@@ -368,6 +374,11 @@ bool LooperStore::load(std::string_view id, uint64_t maximumFrames,
     const auto presetPath = directory / presetFile;
     if (!containedExistingFile(directory, presetPath, error)) return false;
     loopSet.preset = presetFromJson(readJsonFile(presetPath));
+    loopSet.destinationSceneId = manifest.value("destinationSceneId", std::string{});
+    if (!loopSet.destinationSceneId.empty() && (!loopSet.preset.sceneSet
+        || std::none_of(loopSet.preset.sceneSet->scenes.begin(), loopSet.preset.sceneSet->scenes.end(),
+             [&](const auto& scene) { return scene.id == loopSet.destinationSceneId; })))
+      throw std::runtime_error("Loop destination scene does not exist in its preset snapshot");
 
     const auto& tracks = manifest.at("tracks");
     if (!tracks.is_array() || tracks.size() != kLooperTrackCount) {

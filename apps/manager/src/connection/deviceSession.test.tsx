@@ -203,12 +203,12 @@ describe("DeviceSessionProvider", () => {
     await waitFor(() => expect(screen.getByTestId("active")).toHaveTextContent("2:3"));
   });
 
-  it("keeps the editing session connected through a transient status-poll failure", async () => {
+  it("clears unverified live state without disconnecting the editor", async () => {
     let calls = 0;
     const client = mockClient({
       getDevice: vi.fn(async () => {
         calls += 1;
-        if (calls > 1) throw new TypeError("Temporary network loss");
+        if (calls === 2) throw new TypeError("Temporary network loss");
         return { ...device, active: { bank: 1, slot: 0, name: "First" } };
       }),
     });
@@ -223,6 +223,8 @@ describe("DeviceSessionProvider", () => {
     await waitFor(() => expect(refresh).toBeTypeOf("function"));
     await act(async () => { refresh?.(); await Promise.resolve(); });
     expect(screen.getByTestId("status")).toHaveTextContent("connected");
+    expect(screen.getByTestId("active")).toHaveTextContent("none");
+    await act(async () => { refresh?.(); await Promise.resolve(); });
     expect(screen.getByTestId("active")).toHaveTextContent("1:0");
   });
 
@@ -331,6 +333,20 @@ describe("DeviceSessionProvider", () => {
     expect(recallScene).toHaveBeenNthCalledWith(1, "solo", 72, expect.stringMatching(uuid));
     expect(recallScene).toHaveBeenNthCalledWith(2, "solo", 72, expect.stringMatching(uuid));
     expect(recallScene.mock.calls[0]).not.toEqual(recallScene.mock.calls[1]);
+  });
+
+  it("surfaces a firmware rejection after a scene recall is queued", async () => {
+    const client = mockClient({
+      getDevice: vi.fn(async () => ({ ...device, active: { bank: 0, slot: 0, generation: 72, liveSceneId: "clean" } })),
+      recallScene: vi.fn(async () => ({ accepted: true, generation: 72, sceneId: "solo", requestId: "request", state: "queued" as const })),
+      getSceneRecallStatus: vi.fn(async () => ({ requestId: "request", sceneId: "solo", state: "rejected" as const, message: "Tuner is active." })),
+    });
+    renderSession(() => client);
+    await userEvent.click(screen.getByRole("button", { name: "Connect" }));
+    await screen.findByText("connected");
+    await userEvent.click(screen.getByRole("button", { name: "Recall solo" }));
+    expect(screen.getByTestId("recall-result")).toHaveTextContent("Tuner is active.");
+    expect(screen.getByTestId("live-scene")).toHaveTextContent("clean");
   });
 
   it("keeps the load token on save and changes it on a real load", async () => {

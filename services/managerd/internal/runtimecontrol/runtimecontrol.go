@@ -35,16 +35,30 @@ type ApplyStatus struct {
 	UpdatedAt string `json:"updatedAt,omitempty"`
 }
 
+type SceneRecallStatus struct {
+	RequestID string `json:"requestId"`
+	SceneID   string `json:"sceneId"`
+	State     string `json:"state"`
+	Message   string `json:"message,omitempty"`
+}
+
 type ActivePreset struct {
-	Bank                  int    `json:"bank"`
-	Slot                  int    `json:"slot"`
-	Name                  string `json:"name,omitempty"`
-	UpdatedAt             string `json:"updatedAt,omitempty"`
-	Generation            uint64 `json:"generation,omitempty"`
-	LiveSceneID           string `json:"liveSceneId,omitempty"`
-	LiveSceneIndex        int    `json:"liveSceneIndex,omitempty"`
-	Revision              string `json:"revision,omitempty"`
-	StoredRevisionMatches bool   `json:"storedRevisionMatches,omitempty"`
+	Bank                   int                 `json:"bank"`
+	Slot                   int                 `json:"slot"`
+	Name                   string              `json:"name,omitempty"`
+	UpdatedAt              string              `json:"updatedAt,omitempty"`
+	Generation             uint64              `json:"generation,omitempty"`
+	LiveSceneID            string              `json:"liveSceneId,omitempty"`
+	LiveSceneIndex         *int                `json:"liveSceneIndex,omitempty"`
+	Revision               string              `json:"revision,omitempty"`
+	StoredRevisionMatches  bool                `json:"storedRevisionMatches,omitempty"`
+	SceneIDs               []string            `json:"sceneIds,omitempty"`
+	DestinationSceneID     string              `json:"destinationSceneId,omitempty"`
+	SceneRecallBlocked     string              `json:"sceneRecallBlocked,omitempty"`
+	SceneTransitioning     bool                `json:"sceneTransitioning,omitempty"`
+	SceneTransitionPercent int                 `json:"sceneTransitionPercent"`
+	SceneAltered           bool                `json:"sceneAltered,omitempty"`
+	SceneRecalls           []SceneRecallStatus `json:"sceneRecalls,omitempty"`
 }
 
 func QueueAssetReload(dataRoot string) error {

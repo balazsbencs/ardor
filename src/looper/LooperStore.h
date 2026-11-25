@@ -25,6 +25,7 @@ struct LooperSaveRequest {
   LooperSourcePreset sourcePreset;
   Preset preset;
   LooperPausedSessionView session;
+  std::string destinationSceneId;
 };
 
 struct LooperLoadedTrack {
@@ -44,6 +45,7 @@ struct LooperLoadedSet {
   LooperSourcePreset sourcePreset;
   Preset preset;
   std::array<LooperLoadedTrack, kLooperTrackCount> tracks {};
+  std::string destinationSceneId;
 
   // The spans remain valid until this loaded set or one of its audio vectors
   // is mutated. Suitable for RealtimeLooper::restorePausedSession().

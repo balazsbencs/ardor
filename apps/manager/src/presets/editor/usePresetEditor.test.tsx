@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import type { Preset } from "../../api/types";
-import { findEffectDefinition } from "../../effects/catalog";
+import { createBlockFromDefinition, findEffectDefinition } from "../../effects/catalog";
 import { EditorProvider, usePresetEditorContext } from "./EditorContext";
+import { createWdwPreset, enableScenes } from "./presetFactory";
 
 const scene = (id: string, name: string) => ({ id, name, enterTimeMs: 0, outputTrimDb: 0, targets: [] });
 const preset: Preset = {
@@ -84,6 +85,66 @@ describe("usePresetEditor scene rule", () => {
     expect(result.current.present.blocks[1].enabled).toBe(false);
     expect(result.current.present.blocks[0].params.time).toBe(0.5);
     expect(result.current.present.sceneSet!.scenes.every((scene) => scene.targets.length === 0)).toBe(true);
+  });
+
+  it("preserves edits made while a save is in flight", async () => {
+    let finish!: (response: { preset: Preset }) => void;
+    session.saveCurrent.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    act(() => result.current.dispatch({ type: "set-scene-name", sceneId: "verse", name: "Submitted" }));
+    const submitted = structuredClone(result.current.present);
+    let saving!: Promise<boolean>;
+    act(() => { saving = result.current.save(); });
+    act(() => result.current.dispatch({ type: "set-scene-name", sceneId: "verse", name: "Still editing" }));
+    await act(async () => {
+      finish({ preset: submitted });
+      expect(await saving).toBe(true);
+    });
+    expect(result.current.editingScene?.name).toBe("Still editing");
+    expect(result.current.dirty).toBe(true);
+  });
+
+  it("rejects imported delay time as an unsupported scene target", () => {
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    const imported = structuredClone(preset);
+    for (const scene of imported.sceneSet!.scenes)
+      scene.targets = [{ target: "parameter", blockId: "d1", parameter: "time", value: 0.5 }];
+    act(() => result.current.dispatch({ type: "replace-present", preset: imported }));
+    expect(result.current.validation.canSave).toBe(false);
+    expect(result.current.validation.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ code: "scene-target-unsupported" }),
+    ]));
+  });
+
+  it("copies scene parameter values when duplicating a bypassed effect", () => {
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    const source = structuredClone(preset);
+    const block = createBlockFromDefinition("delay:digital", []);
+    source.blocks = [block];
+    source.sceneSet!.scenes.forEach((scene, index) => {
+      scene.targets.push({ target: "parameter", blockId: block.id, parameter: "mix", value: index / 4 });
+    });
+    act(() => result.current.dispatch({ type: "replace-present", preset: source }));
+    act(() => result.current.dispatch({ type: "duplicate-block", blockId: block.id }));
+    const duplicate = result.current.present.blocks[1];
+    expect(duplicate.enabled).toBe(false);
+    for (const [index, scene] of result.current.present.sceneSet!.scenes.entries()) {
+      expect(scene.targets).toContainEqual({ target: "parameter", blockId: duplicate.id, parameter: "mix", value: index / 4 });
+    }
+  });
+
+  it("makes a WDW lane value scene-owned on the first scene edit and can share it again", () => {
+    const { result } = renderHook(() => usePresetEditorContext(), { wrapper });
+    const source = enableScenes(createWdwPreset());
+    act(() => result.current.dispatch({ type: "replace-present", preset: source }));
+    act(() => result.current.dispatch({ type: "select-scene", sceneId: "scene-2" }));
+    act(() => result.current.editWdwMix("wet", "width", 0.5));
+    const scenes = result.current.present.sceneSet!.scenes;
+    expect(scenes[0].targets).toContainEqual({ target: "wdwLane", lane: "wet", parameter: "width", value: 1 });
+    expect(scenes[1].targets).toContainEqual({ target: "wdwLane", lane: "wet", parameter: "width", value: 0.5 });
+    act(() => result.current.dispatch({ type: "share-wdw-mix", sceneId: "scene-2", lane: "wet", key: "width" }));
+    expect(result.current.present.wdw?.wet.width).toBe(0.5);
+    expect(result.current.present.sceneSet?.scenes.every((scene) => scene.targets.length === 0)).toBe(true);
   });
 
   it("recalls the default scene shown in the drawer when editing shared values", async () => {

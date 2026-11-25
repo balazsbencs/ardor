@@ -18,9 +18,11 @@ public:
   explicit PresetStore(std::filesystem::path root);
 
   std::filesystem::path pathFor(PresetSlot slot) const;
-  Preset load(PresetSlot slot) const;
-  Preset loadOrEmpty(PresetSlot slot) const;
-  void save(PresetSlot slot, const Preset& preset) const;
+  Preset load(PresetSlot slot, std::string* revision = nullptr) const;
+  Preset loadOrEmpty(PresetSlot slot, std::string* revision = nullptr) const;
+  std::string revision(PresetSlot slot) const;
+  std::string save(PresetSlot slot, const Preset& preset,
+                   const std::string& expectedRevision = {}) const;
 
 private:
   std::filesystem::path root_;
@@ -39,6 +41,7 @@ public:
 private:
   const PresetStore* store_ = nullptr;
   PresetSlot slot_;
+  std::string revision_;
   Preset saved_;
   Preset working_;
 };

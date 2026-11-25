@@ -488,6 +488,7 @@ bool PedalEngine::tryReadLooperTelemetry(LooperTelemetry& telemetry) noexcept
 
 bool PedalEngine::installPreparedScenes(SceneTransitionProgram program, std::string& error)
 {
+  program.instantGainFrames = static_cast<std::uint32_t>(std::max(1.0, std::round(sampleRate_ * 0.005)));
   auto controller = std::make_unique<SceneTransitionController>();
   if (!controller->prepare(std::move(program))) {
     error = "scene transition program is invalid";
@@ -509,6 +510,11 @@ bool PedalEngine::installPreparedScenes(SceneTransitionProgram program, std::str
   }
   error.clear();
   return true;
+}
+
+bool PedalEngine::publishSceneBank(const SceneTransitionProgram& program) noexcept
+{
+  return sceneTransition_ && sceneTransition_->publishSceneBank(program);
 }
 
 bool PedalEngine::tryRequestScene(const SceneTransitionRequest& request) noexcept
@@ -564,7 +570,7 @@ bool PedalEngine::applySceneValues() noexcept
   }
   for (std::size_t index = 0; index < targets.size(); ++index) {
     const auto& address = targets[index].address;
-    if (address.kind == SceneRuntimeTargetKind::InputGainDb) continue;
+    if (address.kind == SceneRuntimeTargetKind::InputGainDb || address.kind == SceneRuntimeTargetKind::Inactive) continue;
     bool applied = false;
     if (wdwRouting_) applied = wdwRouting_->applySceneTarget(address, values[index]);
     else if (address.kind != SceneRuntimeTargetKind::WdwLaneParameter)

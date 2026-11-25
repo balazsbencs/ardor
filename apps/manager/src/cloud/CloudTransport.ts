@@ -67,16 +67,16 @@ export class CloudTransport implements ManagerTransport {
     return this.request<PresetSlot>(this.slotPath(bank, slot));
   }
 
-  savePreset(bank: number, slot: number, preset: Preset): Promise<PresetSlot> {
+  savePreset(bank: number, slot: number, preset: Preset, revision?: string): Promise<PresetSlot> {
     return this.request<PresetSlot>(this.slotPath(bank, slot), {
-      method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": newRequestId() },
+      method: "PUT", headers: { "Content-Type": "application/json", "Idempotency-Key": newRequestId(), ...(revision ? { "If-Match": `"${revision}"` } : {}) },
       body: JSON.stringify(preset),
     });
   }
 
-  applyPreset(bank: number, slot: number, _sceneId?: string): Promise<ApplyPresetResponse> {
+  applyPreset(bank: number, slot: number, _sceneId?: string, revision?: string): Promise<ApplyPresetResponse> {
     return this.request<ApplyPresetResponse>(`${this.slotPath(bank, slot)}/apply`, {
-      method: "POST", headers: { "Idempotency-Key": newRequestId() },
+      method: "POST", headers: { "Idempotency-Key": newRequestId(), ...(revision ? { "If-Match": `"${revision}"` } : {}) },
     });
   }
 

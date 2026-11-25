@@ -1419,6 +1419,7 @@ PresetScene* editingScene(UiState& state)
 
 void finishSceneEdit(UiState& state, const std::string& status)
 {
+  ++state.sceneDraftRevision;
   state.bank.presets[state.activePreset].version = 4;
   state.dirty = true;
   setUiStatus(state, status);
@@ -1663,6 +1664,20 @@ std::optional<std::size_t> selectedParameterSceneTargetIndex(const UiState& stat
   return static_cast<std::size_t>(std::distance(targets.begin(), found));
 }
 
+std::optional<std::size_t> selectedParameterRuntimeTargetIndex(const UiState& state,
+                                                               const std::string& key)
+{
+  const auto& set = state.bank.presets[state.activePreset].sceneSet;
+  const auto address = selectedSceneTargetTemplate(state, key);
+  if (!set || !address || !selectedParameterSceneTargetIndex(state, key)) return std::nullopt;
+  const auto& targets = set->scenes[0].targets;
+  const auto found = std::find_if(targets.begin(), targets.end(), [&](const auto& target) {
+    return sameSceneAddress(target, *address);
+  });
+  if (found == targets.end()) return std::nullopt;
+  return static_cast<std::size_t>(std::distance(targets.begin(), found));
+}
+
 std::optional<nlohmann::json> selectedParameterSceneValue(const UiState& state,
                                                            const std::string& key)
 {
@@ -1697,8 +1712,9 @@ bool setSelectedParameterSceneScope(UiState& state, const std::string& key,
     if (!index) return false;
     candidate->value = set->scenes[state.editingScene].targets[*index].value;
     applySharedSceneTarget(state, *candidate);
-    for (auto& scene : set->scenes) scene.targets.erase(scene.targets.begin()
-      + static_cast<std::ptrdiff_t>(*index));
+    for (auto& scene : set->scenes) {
+      std::erase_if(scene.targets, [&](const auto& target) { return sameSceneAddress(target, *candidate); });
+    }
   }
   state.dirty = true;
   queuePreview(state, rollback, scope == UiSceneScope::ThisScene
@@ -1731,17 +1747,28 @@ bool completeCurrentSoundCapture(UiState& state, const std::vector<float>& value
   if (!state.sceneCapturePending || !set || state.editingScene >= set->scenes.size()) return false;
   state.sceneCapturePending = false;
   auto& targets = set->scenes[state.editingScene].targets;
-  if (values.size() != targets.size()
+  auto captured = targets;
+  const auto& runtimeTargets = set->scenes[0].targets;
+  if (values.size() != runtimeTargets.size() || targets.size() != runtimeTargets.size()
       || std::any_of(values.begin(), values.end(), [](float value) { return !std::isfinite(value); })) {
     setUiStatus(state, "Current sound capture did not match this scene bank", true);
     markUiChanged(state, UiChange::Presets | UiChange::Status);
     return false;
   }
-  rememberBlockEdit(state);
-  for (std::size_t index = 0; index < targets.size(); ++index) {
-    targets[index].value = targets[index].value.is_boolean()
-      ? nlohmann::json(values[index] >= 0.5f) : nlohmann::json(values[index]);
+  for (auto& target : captured) {
+    const auto found = std::find_if(runtimeTargets.begin(), runtimeTargets.end(), [&](const auto& reference) {
+      return sameSceneAddress(target, reference);
+    });
+    if (found == runtimeTargets.end()) {
+      setUiStatus(state, "Current sound capture did not match this scene bank", true);
+      return false;
+    }
+    const auto value = values[static_cast<std::size_t>(std::distance(runtimeTargets.begin(), found))];
+    target.value = target.value.is_boolean() ? nlohmann::json(value >= 0.5f) : nlohmann::json(value);
   }
+  rememberBlockEdit(state);
+  targets = std::move(captured);
+  ++state.sceneDraftRevision;
   state.dirty = true;
   setUiStatus(state, "Captured " + std::to_string(targets.size())
                      + " scene-owned values - Undo");
@@ -1770,6 +1797,7 @@ bool updateSelectedSceneTargetValue(UiState& state, const std::string& key,
   if (target.value == value) return true;
   rememberBlockEdit(state);
   set->scenes[state.editingScene].targets[*index].value = std::move(value);
+  ++state.sceneDraftRevision;
   state.dirty = true;
   markUiChanged(state, UiChange::Header | UiChange::Presets | UiChange::Parameters);
   return true;
@@ -1896,6 +1924,22 @@ void replaceActivePreset(UiState& state, const Preset& preset)
   uiPreset.midiBindings = preset.midiBindings;
   uiPreset.sceneMidiBindings = preset.sceneMidiBindings;
   uiPreset.sceneSet = preset.sceneSet;
+  if (uiPreset.sceneSet) {
+    const auto& canonical = uiPreset.sceneSet->scenes.front().targets;
+    for (std::size_t i = 1; i < uiPreset.sceneSet->scenes.size(); ++i) {
+      auto& targets = uiPreset.sceneSet->scenes[i].targets;
+      if (targets.size() != canonical.size()) continue;
+      std::vector<PresetSceneTarget> ordered;
+      for (const auto& address : canonical) {
+        const auto found = std::find_if(targets.begin(), targets.end(), [&](const auto& target) {
+          return sameSceneAddress(address, target);
+        });
+        if (found == targets.end()) break;
+        ordered.push_back(*found);
+      }
+      if (ordered.size() == targets.size()) targets = std::move(ordered);
+    }
+  }
   uiPreset.blocks.clear();
   const auto convertBlock = [&](const auto& self, const PresetBlock& source) -> UiBlock {
     UiBlock converted{source.id,
@@ -2663,7 +2707,9 @@ bool loadPresetSlotFromStore(UiState& state, const PresetStore& store, PresetSlo
 {
   try {
     state.activePreset = static_cast<std::size_t>(slot.preset);
-    replaceActivePreset(state, store.load(slot));
+    std::string revision;
+    replaceActivePreset(state, store.load(slot, &revision));
+    state.bank.presets[state.activePreset].storedRevision = std::move(revision);
     return true;
   } catch (const std::exception& e) {
     error = e.what();
@@ -2681,6 +2727,11 @@ void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
     std::string error;
     if (!loadPresetSlotFromStore(state, store, {bank, static_cast<int>(i)}, error)) {
       state.bank.presets[i] = emptyPreset(i);
+      try {
+        state.bank.presets[i].storedRevision = store.revision({bank, static_cast<int>(i)});
+      } catch (const std::exception&) {
+        state.bank.presets[i].storedRevision = "unavailable";
+      }
     }
   }
   state.activePreset = std::min(previous, state.bank.presets.size() - 1);
@@ -2698,7 +2749,9 @@ void loadBankFromStore(UiState& state, const PresetStore& store, int bank)
 bool saveActivePresetToStore(UiState& state, const PresetStore& store, int bank, std::string& error)
 {
   try {
-    store.save({bank, static_cast<int>(state.activePreset)}, activePresetToPreset(state));
+    auto& slot = state.bank.presets[state.activePreset];
+    slot.storedRevision = store.save({bank, static_cast<int>(state.activePreset)},
+                                     activePresetToPreset(state), slot.storedRevision);
     state.dirty = false;
     state.blockEditUndo.reset();
     markUiChanged(state, UiChange::Header | UiChange::Status);

@@ -143,7 +143,7 @@ bool writeRuntimeActivePreset(const std::filesystem::path& dataRoot,
                               int bank, int slot, const std::string& name,
                               std::string& error, std::uint64_t generation,
                               const std::string& liveSceneId, int liveSceneIndex,
-                              const std::string& revision)
+                              const std::string& revision, const RuntimeSceneStatus* scenes)
 {
   const auto path = dataRoot / "runtime" / "active-preset.json";
   nlohmann::json state{
@@ -153,6 +153,19 @@ bool writeRuntimeActivePreset(const std::filesystem::path& dataRoot,
   if (!liveSceneId.empty()) state["liveSceneId"] = liveSceneId;
   if (liveSceneIndex >= 0) state["liveSceneIndex"] = liveSceneIndex;
   if (!revision.empty()) state["revision"] = revision;
+  if (scenes) {
+    state["sceneIds"] = scenes->sceneIds;
+    state["destinationSceneId"] = scenes->destinationSceneId;
+    state["sceneRecallBlocked"] = scenes->recallBlocked;
+    state["sceneTransitioning"] = scenes->transitioning;
+    state["sceneTransitionPercent"] = scenes->transitionPercent;
+    state["sceneAltered"] = scenes->altered;
+    auto& recalls = state["sceneRecalls"] = nlohmann::json::array();
+    for (const auto& recall : scenes->recalls) {
+      recalls.push_back({{"requestId", recall.requestId}, {"sceneId", recall.sceneId},
+                         {"state", recall.state}, {"message", recall.message}});
+    }
+  }
   return writeJsonAtomically(path, state, error);
 }
 

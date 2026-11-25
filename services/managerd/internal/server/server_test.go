@@ -312,7 +312,7 @@ func TestDevelopmentOriginCORS(t *testing.T) {
 	if preflightResponse.Code != http.StatusNoContent {
 		t.Fatalf("preflight status=%d", preflightResponse.Code)
 	}
-	if headers := preflightResponse.Header().Get("Access-Control-Allow-Headers"); headers != "Authorization, Content-Type" {
+	if headers := preflightResponse.Header().Get("Access-Control-Allow-Headers"); headers != "Authorization, Content-Type, If-Match" {
 		t.Fatalf("allow headers=%q", headers)
 	}
 }
@@ -438,7 +438,7 @@ func TestSceneRecallRequiresActiveGeneration(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(filepath.Join(activeDirectory, "active-preset.json"),
-		[]byte(`{"bank":0,"slot":0,"generation":77,"liveSceneId":"verse","liveSceneIndex":0}`), 0o644); err != nil {
+		[]byte(`{"bank":0,"slot":0,"generation":77,"liveSceneId":"verse","liveSceneIndex":0,"sceneIds":["verse","solo"]}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -485,7 +485,11 @@ func TestDeviceReportsWhetherStoredPresetMatchesActiveRevision(t *testing.T) {
 	if err := os.MkdirAll(filepath.Join(dataRoot, "runtime"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	active := fmt.Sprintf(`{"bank":2,"slot":1,"generation":91,"revision":%q}`, presetRevision(preset))
+	var saved struct{ Revision string }
+	if err := json.Unmarshal(save.Body.Bytes(), &saved); err != nil || saved.Revision == "" {
+		t.Fatalf("save revision: %v", err)
+	}
+	active := fmt.Sprintf(`{"bank":2,"slot":1,"generation":91,"revision":%q}`, saved.Revision)
 	if err := os.WriteFile(filepath.Join(dataRoot, "runtime", "active-preset.json"), []byte(active), 0o644); err != nil {
 		t.Fatal(err)
 	}

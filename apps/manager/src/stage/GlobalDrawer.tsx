@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 
-import { IconButton } from "../components/ui";
+import { Button, IconButton } from "../components/ui";
 import type { NumberControl } from "../effects/types";
 import { usePresetEditorContext } from "../presets/editor/EditorContext";
 import { ChoiceStrip } from "../ui/ChoiceStrip";
@@ -57,13 +57,23 @@ export function GlobalDrawer({ onClose }: { onClose(): void }) {
           const config = displayedWdw[lane];
           const shape = lane === "dry" ? PAN : WIDTH;
           const shapeKey = lane === "dry" ? "pan" : "width";
+          const owned = (key: typeof shapeKey | "enabled" | "levelDb") =>
+            editingScene?.targets.some((target) => target.target === "wdwLane" && target.lane === lane && target.parameter === key);
+          const share = (key: typeof shapeKey | "enabled" | "levelDb") => () => {
+            if (editingScene) dispatch({ type: "share-wdw-mix", sceneId: editingScene.id, lane, key });
+          };
           return (
             <div key={lane} className="ctlgrid__group">
               <h3 className="ctlgrid__lane">{title} lane</h3>
               <ChoiceStrip label={`${title} lane`} family="util" value={config.enabled}
                 options={[{ value: false, label: "Off" }, { value: true, label: "On" }]} onChange={(on) => editor.editWdwMix(lane, "enabled", on)} />
-              <TravelScale control={named(LANE_LEVEL, `${title} level`)} value={config.levelDb} family="util" onChange={(value, gesture) => editor.editWdwMix(lane, "levelDb", value, gesture)} />
-              <TravelScale control={named(shape, `${title} ${lane === "dry" ? "pan" : "width"}`)} value={config[shapeKey] ?? shape.defaultValue} family="util"
+              {editingScene && owned("enabled") && <Button variant="quiet" onClick={share("enabled")}>Share {title} lane on/off</Button>}
+              <TravelScale owned={editingScene ? (owned("levelDb") ? "scene" : "shared") : undefined}
+                onShare={owned("levelDb") ? share("levelDb") : undefined}
+                control={named(LANE_LEVEL, `${title} level`)} value={config.levelDb} family="util" onChange={(value, gesture) => editor.editWdwMix(lane, "levelDb", value, gesture)} />
+              <TravelScale owned={editingScene ? (owned(shapeKey) ? "scene" : "shared") : undefined}
+                onShare={owned(shapeKey) ? share(shapeKey) : undefined}
+                control={named(shape, `${title} ${lane === "dry" ? "pan" : "width"}`)} value={config[shapeKey] ?? shape.defaultValue} family="util"
                 onChange={(value, gesture) => editor.editWdwMix(lane, shapeKey, value, gesture)} />
             </div>
           );
