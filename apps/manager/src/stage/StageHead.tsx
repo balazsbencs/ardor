@@ -26,10 +26,19 @@ export function StageHead() {
 export function StageNotices() {
   const editor = usePresetEditorContext();
   const issues = editor.validation.issues.filter(({ blockId }) => !blockId);
-  if (!editor.actionError && issues.length === 0) return null;
+  if (!editor.actionError && !editor.actionNotice && !editor.saveConflict && issues.length === 0) return null;
   return (
     <div className="stage-notices">
       {editor.actionError && <p className="stage-notice is-error" role="alert"><AlertCircle size={16} />{editor.actionError}</p>}
+      {editor.actionNotice && <p className="stage-notice" role="status">{editor.actionNotice}</p>}
+      {editor.saveConflict && <div className="stage-notice">
+        <Button variant="secondary" disabled={editor.saving}
+          onClick={() => void editor.saveConflict?.reload()}>Discard draft and reload</Button>
+        {editor.saveConflict.copyLocation && <Button variant="secondary"
+          disabled={editor.saving || !editor.validation.canSave} onClick={() => void editor.saveConflict?.saveCopy()}>
+          Save copy to bank {editor.saveConflict.copyLocation.bank + 1}, slot {editor.saveConflict.copyLocation.slot + 1}
+        </Button>}
+      </div>}
       {issues.map((issue, index) => (
         <p key={`${issue.code}-${index}`} className={`stage-notice is-${issue.severity}`}>
           <AlertCircle size={16} /><span>{issue.message}</span>

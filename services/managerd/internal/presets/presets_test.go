@@ -2,8 +2,10 @@ package presets
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -18,6 +20,44 @@ func TestScenesStarterExampleIsValid(t *testing.T) {
 	}
 	if err := Validate(preset); err != nil {
 		t.Fatalf("Scenes Starter example is invalid: %v", err)
+	}
+}
+
+func TestConcurrentPresetSaveChecksTheLoadedRevision(t *testing.T) {
+	store := NewStore(t.TempDir())
+	first, err := store.SaveIfMatch(0, 0, validPreset(), MissingRevision)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const writers = 8
+	var group sync.WaitGroup
+	outcomes := make(chan error, writers)
+	for i := range writers {
+		group.Add(1)
+		go func() {
+			defer group.Done()
+			preset := validPreset()
+			preset["name"] = string(rune('A' + i))
+			_, err := store.SaveIfMatch(0, 0, preset, first.Revision)
+			outcomes <- err
+		}()
+	}
+	group.Wait()
+	close(outcomes)
+	var successes int
+	for err := range outcomes {
+		if err == nil {
+			successes++
+		} else if !errors.Is(err, ErrRevisionConflict) {
+			t.Fatal(err)
+		}
+	}
+	if successes != 1 {
+		t.Fatalf("expected one committed save, got %d", successes)
+	}
+	loaded, err := store.Load(0, 0)
+	if err != nil || loaded.Revision == first.Revision {
+		t.Fatalf("unexpected saved preset: %#v, %v", loaded, err)
 	}
 }
 

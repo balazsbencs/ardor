@@ -24,6 +24,7 @@
 #include "preset/Preset.h"
 #include "preset/PresetStore.h"
 #include "preset/RuntimeCommands.h"
+#include "preset/ScenePlan.h"
 #include "preset/RuntimeState.h"
 
 #include <algorithm>
@@ -54,6 +55,7 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -904,8 +906,14 @@ int main(int argc, char** argv)
       ardor::PresetStore store(args.dataRoot);
       ardor::Preset activePreset;
       std::string loadError;
-      bool initialPresetLoaded = ardor::applyPresetSlot(
-        *liveEngine, store, {args.bank, args.slot}, args.dataRoot, loadOptions, loadError);
+      std::string activePresetRevision;
+      bool initialPresetLoaded = false;
+      try {
+        activePreset = store.load({args.bank, args.slot}, &activePresetRevision);
+        initialPresetLoaded = ardor::applyPreset(*liveEngine, activePreset, args.dataRoot, loadOptions, loadError);
+      } catch (const std::exception& e) {
+        loadError = e.what();
+      }
       const std::string initialPresetError = loadError;
       bool initialPresetFallback = false;
       if (!initialPresetLoaded) {
@@ -921,13 +929,15 @@ int main(int argc, char** argv)
         for (int offset = 1; offset < 4 && !initialPresetLoaded; ++offset) {
           const int fallbackSlot = (args.slot + offset) % 4;
           try {
-            auto fallbackPreset = store.loadOrEmpty({args.bank, fallbackSlot});
+            std::string fallbackRevision;
+            auto fallbackPreset = store.loadOrEmpty({args.bank, fallbackSlot}, &fallbackRevision);
             std::string fallbackError;
             if (!ardor::applyPreset(*liveEngine, fallbackPreset, args.dataRoot,
                                     loadOptions, fallbackError)) {
               continue;
             }
             activePreset = std::move(fallbackPreset);
+            activePresetRevision = std::move(fallbackRevision);
             args.slot = fallbackSlot;
             initialPresetLoaded = true;
             initialPresetFallback = true;
@@ -938,13 +948,13 @@ int main(int argc, char** argv)
             // skipped without changing the pass-through safety fallback.
           }
         }
-      } else {
-        activePreset = store.loadOrEmpty({args.bank, args.slot});
       }
       if (!initialPresetLoaded) {
         // Keep a concrete serial/pass-through snapshot for the control/UI
         // lifecycle even when every slot in the bank is unavailable.
+        activePreset = {};
         activePreset.name = "No valid preset";
+        activePresetRevision.clear();
       }
 
       requestedSlot.store(-1, std::memory_order_relaxed);
@@ -994,6 +1004,7 @@ int main(int argc, char** argv)
       std::uint64_t nextSceneRequestId = 1;
       std::uint64_t pendingSceneRequestId = 0;
       std::uint64_t pendingSceneGeneration = 0;
+      std::uint64_t pendingSceneIdentity = 0;
       bool sceneAltered = false;
       bool scenePedalOverride = false;
       bool sceneMidiOverride = false;
@@ -1008,8 +1019,18 @@ int main(int argc, char** argv)
       };
       ardor::LooperController looperController;
       ardor::ActivePresetSelection activeSelection{args.bank, args.slot};
-      std::string activePresetRevision;
-      std::vector<std::string> recentSceneRecallIds;
+      bool runtimePresetAvailable = initialPresetLoaded;
+      ardor::RuntimeSceneRecall networkRecall;
+      std::vector<ardor::RuntimeSceneRecall> recentSceneRecalls;
+      std::uint64_t recallResultGeneration = 0;
+      const auto rememberRecall = [&](ardor::RuntimeSceneRecall result) {
+        if (result.requestId.empty()) return;
+        const auto found = std::find_if(recentSceneRecalls.begin(), recentSceneRecalls.end(),
+          [&](const auto& previous) { return previous.requestId == result.requestId; });
+        if (found != recentSceneRecalls.end()) *found = std::move(result);
+        else recentSceneRecalls.push_back(std::move(result));
+        if (recentSceneRecalls.size() > 128) recentSceneRecalls.erase(recentSceneRecalls.begin());
+      };
       {
         std::string stateError;
         const auto sceneIndex = static_cast<std::size_t>(
@@ -1036,6 +1057,8 @@ int main(int argc, char** argv)
         activeSelection.bank, activeSelection.slot, activePreset.name,
       };
       std::optional<ardor::Preset> loopReturnPreset;
+      std::string loopReturnRevision;
+      std::string loopReturnSceneId;
       std::optional<std::string> requestedLoopLoadId;
       uint64_t pendingNewCleanSequence = 0;
       bool pendingLoadedClean = false;
@@ -1122,6 +1145,10 @@ int main(int argc, char** argv)
         // The engine was loaded immediately above. Reflect that state in the
         // UI without queuing the same preset for another audio-engine swap.
         ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+        if (initialPresetLoaded) {
+          ardor::replaceActivePreset(uiState, activePreset);
+          uiState.bank.presets[uiState.activePreset].storedRevision = activePresetRevision;
+        }
         if (initialPresetFallback) {
           ardor::setUiStatus(uiState, "Requested preset unavailable; fallback preset active", true);
         } else if (!initialPresetLoaded) {
@@ -1144,6 +1171,7 @@ int main(int argc, char** argv)
               std::cerr << saveError << "\n";
               ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
             } else {
+              activePresetRevision = uiState.bank.presets[uiState.activePreset].storedRevision;
               ardor::setUiStatus(uiState, "Preset saved");
             }
           },
@@ -1229,6 +1257,7 @@ int main(int argc, char** argv)
                 ardor::setUiStatus(uiState, "Save failed: " + saveError, true);
                 return;
               }
+              activePresetRevision = uiState.bank.presets[uiState.activePreset].storedRevision;
             }
             const auto target = ardor::confirmNavigation(uiState, decision);
             if (!target.has_value()) return;
@@ -1397,6 +1426,12 @@ int main(int argc, char** argv)
               ? (activePreset.name.empty() ? "Loop" : activePreset.name + " Loop") : activeLoopName;
             request.sourcePreset = activeLoopSource;
             request.preset = activePreset;
+            if (activePreset.sceneSet) {
+              const auto identity = liveEngine->sceneTransitionTelemetry().destinationIdentity;
+              for (const auto& scene : activePreset.sceneSet->scenes) {
+                if (ardor::sceneIdentity(scene.id) == identity) request.destinationSceneId = scene.id;
+              }
+            }
             request.session = *view;
             try {
               looperIoBusy = true;
@@ -1654,9 +1689,110 @@ int main(int argc, char** argv)
       // watching it and dragging the threshold slider.
       auto nextGainReductionPoll = nextRuntimeCommandPoll;
       auto nextSceneTelemetryPoll = nextRuntimeCommandPoll;
-      const auto requestSceneSelection = [&](int index) {
+#if defined(ARDOR_HAS_UI)
+      std::uint64_t publishedSceneDraft = 0;
+      const auto syncSceneDraft = [&]() {
+        if (!args.enableUi || !ui || publishedSceneDraft == uiState.sceneDraftRevision
+            || !ardor::previewIsSynchronized(uiState)) return;
+        publishedSceneDraft = uiState.sceneDraftRevision;
+        const auto& draft = uiState.bank.presets[uiState.activePreset];
+        if (!draft.sceneSet || !activePreset.sceneSet) return;
+        auto authored = activePreset;
+        authored.sceneSet = draft.sceneSet;
+        std::string error;
+        if (ardor::publishPresetSceneBank(*liveEngine, authored, loadOptions, error)) {
+#if defined(__linux__)
+          bool slotsChanged = false;
+          for (std::size_t index = 0; index < authored.sceneSet->scenes.size(); ++index)
+            slotsChanged |= authored.sceneSet->scenes[index].id != activePreset.sceneSet->scenes[index].id;
+          if (slotsChanged) sceneMidiMapper.load(activePreset.sceneMidiBindings, authored.sceneSet);
+          const auto identity = liveEngine->sceneTransitionTelemetry().destinationIdentity;
+          const auto byIdentity = [&](const auto& scene) { return ardor::sceneIdentity(scene.id) == identity; };
+          const auto& previous = activePreset.sceneSet->scenes;
+          const auto& next = authored.sceneSet->scenes;
+          const auto before = std::find_if(previous.begin(), previous.end(), byIdentity);
+          const auto after = std::find_if(next.begin(), next.end(), byIdentity);
+          if (before != previous.end() && after != next.end() && before->targets != after->targets)
+            armControllerPickupForScene(*after);
+#endif
+          activePreset.sceneSet = std::move(authored.sceneSet);
+        } else {
+          if (ardor::undoLastBlockEdit(uiState)) ardor::completeStructuralPreview(uiState);
+          ardor::setUiStatus(uiState, error, true);
+        }
+      };
+#endif
+      const auto sceneIndexForIdentity = [&](std::uint64_t identity) {
+        if (!activePreset.sceneSet) return -1;
+        const auto& scenes = activePreset.sceneSet->scenes;
+        const auto found = std::find_if(scenes.begin(), scenes.end(), [&](const auto& scene) {
+          return ardor::sceneIdentity(scene.id) == identity;
+        });
+        return found == scenes.end() ? -1 : static_cast<int>(std::distance(scenes.begin(), found));
+      };
+      const auto remoteRecallBlock = [&]() -> std::string {
+        if (tunerMode) return "Tuner is active.";
+        if (backend.deviceStopped()) return "Audio is unavailable.";
+#if defined(ARDOR_HAS_UI)
+        if (args.enableUi && ui && (uiState.dirty || !ardor::previewIsSynchronized(uiState)))
+          return "Resolve the unsaved pedal edits before recalling from the Manager.";
+#endif
+        return {};
+      };
+      using PublishedSceneStatus = std::tuple<int, int, std::string, std::string, std::uint64_t,
+                                              int, ardor::RuntimeSceneStatus>;
+      std::optional<PublishedSceneStatus> lastPublishedSceneStatus;
+      const auto publishSceneStatus = [&](const ardor::SceneTransitionTelemetry& telemetry) {
+        if (!runtimePresetAvailable) return;
+        const auto generation = liveEngine->scenePresetGeneration();
+        if (recallResultGeneration != generation) {
+          recentSceneRecalls.clear();
+          networkRecall = {};
+          recallResultGeneration = generation;
+        }
+        ardor::RuntimeSceneStatus status;
+        status.recallBlocked = remoteRecallBlock();
+        status.transitioning = telemetry.transitioning;
+        status.altered = sceneAltered;
+        if (telemetry.totalFrames != 0) {
+          status.transitionPercent = static_cast<int>(
+            std::min<std::uint64_t>(100, 100ULL * telemetry.elapsedFrames / telemetry.totalFrames));
+        }
+        status.recalls = recentSceneRecalls;
+        const auto current = sceneIndexForIdentity(telemetry.currentIdentity);
+        const auto destination = sceneIndexForIdentity(telemetry.destinationIdentity);
+        std::string sceneId;
+        if (activePreset.sceneSet) {
+          const auto& scenes = activePreset.sceneSet->scenes;
+          for (const auto& scene : scenes) status.sceneIds.push_back(scene.id);
+          if (current >= 0) sceneId = scenes[current].id;
+          if (destination >= 0) status.destinationSceneId = scenes[destination].id;
+        }
+        const auto revision = status.recallBlocked.empty() ? activePresetRevision : std::string{};
+        PublishedSceneStatus published{activeSelection.bank, activeSelection.slot, activePreset.name,
+                                       revision, generation, current, status};
+        if (published == lastPublishedSceneStatus) return;
+        std::string error;
+        if (ardor::writeRuntimeActivePreset(args.dataRoot, activeSelection.bank, activeSelection.slot,
+              activePreset.name, error, generation, sceneId, current, revision, &status)) {
+          lastPublishedSceneStatus = std::move(published);
+        } else {
+          std::cerr << "Warning: could not publish live scene state: " << error << "\n";
+        }
+      };
+      const auto requestSceneSelection = [&](int index, std::string remoteRequestId = {}) {
+#if defined(ARDOR_HAS_UI)
+        syncSceneDraft();
+#endif
         if (tunerMode || !activePreset.sceneSet || index < 0 || index >= 4) return false;
         const auto& scene = activePreset.sceneSet->scenes[static_cast<std::size_t>(index)];
+        const auto identity = ardor::sceneIdentity(scene.id);
+        const auto telemetryBeforeRecall = liveEngine->sceneTransitionTelemetry();
+        const bool samePending = pendingSceneRequestId > telemetryBeforeRecall.lastAppliedRequestId
+          && pendingSceneIdentity == identity && pendingSceneGeneration == liveEngine->scenePresetGeneration();
+        const bool sameDestination = telemetryBeforeRecall.destinationIdentity == identity;
+        const bool preservesSound = samePending
+          || (sameDestination && (telemetryBeforeRecall.transitioning || !sceneAltered));
         const auto durationFrames = static_cast<std::uint32_t>(std::llround(
           static_cast<double>(scene.enterTimeMs) * args.sampleRate / 1000.0));
         const auto requestId = nextSceneRequestId++;
@@ -1675,11 +1811,21 @@ int main(int argc, char** argv)
 #endif
           return false;
         }
+        if (!networkRecall.requestId.empty()) {
+          networkRecall.state = "superseded";
+          networkRecall.message = "A newer scene recall replaced this request.";
+          rememberRecall(std::move(networkRecall));
+        }
+        networkRecall = {std::move(remoteRequestId), scene.id, "queued", {}};
+        rememberRecall(networkRecall);
         pendingSceneRequestId = requestId;
         pendingSceneGeneration = request.presetGeneration;
-        sceneAltered = false;
-        scenePedalOverride = false;
-        sceneMidiOverride = false;
+        pendingSceneIdentity = identity;
+        if (!preservesSound) {
+          sceneAltered = false;
+          scenePedalOverride = false;
+          sceneMidiOverride = false;
+        }
 #if defined(ARDOR_HAS_UI)
         if (args.enableUi && ui) {
           auto telemetry = uiState.scenes;
@@ -1690,7 +1836,7 @@ int main(int argc, char** argv)
         }
 #endif
 #if defined(__linux__)
-        armControllerPickupForScene(scene);
+        if (!preservesSound) armControllerPickupForScene(scene);
 #endif
         return true;
       };
@@ -1709,8 +1855,8 @@ int main(int argc, char** argv)
             if (scenes) ardor::enterScenesMode(uiState);
             else ardor::enterPresetMode(uiState);
           });
-        ui->setSceneTargetAction([&](std::size_t targetIndex, float value) {
-          return liveEngine->tryOverrideSceneTarget(targetIndex, value);
+        ui->setSceneTargetAction([&](std::size_t, float) {
+          return liveEngine->scenesPrepared();
         });
         ui->setSceneCaptureAction([&]() {
           liveEngine->requestSceneValueSnapshot();
@@ -1897,12 +2043,17 @@ int main(int argc, char** argv)
 #if defined(ARDOR_HAS_UI)
         if (restorePresetAfterLoopClose && !looperController.sessionLocked()
             && loopReturnPreset) {
+          auto activationPreset = *loopReturnPreset;
+          if (activationPreset.sceneSet && !loopReturnSceneId.empty())
+            activationPreset.sceneSet->defaultSceneId = loopReturnSceneId;
           const auto activation = ardor::prepareAndActivateDraft(
-            liveEngine, *loopReturnPreset, args.dataRoot, loadOptions,
+            liveEngine, activationPreset, args.dataRoot, loadOptions,
             static_cast<float>(controls.masterVolume) / 100.0f,
             [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
           if (activation.activated()) {
             activePreset = std::move(*loopReturnPreset);
+            activePresetRevision = std::move(loopReturnRevision);
+            loopReturnSceneId.clear();
             synchronizeFootswitchScenes(true);
             loopReturnPreset.reset();
             restorePresetAfterLoopClose = false;
@@ -1958,8 +2109,12 @@ int main(int argc, char** argv)
                                 loaded, loopError)) {
             ardor::setUiStatus(uiState, "Loop load failed: " + loopError, true);
           } else {
+            auto activationPreset = loaded.preset;
+            if (activationPreset.sceneSet && !loaded.destinationSceneId.empty())
+              activationPreset.sceneSet->defaultSceneId = loaded.destinationSceneId;
+            const auto previousSceneIdentity = liveEngine->sceneTransitionTelemetry().destinationIdentity;
             const auto activation = ardor::prepareAndActivateLoopSession(
-              liveEngine, loaded.preset, loaded.pausedSessionView(), args.dataRoot,
+              liveEngine, activationPreset, loaded.pausedSessionView(), args.dataRoot,
               loadOptions, looperMemoryBudget,
               static_cast<float>(controls.masterVolume) / 100.0f,
               [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
@@ -1968,8 +2123,17 @@ int main(int argc, char** argv)
                 ? std::string{replaceResultName(activation.replacementResult)} : activation.error;
               ardor::setUiStatus(uiState, "Loop load failed: " + reason, true);
             } else {
-              if (!loopReturnPreset) loopReturnPreset = activePreset;
+              if (!loopReturnPreset) {
+                loopReturnPreset = activePreset;
+                loopReturnRevision = activePresetRevision;
+                if (activePreset.sceneSet) {
+                  const auto index = sceneIndexForIdentity(previousSceneIdentity);
+                  if (index >= 0) loopReturnSceneId = activePreset.sceneSet->scenes[index].id;
+                }
+              }
               activePreset = std::move(loaded.preset);
+              activePresetRevision.clear();
+              runtimePresetAvailable = true;
               activeLoopId = loaded.id;
               activeLoopName = loaded.name;
               activeLoopSource = loaded.sourcePreset;
@@ -2345,7 +2509,14 @@ int main(int argc, char** argv)
             const auto blockCount = uiState.bank.presets[uiState.activePreset].blocks.size();
             const auto preparationStarted = std::chrono::steady_clock::now();
             std::optional<std::chrono::steady_clock::time_point> activationStarted;
-            const auto previewPreset = ardor::activePresetToPreset(uiState);
+            auto previewPreset = ardor::activePresetToPreset(uiState);
+            const auto authoredDefault = previewPreset.sceneSet ? previewPreset.sceneSet->defaultSceneId : std::string{};
+            if (previewPreset.sceneSet) {
+              const auto identity = liveEngine->sceneTransitionTelemetry().destinationIdentity;
+              for (const auto& scene : previewPreset.sceneSet->scenes) {
+                if (ardor::sceneIdentity(scene.id) == identity) previewPreset.sceneSet->defaultSceneId = scene.id;
+              }
+            }
             const auto activation = ardor::prepareAndActivateDraft(
               liveEngine, previewPreset, args.dataRoot,
               loadOptions, static_cast<float>(controls.masterVolume) / 100.0f,
@@ -2372,7 +2543,20 @@ int main(int argc, char** argv)
             if (activation.activated()) {
               runtime.changePreset();
               liveEngine->setEffectsBypassed(runtime.effectsBypassed());
-              activePreset = previewPreset;
+              if (previewPreset.sceneSet) previewPreset.sceneSet->defaultSceneId = authoredDefault;
+              activePreset = std::move(previewPreset);
+              runtimePresetAvailable = true;
+              activePresetRevision.clear();
+              if (!uiState.dirty) {
+                try {
+                  std::string revision;
+                  const auto stored = store.loadOrEmpty({uiState.activeBank, static_cast<int>(uiState.activePreset)}, &revision);
+                  if (ardor::samePreset(stored, activePreset)) activePresetRevision = std::move(revision);
+                } catch (const std::exception&) {
+                  // Leave this runtime unmatched if the slot changed or became unavailable.
+                }
+              }
+              publishedSceneDraft = uiState.sceneDraftRevision;
               synchronizeFootswitchScenes(false);
 #if defined(__linux__)
               expressionTargetWarningPrinted = false;
@@ -2396,6 +2580,7 @@ int main(int argc, char** argv)
               ardor::failStructuralPreview(uiState, reason);
             }
           }
+          syncSceneDraft();
         }
 #endif
         const auto now = std::chrono::steady_clock::now();
@@ -2421,25 +2606,20 @@ int main(int argc, char** argv)
           }
           const bool pending = pendingSceneRequestId != 0
             && scene.lastAppliedRequestId < pendingSceneRequestId;
-          if (!pending && pendingSceneRequestId != 0 && !scene.transitioning
-              && activePreset.sceneSet && scene.currentSceneIndex < activePreset.sceneSet->scenes.size()) {
-            std::string stateError;
-            const auto& live = activePreset.sceneSet->scenes[scene.currentSceneIndex];
-            if (!ardor::writeRuntimeActivePreset(
-                  args.dataRoot, activeSelection.bank, activeSelection.slot, activePreset.name,
-                  stateError, pendingSceneGeneration, live.id, scene.currentSceneIndex,
-                  activePresetRevision)) {
-              std::cerr << "Warning: could not publish live scene state: " << stateError << "\n";
-            }
+          if (!pending && pendingSceneRequestId != 0 && !scene.transitioning) {
+            networkRecall.state = "applied";
+            rememberRecall(std::exchange(networkRecall, {}));
             pendingSceneRequestId = 0;
           }
+          publishSceneStatus(scene);
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
             const float progress = scene.totalFrames == 0 ? 1.0f
               : std::clamp(static_cast<float>(scene.elapsedFrames)
                   / static_cast<float>(scene.totalFrames), 0.0f, 1.0f);
             ardor::updateSceneTelemetry(uiState, {
-              scene.currentSceneIndex, scene.destinationSceneIndex, progress,
+              static_cast<std::size_t>(std::max(0, sceneIndexForIdentity(scene.currentIdentity))),
+              static_cast<std::size_t>(std::max(0, sceneIndexForIdentity(scene.destinationIdentity))), progress,
               pending, scene.transitioning, sceneAltered, scenePedalOverride,
               uiState.scenes.rejection,
             });
@@ -2465,21 +2645,28 @@ int main(int argc, char** argv)
               requestedBank.store(command.bank, std::memory_order_relaxed);
               requestedSlot.store(command.slot, std::memory_order_relaxed);
             } else if (command.type == ardor::RuntimeCommandType::RecallScene) {
-              const bool duplicate = std::find(recentSceneRecallIds.begin(), recentSceneRecallIds.end(),
-                                               command.requestId) != recentSceneRecallIds.end();
-              if (duplicate || command.generation != liveEngine->scenePresetGeneration()
-                  || !activePreset.sceneSet) {
+              if (command.generation != liveEngine->scenePresetGeneration()) continue;
+              if (std::any_of(recentSceneRecalls.begin(), recentSceneRecalls.end(),
+                    [&](const auto& recall) { return recall.requestId == command.requestId; })) continue;
+              const auto rejectRecall = [&](std::string reason) {
+                rememberRecall({command.requestId, command.sceneId, "rejected", std::move(reason)});
+              };
+              if (const auto blocked = remoteRecallBlock(); !blocked.empty()) {
+                rejectRecall(blocked);
                 continue;
               }
-              const auto scene = std::find_if(
-                activePreset.sceneSet->scenes.begin(), activePreset.sceneSet->scenes.end(),
+              if (!activePreset.sceneSet) {
+                rejectRecall("There is no scene bank active.");
+                continue;
+              }
+              const auto& scenes = activePreset.sceneSet->scenes;
+              const auto scene = std::find_if(scenes.begin(), scenes.end(),
                 [&](const auto& candidate) { return candidate.id == command.sceneId; });
-              if (scene == activePreset.sceneSet->scenes.end()) continue;
-              const auto index = static_cast<int>(
-                std::distance(activePreset.sceneSet->scenes.begin(), scene));
-              if (requestSceneSelection(index)) {
-                recentSceneRecallIds.push_back(command.requestId);
-                if (recentSceneRecallIds.size() > 128) recentSceneRecallIds.erase(recentSceneRecallIds.begin());
+              if (scene == scenes.end()) {
+                rejectRecall("Scene does not exist in the active preset.");
+              } else if (!requestSceneSelection(static_cast<int>(std::distance(scenes.begin(), scene)),
+                                                command.requestId)) {
+                rejectRecall("The audio engine rejected the recall.");
               }
             }
           }
@@ -2502,6 +2689,19 @@ int main(int argc, char** argv)
           requestedApplyBank = -1;
           requestedApplySlot = -1;
           const int targetBank = nextBank >= 0 ? nextBank : args.bank;
+          if (!applyId.empty()) {
+            std::string blocked;
+            if (tunerMode) blocked = "Tuner is active.";
+            else if (looperController.sessionLocked()) blocked = "Close the loop session before applying a preset.";
+#if defined(ARDOR_HAS_UI)
+            else if (args.enableUi && ui && (uiState.dirty || !ardor::previewIsSynchronized(uiState)))
+              blocked = "Resolve the unsaved pedal edits before applying a preset.";
+#endif
+            if (!blocked.empty()) {
+              publishApplyResult(applyId, "rejected", targetBank, nextSlot, blocked);
+              continue;
+            }
+          }
           if (tunerMode) {
             if (!deferredTunerApplyId.empty()) {
               publishApplyResult(deferredTunerApplyId, "superseded", deferredTunerBank,
@@ -2515,8 +2715,11 @@ int main(int argc, char** argv)
             continue;
           }
           ardor::Preset targetPreset;
+          std::string targetRevision;
           try {
-            targetPreset = store.loadOrEmpty({targetBank, nextSlot});
+            targetPreset = store.loadOrEmpty({targetBank, nextSlot}, &targetRevision);
+            if (!applyRevision.empty() && targetRevision != applyRevision)
+              throw std::runtime_error("Preset changed before Apply. Reload it and try again.");
           } catch (const std::exception& e) {
             std::cerr << "Preset switch rejected before activation: " << e.what() << "\n";
             publishApplyResult(applyId, "rejected", targetBank, nextSlot, e.what());
@@ -2537,8 +2740,17 @@ int main(int argc, char** argv)
           // a live switch. An earlier WDW preflight built both NAM lanes and
           // their workers a second time, doubling switch cost and creating a
           // failure window between validation and the real replacement.
+          auto activationPreset = targetPreset;
+          if (!applySceneId.empty()) {
+            if (!activationPreset.sceneSet || std::none_of(activationPreset.sceneSet->scenes.begin(),
+                  activationPreset.sceneSet->scenes.end(), [&](const auto& scene) { return scene.id == applySceneId; })) {
+              publishApplyResult(applyId, "rejected", targetBank, nextSlot, "Scene does not exist in this preset revision.");
+              continue;
+            }
+            activationPreset.sceneSet->defaultSceneId = applySceneId;
+          }
           const auto activation = ardor::prepareAndActivatePreset(
-            liveEngine, activeSelection, targetPreset, {targetBank, nextSlot}, args.dataRoot,
+            liveEngine, activeSelection, activationPreset, {targetBank, nextSlot}, args.dataRoot,
             loadOptions, static_cast<float>(controls.masterVolume) / 100.0f,
             [&](ardor::PedalEngine& prepared) { return backend.replaceEngine(prepared); });
           if (!activation.activated()) {
@@ -2578,8 +2790,8 @@ int main(int argc, char** argv)
           runtime.changePreset();
           liveEngine->setEffectsBypassed(runtime.effectsBypassed());
           activePreset = std::move(targetPreset);
-          activePresetRevision = applyRevision;
-          recentSceneRecallIds.clear();
+          activePresetRevision = std::move(targetRevision);
+          runtimePresetAvailable = true;
           synchronizeFootswitchScenes(true);
 #if defined(__linux__)
           expressionFilter.reset();
@@ -2590,37 +2802,13 @@ int main(int argc, char** argv)
           args.bank = activeSelection.bank;
           args.slot = activeSelection.slot;
           controls.activeSlot = activeSelection.slot;
-          {
-            std::string stateError;
-            if (!ardor::writeRuntimeActivePreset(args.dataRoot, activeSelection.bank,
-                                                 activeSelection.slot, activePreset.name,
-                                                 stateError, liveEngine->scenePresetGeneration(),
-                                                 activePreset.sceneSet
-                                                   ? activePreset.sceneSet->scenes[
-                                                       liveEngine->sceneTransitionTelemetry().currentSceneIndex].id
-                                                   : std::string{},
-                                                 activePreset.sceneSet
-                                                   ? static_cast<int>(liveEngine->sceneTransitionTelemetry().currentSceneIndex)
-                                                   : -1,
-                                                 activePresetRevision)) {
-              std::cerr << "Warning: could not publish active preset state: " << stateError << "\n";
-            }
-          }
-          if (!applySceneId.empty() && activePreset.sceneSet) {
-            const auto scene = std::find_if(
-              activePreset.sceneSet->scenes.begin(), activePreset.sceneSet->scenes.end(),
-              [&](const auto& candidate) { return candidate.id == applySceneId; });
-            if (scene != activePreset.sceneSet->scenes.end()) {
-              requestSceneSelection(static_cast<int>(
-                std::distance(activePreset.sceneSet->scenes.begin(), scene)));
-            }
-          }
-          publishApplyResult(applyId, "applied", activeSelection.bank, activeSelection.slot, {});
           std::cerr << "Switched to preset " << args.bank << ":" << args.slot << "\n";
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
             ardor::loadBankFromStore(uiState, store, args.bank);
             ardor::synchronizePresetSelection(uiState, static_cast<std::size_t>(args.slot));
+            ardor::replaceActivePreset(uiState, activePreset);
+            uiState.bank.presets[uiState.activePreset].storedRevision = activePresetRevision;
             if (sceneLayerActive) ardor::enterScenesMode(uiState);
             else ardor::enterPresetMode(uiState);
             auto telemetry = uiState.telemetry;
@@ -2629,6 +2817,8 @@ int main(int argc, char** argv)
             ardor::setUiStatus(uiState, {});
           }
 #endif
+          publishSceneStatus(liveEngine->sceneTransitionTelemetry());
+          publishApplyResult(applyId, "applied", activeSelection.bank, activeSelection.slot, {});
           continue;
         }
         if (now >= nextTelemetry) {

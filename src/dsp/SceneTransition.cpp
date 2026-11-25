@@ -81,6 +81,8 @@ bool SceneTransitionController::prepare(SceneTransitionProgram program)
   startOutputTrimDb_ = currentOutputTrimDb_;
   destinationOutputTrimDb_ = currentOutputTrimDb_;
   mailbox_.reset();
+  bank_.serial.store(0);
+  consumedBankSerial_ = 0;
   for (auto& bits : overrideBits_) bits.store(0, std::memory_order_relaxed);
   consumedSerial_ = 0;
   lastAppliedRequestId_ = 0;
@@ -108,14 +110,101 @@ bool SceneTransitionController::requestOverride(std::size_t targetIndex, float v
   return true;
 }
 
+bool SceneTransitionController::publishSceneBank(const SceneTransitionProgram& program) noexcept
+{
+  if (!prepared_ || program.targets.size() != program_.targets.size()) return false;
+  for (std::size_t index = 0; index < program.targets.size(); ++index) {
+    if (program.targets[index].address != program_.targets[index].address
+        || program.targets[index].law != program_.targets[index].law) return false;
+  }
+  // A single producer writes the complete authored bank. The audio thread
+  // copies it only when the sequence changes and never waits for publication.
+  bank_.serial.fetch_add(1);
+  for (std::size_t index = 0; index < program.targets.size(); ++index) {
+    for (std::size_t scene = 0; scene < 4; ++scene)
+      bank_.values[index * 4 + scene].store(program.targets[index].values[scene]);
+  }
+  for (std::size_t scene = 0; scene < 4; ++scene) {
+    bank_.trims[scene].store(program.outputTrimDb[scene]);
+    bank_.identities[scene].store(program.sceneIdentities[scene]);
+  }
+  bank_.serial.fetch_add(1);
+  return true;
+}
+
+bool SceneTransitionController::consumeSceneBank() noexcept
+{
+  const auto serial = bank_.serial.load();
+  if (serial == consumedBankSerial_) return true;
+  if (serial & 1U) return false;
+  std::array<std::array<float, 4>, kMaximumTargets> values;
+  std::array<float, 4> trims;
+  std::array<std::uint64_t, 4> identities;
+  for (std::size_t index = 0; index < program_.targets.size(); ++index) {
+    for (std::size_t scene = 0; scene < 4; ++scene)
+      values[index][scene] = bank_.values[index * 4 + scene].load();
+  }
+  for (std::size_t scene = 0; scene < 4; ++scene) {
+    trims[scene] = bank_.trims[scene].load();
+    identities[scene] = bank_.identities[scene].load();
+  }
+  if (bank_.serial.load() != serial) return false;
+  consumedBankSerial_ = serial;
+
+  const auto remap = [&](std::uint8_t scene) {
+    const auto found = std::find(identities.begin(), identities.end(), program_.sceneIdentities[scene]);
+    return found == identities.end() ? scene
+      : static_cast<std::uint8_t>(std::distance(identities.begin(), found));
+  };
+  const auto destination = remap(destinationSceneIndex_);
+  const auto previousDestination = destinationSceneIndex_;
+  currentSceneIndex_ = remap(currentSceneIndex_);
+  destinationSceneIndex_ = destination;
+  bool destinationChanged = program_.outputTrimDb[previousDestination] != trims[destination];
+  std::array<bool, kMaximumTargets> keepOverride{};
+  std::array<float, kMaximumTargets> overrideValue;
+  for (std::size_t index = 0; index < program_.targets.size(); ++index) {
+    auto& target = program_.targets[index];
+    const bool changed = target.values[previousDestination] != values[index][destination];
+    destinationChanged |= changed;
+    keepOverride[index] = overridden_[index] && !changed;
+    if (keepOverride[index]) overrideValue[index] = currentValues_[index];
+    target.values = values[index];
+  }
+  program_.sceneIdentities = identities;
+  program_.outputTrimDb = trims;
+  if (destinationChanged) {
+    const auto remaining = transitioning_ ? totalFrames_ - elapsedFrames_ : 0;
+    startRequest({program_.presetGeneration, lastAppliedRequestId_, remaining, destination});
+    for (std::size_t index = 0; index < program_.targets.size(); ++index) {
+      if (!keepOverride[index]) continue;
+      overridden_[index] = true;
+      currentValues_[index] = startValues_[index] = destinationValues_[index] = overrideValue[index];
+    }
+  }
+  publishTelemetry();
+  return true;
+}
+
+bool SceneTransitionController::hasOverrides() const noexcept
+{
+  return std::any_of(overridden_.begin(), overridden_.end(), [](bool value) { return value; });
+}
+
 void SceneTransitionController::beginBlock() noexcept
 {
-  if (!prepared_) return;
+  if (!prepared_ || !consumeSceneBank()) return;
   SceneTransitionRequest request;
   if (mailbox_.readLatest(consumedSerial_, request)
       && request.presetGeneration == program_.presetGeneration
       && request.requestId > lastAppliedRequestId_) {
-    startRequest(request);
+    const bool sameDestination = request.sceneIndex == destinationSceneIndex_;
+    if (sameDestination && (transitioning_ || !hasOverrides())) {
+      lastAppliedRequestId_ = request.requestId;
+      publishTelemetry();
+    } else {
+      startRequest(request);
+    }
   }
   consumeOverrides();
 }
@@ -153,6 +242,18 @@ void SceneTransitionController::startRequest(const SceneTransitionRequest& reque
     destinationValues_[index] = program_.targets[index].values[destinationSceneIndex_];
   }
 
+  if (totalFrames_ == 0 && program_.instantGainFrames != 0) {
+    bool smoothGain = startOutputTrimDb_ != destinationOutputTrimDb_;
+    for (std::size_t index = 0; index < program_.targets.size(); ++index) {
+      if (program_.targets[index].address.kind == SceneRuntimeTargetKind::InputGainDb) {
+        smoothGain |= currentValues_[index] != destinationValues_[index];
+      } else {
+        currentValues_[index] = destinationValues_[index];
+        startValues_[index] = destinationValues_[index];
+      }
+    }
+    if (smoothGain) totalFrames_ = program_.instantGainFrames;
+  }
   if (totalFrames_ == 0) {
     currentValues_ = destinationValues_;
     currentOutputTrimDb_ = destinationOutputTrimDb_;
@@ -216,6 +317,8 @@ void SceneTransitionController::publishTelemetry() noexcept
   telemetryElapsedFrames_.store(elapsedFrames_);
   telemetryTotalFrames_.store(totalFrames_);
   telemetryTransitioning_.store(transitioning_);
+  telemetryCurrentIdentity_.store(program_.sceneIdentities[currentSceneIndex_]);
+  telemetryDestinationIdentity_.store(program_.sceneIdentities[destinationSceneIndex_]);
   telemetrySerial_.fetch_add(1);
 }
 
@@ -231,6 +334,8 @@ SceneTransitionTelemetry SceneTransitionController::telemetry() const noexcept
     snapshot.elapsedFrames = telemetryElapsedFrames_.load();
     snapshot.totalFrames = telemetryTotalFrames_.load();
     snapshot.transitioning = telemetryTransitioning_.load();
+    snapshot.currentIdentity = telemetryCurrentIdentity_.load();
+    snapshot.destinationIdentity = telemetryDestinationIdentity_.load();
     if (before == telemetrySerial_.load()) return snapshot;
   }
   // Every field remains atomic even when publication overlaps all attempts.

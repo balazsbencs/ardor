@@ -22,6 +22,11 @@ export type DeviceStatus = {
     liveSceneIndex?: number;
     revision?: string;
     storedRevisionMatches?: boolean;
+    sceneRecallBlocked?: string;
+    destinationSceneId?: string;
+    sceneTransitioning?: boolean;
+    sceneTransitionPercent?: number;
+    sceneAltered?: boolean;
   };
   capabilities: {
     modelUpload: boolean;
@@ -203,6 +208,7 @@ export type PresetSlot = {
   bank: number;
   slot: number;
   preset: Preset;
+  revision?: string;
 };
 
 export type ApplyPresetResponse = {
@@ -227,8 +233,17 @@ export type ApplyPresetStatus = {
 export type RecallSceneResponse = {
   accepted: boolean;
   generation: number;
+  state?: SceneRecallStatus["state"];
+  message?: string;
   sceneId: string;
   requestId: string;
+};
+
+export type SceneRecallStatus = {
+  requestId: string;
+  sceneId: string;
+  state: "queued" | "applied" | "rejected" | "superseded";
+  message?: string;
 };
 
 export type AssetUse = { bank: number; slot: number; name?: string };

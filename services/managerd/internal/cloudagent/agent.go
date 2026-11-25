@@ -448,15 +448,18 @@ func (agent *Agent) handlePresetOperation(ctx context.Context, connection *webso
 			break
 		}
 		var payload struct {
-			Bank   int            `json:"bank"`
-			Slot   int            `json:"slot"`
-			Preset presets.Preset `json:"preset"`
+			Bank     int            `json:"bank"`
+			Slot     int            `json:"slot"`
+			Preset   presets.Preset `json:"preset"`
+			Revision string         `json:"revision"`
 		}
 		if err := decodePayload(request.Payload, &payload); err != nil {
 			return err
 		}
-		saved, err := store.Save(payload.Bank, payload.Slot, payload.Preset)
-		if err != nil {
+		saved, err := store.SaveIfMatch(payload.Bank, payload.Slot, payload.Preset, payload.Revision)
+		if errors.Is(err, presets.ErrRevisionConflict) {
+			operationFailure = &operationError{Code: "preset_revision_conflict", Message: err.Error()}
+		} else if err != nil {
 			operationFailure = &operationError{Code: "preset_save_failed", Message: err.Error()}
 		} else {
 			result = saved
@@ -466,18 +469,28 @@ func (agent *Agent) handlePresetOperation(ctx context.Context, connection *webso
 			operationFailure = &operationError{Code: "remote_mutations_disabled", Message: "remote preset mutations are disabled on this pedal"}
 			break
 		}
-		bank, slot, err := decodePresetSlot(request.Payload)
-		if err != nil {
+		var expected struct {
+			Bank     int    `json:"bank"`
+			Slot     int    `json:"slot"`
+			Revision string `json:"revision"`
+		}
+		if err := decodePayload(request.Payload, &expected); err != nil {
 			return err
+		}
+		bank, slot := expected.Bank, expected.Slot
+		if bank < 0 || bank > 99 || slot < 0 || slot > 3 {
+			return errors.New("preset slot is out of range")
 		}
 		preset, err := store.Load(bank, slot)
 		if errors.Is(err, os.ErrNotExist) {
 			operationFailure = &operationError{Code: "preset_not_found", Message: "preset was not found"}
 		} else if err != nil {
 			operationFailure = &operationError{Code: "preset_read_failed", Message: err.Error()}
+		} else if expected.Revision != "" && expected.Revision != preset.Revision {
+			operationFailure = &operationError{Code: "preset_revision_conflict", Message: presets.ErrRevisionConflict.Error()}
 		} else if err := presets.ValidateRunnable(preset.Preset); err != nil {
 			operationFailure = &operationError{Code: "preset_not_runnable", Message: err.Error()}
-		} else if err := runtimecontrol.QueueApplyPreset(agent.config.DataRoot, bank, slot); err != nil {
+		} else if _, err := runtimecontrol.QueueApplyPresetSceneWithID(agent.config.DataRoot, bank, slot, "", preset.Revision); err != nil {
 			operationFailure = &operationError{Code: "runtime_command_failed", Message: err.Error()}
 		} else {
 			result = map[string]any{"accepted": true, "bank": bank, "slot": slot, "message": "apply request queued"}

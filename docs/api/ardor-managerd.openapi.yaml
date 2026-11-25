@@ -418,6 +418,10 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Bank"
         - $ref: "#/components/parameters/Slot"
+        - in: header
+          name: If-Match
+          description: Quoted revision from GET, or "missing" to require an empty slot.
+          schema: {type: string}
       requestBody:
         required: true
         content:
@@ -435,8 +439,12 @@ paths:
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "409":
-          $ref: "#/components/responses/Conflict"
+        "412":
+          description: The slot changed since the client read it.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /api/presets/banks/{bank}/slots/{slot}/apply:
     post:
@@ -453,6 +461,14 @@ paths:
       parameters:
         - $ref: "#/components/parameters/Bank"
         - $ref: "#/components/parameters/Slot"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                revision: {type: string, description: Revision read by the client.}
+                sceneId: {type: string, description: Scene to initialize when the preset becomes active.}
       responses:
         "202":
           description: Apply request accepted
@@ -466,8 +482,64 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "412":
+          description: The requested revision no longer matches the slot.
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+
+  /api/runtime/scenes/{sceneId}/recall:
+    post:
+      tags: [Presets]
+      summary: Queue recall against the active scene generation
+      parameters:
+        - in: path
+          name: sceneId
+          required: true
+          schema: {type: string}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [generation, requestId]
+              properties:
+                generation: {type: integer}
+                requestId: {type: string}
+      responses:
+        "202":
+          description: Queued. Poll the request status for the outcome.
+        "200":
+          description: Previously recorded outcome for this generation and request ID.
+        "404":
+          description: The active scene bank has no such scene.
+        "409":
+          description: Stale generation, unavailable recall, or request ID used for another scene.
+
+  /api/runtime/scenes/recalls/{requestId}:
+    get:
+      tags: [Presets]
+      summary: Read a scene recall outcome
+      parameters:
+        - {in: path, name: requestId, required: true, schema: {type: string}}
+        - {in: query, name: generation, required: true, schema: {type: integer}}
+      responses:
+        "200":
+          description: Known request status.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [requestId, sceneId, state]
+                properties:
+                  requestId: {type: string}
+                  sceneId: {type: string}
+                  state: {enum: [queued, applied, rejected, superseded]}
+                  message: {type: string}
+        "202":
+          description: The runtime has yet to report the request.
+        "409":
+          description: The generation is no longer active.
 
 components:
   securitySchemes:
@@ -593,7 +665,7 @@ components:
           const: 4
         supportedPresetVersion:
           type: integer
-          const: 2
+          const: 4
         active:
           $ref: "#/components/schemas/ActivePreset"
         capabilities:
@@ -826,6 +898,7 @@ components:
         - bank
         - slot
         - preset
+        - revision
       properties:
         bank:
           type: integer
@@ -835,6 +908,9 @@ components:
           type: integer
           minimum: 0
           maximum: 3
+        revision:
+          type: string
+          description: Opaque revision of the stored preset bytes.
         updatedAt:
           type: string
           format: date-time

@@ -66,7 +66,10 @@ std::optional<ResolvedBlock> findInBlocks(const std::vector<PresetBlock>& blocks
       std::uint16_t runtimeChild = 0;
       for (std::size_t child = 0; child < blocks[top].lanes[lane].size(); ++child) {
         if (blocks[top].lanes[lane][child].id == id) {
-          if (!topPrepared) return std::nullopt;
+          if (!topPrepared) {
+            return ResolvedBlock{&blocks[top].lanes[lane][child],
+                                 {SceneBlockContainer::None, runtimeTop, runtimeChild, true}};
+          }
           return ResolvedBlock{
             &blocks[top].lanes[lane][child],
             {lane == 0 ? SceneBlockContainer::DualRigLeft : SceneBlockContainer::DualRigRight,
@@ -558,6 +561,24 @@ bool admitScenePlan(const ScenePlan& plan, std::size_t preparedProcessorLimit,
   return true;
 }
 
+std::optional<std::array<float, 2>> sceneParameterBounds(const PresetBlock& block,
+                                                        std::string_view key)
+{
+  const auto capability = capabilityFor(block, key);
+  if (!capability) return std::nullopt;
+  return std::array{capability->minimum, capability->maximum};
+}
+
+std::uint64_t sceneIdentity(std::string_view id) noexcept
+{
+  std::uint64_t identity = 14695981039346656037ULL;
+  for (const unsigned char byte : id) {
+    identity ^= byte;
+    identity *= 1099511628211ULL;
+  }
+  return identity;
+}
+
 SceneTransitionProgram makeSceneTransitionProgram(const ScenePlan& plan,
                                                   std::uint64_t presetGeneration)
 {
@@ -567,7 +588,8 @@ SceneTransitionProgram makeSceneTransitionProgram(const ScenePlan& plan,
   program.targets.reserve(plan.targets.size());
   for (const auto& target : plan.targets) {
     SceneRuntimeAddress address;
-    address.kind = target.kind;
+    address.kind = target.location.child && target.location.container == SceneBlockContainer::None
+      ? SceneRuntimeTargetKind::Inactive : target.kind;
     address.container = target.location.container;
     address.topIndex = target.location.topIndex;
     address.childIndex = target.location.childIndex;
@@ -578,6 +600,7 @@ SceneTransitionProgram makeSceneTransitionProgram(const ScenePlan& plan,
   }
   for (std::size_t scene = 0; scene < plan.scenes.size(); ++scene) {
     program.outputTrimDb[scene] = plan.scenes[scene].outputTrimDb;
+    program.sceneIdentities[scene] = sceneIdentity(plan.scenes[scene].id);
   }
   return program;
 }

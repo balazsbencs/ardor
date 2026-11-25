@@ -8,6 +8,8 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <string_view>
+#include <optional>
 
 namespace ardor {
 
@@ -79,6 +81,9 @@ bool admitScenePlan(const ScenePlan& plan, std::size_t preparedProcessorLimit,
 // safely own. The returned address order is stable and can be copied into all
 // four scenes when scene authoring is enabled.
 std::vector<PresetSceneTarget> captureSceneTargets(const Preset& preset);
+std::optional<std::array<float, 2>> sceneParameterBounds(const PresetBlock& block,
+                                                        std::string_view key);
+std::uint64_t sceneIdentity(std::string_view id) noexcept;
 SceneTransitionProgram makeSceneTransitionProgram(const ScenePlan& plan,
                                                   std::uint64_t presetGeneration);
 

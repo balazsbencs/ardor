@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <utility>
 
@@ -110,6 +111,21 @@ int main()
   require(error.find("shared-only") != std::string::npos,
           "structural bypass rejection was not explained");
 
+  auto split = makePreset();
+  ardor::PresetBlock bypassedRig{"split", "dualRig", false, "", nlohmann::json::object()};
+  bypassedRig.lanes[0].push_back(split.blocks[1]);
+  bypassedRig.lanes[1].push_back({"right", "delay", true, "", {{"mode", "digital"}, {"mix", 0.3}}});
+  split.blocks = {std::move(bypassedRig)};
+  const auto childTargets = ardor::captureSceneTargets(split);
+  for (auto& scene : split.sceneSet->scenes) scene.targets = childTargets;
+  split = ardor::presetFromJson(ardor::toJson(split));
+  require(ardor::buildScenePlan(split, plan, error), error);
+  const auto bypassedProgram = ardor::makeSceneTransitionProgram(plan, 18);
+  require(bypassedProgram.targets.size() > 1
+            && bypassedProgram.targets[1].address.kind == ardor::SceneRuntimeTargetKind::Inactive
+            && plan.admission.preparedProcessors == 0,
+          "bypassing a shared split should keep child scene values without preparing the lane DSP");
+
   auto tailHeavy = makePreset();
   tailHeavy.blocks.push_back(
     {"echo-2", "delay", false, "", {{"mode", "digital"}, {"mix", 0.2f}}});
@@ -150,6 +166,21 @@ int main()
                              "reverbTimeRatio", "", 0.5f});
   require(!ardor::buildScenePlan(irTime, plan, error),
           "kernel preparation must never become an audio-thread scene target");
+
+  std::ifstream rangesFile(ARDOR_SCENE_PARAMETER_RANGES);
+  require(rangesFile.good(), "scene capability table should be available");
+  const auto ranges = nlohmann::json::parse(rangesFile);
+  for (const auto& [type, modes] : ranges.items()) {
+    for (const auto& [mode, parameters] : modes.items()) {
+      ardor::PresetBlock block;
+      block.type = type;
+      if (!mode.empty()) block.params["mode"] = mode;
+      for (const auto& [key, range] : parameters.items()) {
+        require(ardor::sceneParameterBounds(block, key) == range.get<std::array<float, 2>>(),
+                "Manager and daemon scene capability drift: " + type + "/" + mode + "/" + key);
+      }
+    }
+  }
 
   std::cout << "scene plan smoke passed\n";
   return 0;

@@ -995,7 +995,7 @@ void onBypassClicked(lv_event_t* event)
     return;
   }
   bool updatedLive = false;
-  if (const auto targetIndex = selectedParameterSceneTargetIndex(
+  if (const auto targetIndex = selectedParameterRuntimeTargetIndex(
         *context->state, "blockEnabled")) {
     updatedLive = context->ui->actions().updateSceneTarget
       && context->ui->actions().updateSceneTarget(*targetIndex, enabled ? 1.0f : 0.0f);

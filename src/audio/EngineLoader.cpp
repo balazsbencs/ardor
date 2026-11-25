@@ -1163,6 +1163,20 @@ bool preflightPresetSlot(const PresetStore& store, PresetSlot slot,
   }
 }
 
+bool publishPresetSceneBank(PedalEngine& engine, const Preset& preset,
+                           const EngineLoadOptions& options, std::string& error)
+{
+  ScenePlan plan;
+  if (!buildScenePlan(preset, plan, error)
+      || !admitScenePlan(plan, options.scenePreparedProcessorLimit,
+                         options.sceneConcurrentProcessorLimit, error)) return false;
+  if (!engine.publishSceneBank(makeSceneTransitionProgram(plan, engine.scenePresetGeneration()))) {
+    error = "Scene targets changed and require preparing the preset again.";
+    return false;
+  }
+  return true;
+}
+
 bool applyPreset(PedalEngine& engine, const Preset& preset, const std::filesystem::path& dataRoot,
                  const EngineLoadOptions& options, std::string& error)
 {

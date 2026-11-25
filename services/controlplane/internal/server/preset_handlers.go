@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"ardor.local/cloudprotocol"
@@ -54,7 +55,11 @@ func (server *Server) saveDevicePreset(writer http.ResponseWriter, request *http
 	if !decodeJSONLimit(writer, request, &preset, cloudprotocol.MaxMessageBytes-4096) {
 		return
 	}
-	server.relayPresetMutation(writer, request, cloudprotocol.OperationPresetSave, map[string]any{"bank": bank, "slot": slot, "preset": preset}, http.StatusOK)
+	payload := map[string]any{"bank": bank, "slot": slot, "preset": preset}
+	if revision := strings.Trim(request.Header.Get("If-Match"), `"`); revision != "" {
+		payload["revision"] = revision
+	}
+	server.relayPresetMutation(writer, request, cloudprotocol.OperationPresetSave, payload, http.StatusOK)
 }
 
 func (server *Server) applyDevicePreset(writer http.ResponseWriter, request *http.Request) {
@@ -65,7 +70,11 @@ func (server *Server) applyDevicePreset(writer http.ResponseWriter, request *htt
 	if !ok {
 		return
 	}
-	server.relayPresetMutation(writer, request, cloudprotocol.OperationPresetApply, map[string]any{"bank": bank, "slot": slot}, http.StatusAccepted)
+	payload := map[string]any{"bank": bank, "slot": slot}
+	if revision := strings.Trim(request.Header.Get("If-Match"), `"`); revision != "" {
+		payload["revision"] = revision
+	}
+	server.relayPresetMutation(writer, request, cloudprotocol.OperationPresetApply, payload, http.StatusAccepted)
 }
 
 func (server *Server) relayPresetMutation(writer http.ResponseWriter, request *http.Request, operation string, payload any, successStatus int) {
@@ -199,6 +208,8 @@ func relayHTTPResponse(result json.RawMessage, failure *deviceOperationError, su
 		"invalid_asset_kind", "invalid_asset", "invalid_asset_chunk", "invalid_asset_offset",
 		"asset_integrity_failed", "asset_size_changed", "asset_rename_failed", "asset_delete_failed":
 		status = http.StatusBadRequest
+	case "preset_revision_conflict":
+		status = http.StatusPreconditionFailed
 	case "remote_mutations_disabled", "asset_exists", "transfer_exists":
 		status = http.StatusConflict
 	case "device_offline", "device_unavailable", "runtime_command_failed":

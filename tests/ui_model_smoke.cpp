@@ -585,6 +585,22 @@ int main()
                      .targets[*scopedIndex].value == otherSceneValue,
               "capture should replace only the selected scene's settled owned values")) return 1;
 
+  {
+    auto reordered = sceneScopeState;
+    auto& targets = reordered.bank.presets[2].sceneSet->scenes[1].targets;
+    std::reverse(targets.begin(), targets.end());
+    ardor::selectEditingScene(reordered, 1);
+    const auto runtimeIndex = ardor::selectedParameterRuntimeTargetIndex(reordered, scopedControl->key);
+    if (require(runtimeIndex == scopedIndex,
+                "native preview should address a reordered target by identity")) return 1;
+    if (require(ardor::setSelectedParameterSceneScope(
+                  reordered, scopedControl->key, ardor::UiSceneScope::Shared),
+                "scope change should work in a reordered scene")) return 1;
+    const auto encoded = ardor::toJson(ardor::activePresetToPreset(reordered));
+    if (require(ardor::presetFromJson(encoded).sceneSet.has_value(),
+                "sharing a reordered scene target must leave the preset saveable")) return 1;
+  }
+
   auto sceneDeleteState = sceneScopeState;
   const auto beforeSceneDelete = ardor::activePresetToPreset(sceneDeleteState);
   const auto deletedSceneBlockId = beforeSceneDelete.blocks[1].id;

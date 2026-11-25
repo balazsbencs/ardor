@@ -24,6 +24,25 @@ struct RuntimeCommand {
   std::string revision;
 };
 
+struct RuntimeSceneRecall {
+  std::string requestId;
+  std::string sceneId;
+  std::string state;
+  std::string message;
+  bool operator==(const RuntimeSceneRecall&) const = default;
+};
+
+struct RuntimeSceneStatus {
+  std::vector<std::string> sceneIds;
+  std::string destinationSceneId;
+  std::string recallBlocked;
+  int transitionPercent = 100;
+  bool transitioning = false;
+  bool altered = false;
+  std::vector<RuntimeSceneRecall> recalls;
+  bool operator==(const RuntimeSceneStatus&) const = default;
+};
+
 // Commands are created with an atomic rename by managerd. This function runs
 // only on the pedal management loop, never on the audio callback.
 std::vector<RuntimeCommand> consumeRuntimeCommands(const std::filesystem::path& dataRoot);
@@ -41,7 +60,8 @@ bool writeRuntimeActivePreset(const std::filesystem::path& dataRoot,
                               std::uint64_t generation = 0,
                               const std::string& liveSceneId = {},
                               int liveSceneIndex = -1,
-                              const std::string& revision = {});
+                              const std::string& revision = {},
+                              const RuntimeSceneStatus* scenes = nullptr);
 bool clearRuntimeActivePreset(const std::filesystem::path& dataRoot,
                               std::string& error);
 

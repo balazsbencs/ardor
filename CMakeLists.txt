@@ -505,6 +505,8 @@ add_executable(pedal-preset-smoke tests/preset_smoke.cpp)
 target_link_libraries(pedal-preset-smoke PRIVATE ardor_preset ardor_audio)
 
 add_executable(pedal-scene-plan-smoke tests/scene_plan_smoke.cpp)
+target_compile_definitions(pedal-scene-plan-smoke PRIVATE
+  ARDOR_SCENE_PARAMETER_RANGES="${CMAKE_CURRENT_SOURCE_DIR}/services/managerd/internal/presets/scene-parameters.json")
 target_link_libraries(pedal-scene-plan-smoke PRIVATE ardor_preset)
 
 add_executable(pedal-scene-transition-smoke tests/scene_transition_smoke.cpp)

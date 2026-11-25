@@ -1,9 +1,11 @@
 package presets
 
 import (
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"os"
 	"path"
@@ -11,14 +13,17 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/sys/unix"
 )
 
 type Preset map[string]any
 
 type Slot struct {
-	Bank   int    `json:"bank"`
-	Slot   int    `json:"slot"`
-	Preset Preset `json:"preset"`
+	Bank     int    `json:"bank"`
+	Slot     int    `json:"slot"`
+	Preset   Preset `json:"preset"`
+	Revision string `json:"revision"`
 }
 
 type Summary struct {
@@ -37,6 +42,10 @@ func NewStore(root string) Store {
 }
 
 func Validate(preset Preset) error {
+	return validatePreset(preset, true)
+}
+
+func validatePreset(preset Preset, checkSceneCapabilities bool) error {
 	version, ok := preset["version"].(float64)
 	if !ok || (version != 1 && version != 2 && version != 3 && version != 4) {
 		return errors.New("preset version must be 1, 2, 3, or 4")
@@ -62,7 +71,7 @@ func Validate(preset Preset) error {
 		return err
 	}
 	if routing != "wdw" {
-		return validateScenesAndMidi(preset, version)
+		return validateScenesAndMidi(preset, version, checkSceneCapabilities)
 	}
 	if len(blocks) != 0 {
 		return errors.New("wet/dry/wet presets must keep top-level blocks empty")
@@ -113,11 +122,11 @@ func Validate(preset Preset) error {
 			}
 		}
 	}
-	return validateScenesAndMidi(preset, version)
+	return validateScenesAndMidi(preset, version, checkSceneCapabilities)
 }
 
-func validateScenesAndMidi(preset Preset, version float64) error {
-	if err := validateSceneSet(preset, version); err != nil {
+func validateScenesAndMidi(preset Preset, version float64, checkSceneCapabilities bool) error {
+	if err := validateSceneSet(preset, version, checkSceneCapabilities); err != nil {
 		return err
 	}
 	return validateSceneMidiMappings(preset)
@@ -242,21 +251,20 @@ func validSceneID(value string) bool {
 	return true
 }
 
-func collectBlockTypes(raw []any, blocks map[string]string) {
+func collectSceneBlocks(raw []any, blocks map[string]map[string]any) {
 	for _, value := range raw {
 		block, ok := value.(map[string]any)
 		if !ok {
 			continue
 		}
 		if id, ok := block["id"].(string); ok && id != "" {
-			typeName, _ := block["type"].(string)
-			blocks[id] = typeName
+			blocks[id] = block
 		}
 		lanes, _ := block["lanes"].(map[string]any)
 		for _, laneName := range []string{"left", "right"} {
 			lane, _ := lanes[laneName].(map[string]any)
 			children, _ := lane["blocks"].([]any)
-			collectBlockTypes(children, blocks)
+			collectSceneBlocks(children, blocks)
 		}
 	}
 }
@@ -266,7 +274,32 @@ func finiteSceneNumber(value any) bool {
 	return ok && !math.IsNaN(number) && !math.IsInf(number, 0)
 }
 
-func validateSceneTarget(target map[string]any, blockTypes map[string]string, hasWDW bool) (string, error) {
+// Derived from the native ScenePlan parameter registry and Daisy descriptors.
+// The Manager imports the same table for authoring and validation.
+//
+//go:embed scene-parameters.json
+var sceneParameterJSON []byte
+
+var sceneParameterRanges = func() map[string]map[string]map[string][2]float32 {
+	var table map[string]map[string]map[string][2]float32
+	if err := json.Unmarshal(sceneParameterJSON, &table); err != nil {
+		panic(err)
+	}
+	return table
+}()
+
+func sceneParameterRange(block map[string]any, parameter string) ([2]float32, bool) {
+	blockType, _ := block["type"].(string)
+	params, _ := block["params"].(map[string]any)
+	mode, _ := params["mode"].(string)
+	if blockType == "cab" || blockType == "irreverb" || blockType == "stereo" {
+		mode = ""
+	}
+	result, ok := sceneParameterRanges[blockType][mode][parameter]
+	return result, ok
+}
+
+func validateSceneTarget(target map[string]any, blocks map[string]map[string]any, hasWDW, checkSceneCapabilities bool) (string, error) {
 	targetType, ok := target["target"].(string)
 	if !ok {
 		return "", errors.New("scene target requires a target type")
@@ -283,14 +316,28 @@ func validateSceneTarget(target map[string]any, blockTypes map[string]string, ha
 		if blockID != "" || parameter != "" || lane != "" || !finiteSceneNumber(value) {
 			return "", errors.New("scene input gain target is invalid")
 		}
+		if checkSceneCapabilities && (value.(float64) < -60 || value.(float64) > 24) {
+			return "", errors.New("scene input gain must be between -60 and 24 dB")
+		}
 		return "inputGainDb", nil
 	case "parameter":
-		if _, exists := blockTypes[blockID]; !exists || parameter == "" || lane != "" || !finiteSceneNumber(value) {
+		if _, exists := blocks[blockID]; !exists || parameter == "" || lane != "" || !finiteSceneNumber(value) {
 			return "", errors.New("scene parameter target is invalid")
+		}
+		if checkSceneCapabilities {
+			bounds, ok := sceneParameterRange(blocks[blockID], parameter)
+			parameterValue := float32(value.(float64))
+			if !ok {
+				return "", fmt.Errorf("parameter is not scene-capable: %s/%s", blockID, parameter)
+			}
+			if parameterValue < bounds[0] || parameterValue > bounds[1] {
+				return "", fmt.Errorf("scene parameter is out of range: %s/%s", blockID, parameter)
+			}
 		}
 		return "parameter\x1f" + blockID + "\x1f" + parameter, nil
 	case "blockEnabled":
-		blockType, exists := blockTypes[blockID]
+		block, exists := blocks[blockID]
+		blockType, _ := block["type"].(string)
 		if !exists || parameter != "" || lane != "" {
 			return "", errors.New("scene block-enabled target is invalid")
 		}
@@ -315,6 +362,13 @@ func validateSceneTarget(target map[string]any, blockTypes map[string]string, ha
 		if !hasWDW || blockID != "" || !laneValid || !parameterValid || !valueValid {
 			return "", errors.New("scene wet/dry/wet lane target is invalid")
 		}
+		if checkSceneCapabilities && parameter != "enabled" {
+			ranges := map[string][2]float64{"levelDb": {-60, 12}, "pan": {-1, 1}, "width": {0, 1}}
+			limits := ranges[parameter]
+			if value.(float64) < limits[0] || value.(float64) > limits[1] {
+				return "", errors.New("scene wet/dry/wet lane value is out of range")
+			}
+		}
 		return "wdwLane\x1f" + lane + "\x1f" + parameter, nil
 	default:
 		return "", errors.New("unknown scene target type")
@@ -333,7 +387,7 @@ func sameAddressSet(left, right map[string]struct{}) bool {
 	return true
 }
 
-func validateSceneSet(preset Preset, version float64) error {
+func validateSceneSet(preset Preset, version float64, checkSceneCapabilities bool) error {
 	raw, present := preset["sceneSet"]
 	if version == 4 && (!present || raw == nil) {
 		return errors.New("preset version 4 requires a scene set")
@@ -356,15 +410,15 @@ func validateSceneSet(preset Preset, version float64) error {
 	if !ok || len(scenes) != 4 {
 		return errors.New("scene set requires exactly four scenes")
 	}
-	blockTypes := make(map[string]string)
+	blockTypes := make(map[string]map[string]any)
 	blocks, _ := preset["blocks"].([]any)
-	collectBlockTypes(blocks, blockTypes)
+	collectSceneBlocks(blocks, blockTypes)
 	wdw, hasWDW := preset["wdw"].(map[string]any)
 	if hasWDW {
 		for _, laneName := range []string{"dry", "wet"} {
 			lane, _ := wdw[laneName].(map[string]any)
 			children, _ := lane["blocks"].([]any)
-			collectBlockTypes(children, blockTypes)
+			collectSceneBlocks(children, blockTypes)
 		}
 	}
 	ids := make(map[string]struct{})
@@ -409,7 +463,7 @@ func validateSceneSet(preset Preset, version float64) error {
 			if !ok {
 				return errors.New("scene target must be an object")
 			}
-			address, err := validateSceneTarget(target, blockTypes, hasWDW)
+			address, err := validateSceneTarget(target, blockTypes, hasWDW, checkSceneCapabilities)
 			if err != nil {
 				return err
 			}
@@ -756,6 +810,16 @@ func (s Store) List() ([]Summary, error) {
 	return out, nil
 }
 
+const MissingRevision = "missing"
+
+var ErrRevisionConflict = errors.New("Preset changed since it was opened. Reload it or save to another slot.")
+
+func documentRevision(body []byte) string {
+	hash := fnv.New64a()
+	_, _ = hash.Write(body)
+	return fmt.Sprintf("%016x", hash.Sum64())
+}
+
 func (s Store) Load(bank int, slot int) (Slot, error) {
 	if err := validateSlot(bank, slot); err != nil {
 		return Slot{}, err
@@ -769,13 +833,17 @@ func (s Store) Load(bank int, slot int) (Slot, error) {
 		return Slot{}, err
 	}
 	normalizeLegacyEffectBlocks(preset)
-	if err := Validate(preset); err != nil {
+	if err := validatePreset(preset, false); err != nil {
 		return Slot{}, err
 	}
-	return Slot{Bank: bank, Slot: slot, Preset: preset}, nil
+	return Slot{Bank: bank, Slot: slot, Preset: preset, Revision: documentRevision(bytes)}, nil
 }
 
 func (s Store) Save(bank int, slot int, preset Preset) (Slot, error) {
+	return s.SaveIfMatch(bank, slot, preset, "")
+}
+
+func (s Store) SaveIfMatch(bank int, slot int, preset Preset, expected string) (Slot, error) {
 	if err := validateSlot(bank, slot); err != nil {
 		return Slot{}, err
 	}
@@ -787,34 +855,61 @@ func (s Store) Save(bank int, slot int, preset Preset) (Slot, error) {
 	if err := os.MkdirAll(filepath.Dir(finalPath), 0o755); err != nil {
 		return Slot{}, err
 	}
-	tmpPath := finalPath + ".tmp"
-	bytes, err := json.MarshalIndent(preset, "", "  ")
+	lock, err := os.OpenFile(finalPath+".lock", os.O_CREATE|os.O_RDWR, 0o666)
 	if err != nil {
 		return Slot{}, err
 	}
-	tmp, err := os.OpenFile(tmpPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	defer lock.Close()
+	if err := unix.Flock(int(lock.Fd()), unix.LOCK_EX); err != nil {
+		return Slot{}, err
+	}
+	if expected != "" {
+		current := MissingRevision
+		body, err := os.ReadFile(finalPath)
+		if err == nil {
+			current = documentRevision(body)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return Slot{}, err
+		}
+		if current != expected {
+			return Slot{}, ErrRevisionConflict
+		}
+	}
+	body, err := json.MarshalIndent(preset, "", "  ")
 	if err != nil {
 		return Slot{}, err
 	}
-	if _, err := tmp.Write(append(bytes, '\n')); err != nil {
-		_ = tmp.Close()
-		_ = os.Remove(tmpPath)
+	body = append(body, '\n')
+	tmp, err := os.CreateTemp(filepath.Dir(finalPath), ".preset-*.tmp")
+	if err != nil {
+		return Slot{}, err
+	}
+	defer os.Remove(tmp.Name())
+	defer tmp.Close()
+	if err := tmp.Chmod(0o644); err != nil {
+		return Slot{}, err
+	}
+	if _, err := tmp.Write(body); err != nil {
 		return Slot{}, err
 	}
 	if err := tmp.Sync(); err != nil {
-		_ = tmp.Close()
-		_ = os.Remove(tmpPath)
 		return Slot{}, err
 	}
 	if err := tmp.Close(); err != nil {
-		_ = os.Remove(tmpPath)
 		return Slot{}, err
 	}
-	if err := os.Rename(tmpPath, finalPath); err != nil {
-		_ = os.Remove(tmpPath)
+	if err := os.Rename(tmp.Name(), finalPath); err != nil {
 		return Slot{}, err
 	}
-	return Slot{Bank: bank, Slot: slot, Preset: preset}, nil
+	directory, err := os.Open(filepath.Dir(finalPath))
+	if err != nil {
+		return Slot{}, err
+	}
+	defer directory.Close()
+	if err := directory.Sync(); err != nil {
+		return Slot{}, err
+	}
+	return Slot{Bank: bank, Slot: slot, Preset: preset, Revision: documentRevision(body)}, nil
 }
 
 // ReplaceAssetReferences updates every saved slot that uses oldPath and

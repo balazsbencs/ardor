@@ -45,8 +45,10 @@ private:
     UiNavigationTarget target;
     PreparationKind kind;
     std::string error;
+    std::string storedRevision;
   };
-  void prepare(Preset preset, UiNavigationTarget target, PreparationKind kind);
+  void prepare(Preset preset, UiNavigationTarget target, PreparationKind kind, std::string storedRevision = {});
+  void syncSceneDraft();
   void navigate(UiNavigationTarget target);
   void failPreparation(const Prepared& prepared, const std::string& error);
   void persistSelection();
@@ -64,6 +66,7 @@ private:
   std::string audioMessage_ = "Audio stopped. Select an interface in Audio setup.";
   std::chrono::steady_clock::time_point nextTelemetry_{};
   std::uint64_t sceneRequest_ = 0;
+  std::uint64_t publishedSceneDraft_ = 0;
   std::uint64_t snapshotSerial_ = 0;
   std::uint32_t engineBlockSize_ = 0;
 };

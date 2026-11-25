@@ -52,6 +52,7 @@ export type EditorAction =
   | { type: "set-scene-block-enabled"; sceneId: string; blockId: string; value: boolean; gesture?: string }
   | { type: "set-scene-input-gain"; sceneId: string; value: number; gesture?: string }
   | { type: "set-scene-input-scope"; sceneId: string; scope: "shared" | "scene"; gesture?: string }
+  | { type: "share-wdw-mix"; sceneId: string; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled" }
   | { type: "set-scene-wdw-mix"; sceneId: string; lane: "dry" | "wet"; key: "levelDb" | "pan" | "width" | "enabled"; value: number | boolean; gesture?: string }
   | { type: "set-scene-scope"; sceneId: string; blockId: string; parameter?: string; scope: "shared" | "scene"; value: number | boolean; gesture?: string }
   | { type: "set-name"; name: string }
@@ -75,6 +76,6 @@ export type EditorAction =
   | { type: "change-definition"; blockId: string; definitionId: string }
   | { type: "reset-block"; blockId: string }
   | { type: "replace-present"; preset: Preset }
-  | { type: "mark-saved"; preset: Preset }
+  | { type: "mark-saved"; preset: Preset; submitted?: Preset }
   | { type: "undo" }
   | { type: "redo" };

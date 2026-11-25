@@ -62,6 +62,7 @@ struct UiPreset {
   std::vector<PresetMidiBinding> midiBindings;
   std::vector<PresetSceneMidiBinding> sceneMidiBindings;
   std::optional<PresetSceneSet> sceneSet;
+  std::string storedRevision;
 };
 
 struct UiBank {
@@ -258,6 +259,7 @@ struct UiLooperState {
 };
 
 struct UiState {
+  std::uint64_t sceneDraftRevision = 0;
   UiBank bank;
   DeviceSettings settings;
   std::vector<UiAsset> assets;
@@ -369,6 +371,8 @@ bool confirmSceneOperation(UiState& state);
 UiSceneScope selectedParameterSceneScope(const UiState& state, const std::string& key);
 std::optional<std::size_t> selectedParameterSceneTargetIndex(const UiState& state,
                                                               const std::string& key);
+std::optional<std::size_t> selectedParameterRuntimeTargetIndex(const UiState& state,
+                                                               const std::string& key);
 std::optional<nlohmann::json> selectedParameterSceneValue(const UiState& state,
                                                            const std::string& key);
 bool setSelectedParameterSceneScope(UiState& state, const std::string& key,

@@ -10,9 +10,12 @@ export function ScenesDrawer({ onClose }: { onClose(): void }) {
   const editor = usePresetEditorContext();
   const session = useDeviceSession();
   const { present, dispatch, dirty, runtimeMatchesDraft } = editor;
-  const recallHint = dirty || !runtimeMatchesDraft
-    ? "Apply this version to recall it."
-    : "Scene recall is unavailable on this connection.";
+  const blocked = session.device?.active?.sceneRecallBlocked;
+  const recallHint = blocked ?? (!session.device?.active
+    ? "Live state unknown. Waiting for the pedal."
+    : dirty || !runtimeMatchesDraft
+      ? "Apply this version to recall it."
+      : "Scene recall is unavailable on this connection.");
   const scenesUnsupported = session.device?.supportedPresetVersion !== undefined && session.device.supportedPresetVersion < 4;
   return (
     <section className="drawer fam-mod" aria-label="Scenes">
@@ -25,7 +28,7 @@ export function ScenesDrawer({ onClose }: { onClose(): void }) {
           sceneSet={present.sceneSet}
           editingSceneId={editor.editor.editingSceneId ?? present.sceneSet.defaultSceneId}
           liveSceneId={editor.liveSceneId}
-          recallDisabled={!runtimeMatchesDraft || !session.device?.capabilities.sceneRecall}
+          recallDisabled={!runtimeMatchesDraft || Boolean(blocked) || !session.device?.capabilities.sceneRecall}
           recallHint={recallHint}
           recalling={editor.recallingScene}
           onSelect={(sceneId) => dispatch({ type: "select-scene", sceneId })}

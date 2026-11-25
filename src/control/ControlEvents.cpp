@@ -47,6 +47,7 @@ std::optional<FootswitchAction> FootswitchGesture::handle(const ControlEvent& ev
       return std::nullopt;
     }
     down_[index] = true;
+    if (cancelledUntilRelease_) return std::nullopt;
     if (!enhanced && index >= 2 && !bankSwitch) {
       return selectAction(event.index);
     }
@@ -60,7 +61,6 @@ std::optional<FootswitchAction> FootswitchGesture::handle(const ControlEvent& ev
       cancelledUntilRelease_ = true;
       return std::nullopt;
     }
-    if (cancelledUntilRelease_) return std::nullopt;
     if ((index == 1 && down_[3]) || (index == 3 && down_[1])) {
       pending_[1] = false;
       pending_[3] = false;

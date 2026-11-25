@@ -123,6 +123,7 @@ int main()
     request.name = "Night Sketch";
     request.sourcePreset = {3, 2, "Ambient Lead"};
     request.preset = sourcePreset();
+    request.destinationSceneId = "scene-3";
     request.session = paused;
     std::string id;
     std::string error;
@@ -138,6 +139,7 @@ int main()
             "manifest and preset snapshot should round trip");
     require(ardor::toJson(loaded.preset) == ardor::toJson(request.preset),
             "looper preset snapshots must preserve complete scene data");
+    require(loaded.destinationSceneId == "scene-3", "loop save should preserve the selected scene");
     requireNear(loaded.tracks[0].audio.left[0], 0.35f,
                 "save should flatten an audible latest take into left audio");
     requireNear(loaded.tracks[0].audio.right[0], 0.7f,

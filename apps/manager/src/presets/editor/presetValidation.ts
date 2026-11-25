@@ -1,7 +1,7 @@
 import type { Asset, Preset, PresetBlock } from "../../api/types";
 import { allEffectDefinitions, findEffectDefinition } from "../../effects/catalog";
 import type { EffectControl, EffectDefinition } from "../../effects/types";
-import { sceneCanOwnBlockEnabled } from "../scenes/sharedParameters";
+import { sceneCanOwnBlockEnabled, sceneParameterRange } from "../scenes/sharedParameters";
 import { isWdwBlockAllowed } from "./wdwPolicy";
 
 export type ValidationIssue = {
@@ -307,13 +307,13 @@ function validateWdwLane(
   return issues;
 }
 
-function collectSceneBlockTypes(source: Record<string, unknown>): Map<string, string> {
-  const result = new Map<string, string>();
+function collectSceneBlocks(source: Record<string, unknown>): Map<string, Record<string, unknown>> {
+  const result = new Map<string, Record<string, unknown>>();
   const visit = (values: unknown): void => {
     if (!Array.isArray(values)) return;
     values.forEach((value) => {
       if (!isRecord(value)) return;
-      if (typeof value.id === "string" && typeof value.type === "string") result.set(value.id, value.type);
+      if (typeof value.id === "string" && typeof value.type === "string") result.set(value.id, value);
       if (isRecord(value.lanes)) {
         for (const laneName of ["left", "right"] as const) {
           const lane = value.lanes[laneName];
@@ -365,7 +365,7 @@ function validateSceneBypassPolicies(source: Record<string, unknown>): Validatio
 }
 
 function validateSceneSet(source: Record<string, unknown>, ids: Set<string>,
-  blockTypes: Map<string, string>): ValidationIssue[] {
+  blocks: Map<string, Record<string, unknown>>): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const value = source.sceneSet;
   if (source.version === 4 && !isRecord(value)) {
@@ -427,6 +427,8 @@ function validateSceneSet(source: Record<string, unknown>, ids: Set<string>,
         if (typeof targetValue.value !== "number" || !Number.isFinite(targetValue.value)
             || targetValue.blockId !== undefined || targetValue.parameter !== undefined || targetValue.lane !== undefined) {
           issues.push(error("scene-target-shape", "Input gain scene targets require one finite numeric value.", targetField));
+        } else if (targetValue.value < -60 || targetValue.value > 24) {
+          issues.push(error("scene-target-range", "Scene input gain must be between −60 and +24 dB.", targetField));
         } else address = "inputGainDb";
       } else if (targetValue.target === "parameter") {
         if (typeof targetValue.blockId !== "string" || !ids.has(targetValue.blockId)
@@ -434,13 +436,22 @@ function validateSceneSet(source: Record<string, unknown>, ids: Set<string>,
             || typeof targetValue.value !== "number" || !Number.isFinite(targetValue.value)
             || targetValue.lane !== undefined) {
           issues.push(error("scene-target-shape", "Parameter scene targets require an existing block, parameter, and finite value.", targetField));
-        } else address = `parameter\u001f${targetValue.blockId}\u001f${targetValue.parameter}`;
+        } else {
+          address = `parameter\u001f${targetValue.blockId}\u001f${targetValue.parameter}`;
+          const block = blocks.get(targetValue.blockId);
+          const params = isRecord(block?.params) ? block.params : undefined;
+          const range = sceneParameterRange(String(block?.type ?? ""), targetValue.parameter, params?.mode);
+          const value = Math.fround(targetValue.value);
+          if (!range || value < range[0] || value > range[1]) {
+            issues.push(error("scene-target-unsupported", `Scene parameter “${targetValue.parameter}” is unsupported or out of range.`, targetField));
+          }
+        }
       } else if (targetValue.target === "blockEnabled") {
         if (typeof targetValue.blockId !== "string" || !ids.has(targetValue.blockId)
             || typeof targetValue.value !== "boolean"
             || targetValue.parameter !== undefined || targetValue.lane !== undefined) {
           issues.push(error("scene-target-shape", "Block scene targets require an existing block and on/off value.", targetField));
-        } else if (!sceneCanOwnBlockEnabled(blockTypes.get(targetValue.blockId) ?? "")) {
+        } else if (!sceneCanOwnBlockEnabled(String(blocks.get(targetValue.blockId)?.type ?? ""))) {
           issues.push(error("scene-bypass-shared", "This structural block enable is shared by all scenes.", targetField));
         } else address = `blockEnabled\u001f${targetValue.blockId}`;
       } else if (targetValue.target === "wdwLane") {
@@ -455,7 +466,16 @@ function validateSceneSet(source: Record<string, unknown>, ids: Set<string>,
         if (source.routing !== "wdw" || (lane !== "dry" && lane !== "wet")
             || !parameterValid || !valueValid || targetValue.blockId !== undefined) {
           issues.push(error("scene-target-shape", "WDW scene targets require a valid lane control and matching value.", targetField));
-        } else address = `wdwLane\u001f${lane}\u001f${parameter}`;
+        } else {
+          address = `wdwLane\u001f${lane}\u001f${parameter}`;
+          if (parameter !== "enabled") {
+            const ranges = { levelDb: [-60, 12], pan: [-1, 1], width: [0, 1] } as const;
+            const [minimum, maximum] = ranges[parameter];
+            const value = Number(targetValue.value);
+            if (value < minimum || value > maximum)
+              issues.push(error("scene-target-range", "Scene lane value is out of range.", targetField));
+          }
+        }
       } else {
         issues.push(error("scene-target-shape", "Unknown scene target type.", targetField));
       }
@@ -863,7 +883,7 @@ export function validatePreset(preset: Preset, assets: AssetInventory = emptyAss
       "A preset can contain at most 256 MIDI action targets.", "midiMappings"));
   }
 
-  presetIssues.push(...validateSceneSet(source, ids, collectSceneBlockTypes(source)));
+  presetIssues.push(...validateSceneSet(source, ids, collectSceneBlocks(source)));
   presetIssues.push(...validateSceneBypassPolicies(source));
 
   const issues = [...presetIssues, ...issuesByBlock.flat()];

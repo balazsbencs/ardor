@@ -93,6 +93,7 @@ public:
   bool tryEnqueueLooperCommand(const LooperCommand& command) noexcept;
   bool tryReadLooperTelemetry(LooperTelemetry& telemetry) noexcept;
   bool installPreparedScenes(SceneTransitionProgram program, std::string& error);
+  bool publishSceneBank(const SceneTransitionProgram& program) noexcept;
   bool tryRequestScene(const SceneTransitionRequest& request) noexcept;
   bool tryOverrideSceneTarget(std::size_t targetIndex, float value) noexcept;
   void requestSceneValueSnapshot() noexcept;

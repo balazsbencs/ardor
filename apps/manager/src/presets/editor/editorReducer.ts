@@ -8,6 +8,7 @@ import {
 import type { NumberControl } from "../../effects/types";
 import type { EditorAction, EditorState, EqBand, PresetLocation } from "./editorTypes";
 import { clonePreset, createEmptyWdwRouting, enableScenes, nextPresetBlockId } from "./presetFactory";
+import { sceneCanOwnBlockEnabled } from "../scenes/sharedParameters";
 import { isWdwBlockAllowed } from "./wdwPolicy";
 
 const historyLimit = 100;
@@ -393,28 +394,49 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         }
         return next;
       }, state.selectedBlockId, action.gesture);
-    case "set-scene-wdw-mix":
-      if (typeof action.value === "number" && !Number.isFinite(action.value)) return state;
-      if ((action.key === "pan" && action.lane !== "dry")
-          || (action.key === "width" && action.lane !== "wet")) return state;
+    case "set-scene-wdw-mix": {
+      const { lane, key, value } = action;
+      if ((key === "pan" && lane !== "dry") || (key === "width" && lane !== "wet")) return state;
+      let editedValue: number | boolean;
+      if (key === "enabled") {
+        if (typeof value !== "boolean") return state;
+        editedValue = value;
+      } else {
+        if (typeof value !== "number" || !Number.isFinite(value)) return state;
+        const ranges = { levelDb: [-60, 12], pan: [-1, 1], width: [0, 1] } as const;
+        const [minimum, maximum] = ranges[key];
+        editedValue = clamp(value, minimum, maximum);
+      }
       return withMutation(state, (present) => {
-        if (!present.sceneSet) return undefined;
+        if (!present.wdw || !present.sceneSet?.scenes.some(({ id }) => id === action.sceneId)) return undefined;
         const next = clonePreset(present);
-        const scene = next.sceneSet?.scenes.find(({ id }) => id === action.sceneId);
-        const target = scene?.targets.find((candidate) => candidate.target === "wdwLane"
-          && candidate.lane === action.lane && candidate.parameter === action.key);
-        if (!target || target.target !== "wdwLane") return undefined;
-        if (action.key === "enabled") {
-          if (typeof action.value !== "boolean") return undefined;
-          target.value = action.value;
-        } else {
-          if (typeof action.value !== "number") return undefined;
-          const ranges = { levelDb: [-60, 12], pan: [-1, 1], width: [0, 1] } as const;
-          const [minimum, maximum] = ranges[action.key];
-          target.value = clamp(action.value, minimum, maximum);
+        const shared = present.wdw[lane][key] ?? (key === "width" ? 1 : 0);
+        for (const scene of next.sceneSet!.scenes) {
+          const target = scene.targets.find((candidate) =>
+            candidate.target === "wdwLane" && candidate.lane === lane && candidate.parameter === key);
+          const sceneValue = scene.id === action.sceneId ? editedValue : (target?.value ?? shared);
+          if (target) target.value = sceneValue;
+          else scene.targets.push({ target: "wdwLane", lane, parameter: key, value: sceneValue });
         }
         return next;
       }, state.selectedBlockId, action.gesture);
+    }
+    case "share-wdw-mix":
+      return withMutation(state, (present) => {
+        if (!present.wdw || !present.sceneSet) return undefined;
+        const next = clonePreset(present);
+        const target = next.sceneSet!.scenes.find(({ id }) => id === action.sceneId)?.targets.find(
+          (item) => item.target === "wdwLane" && item.lane === action.lane && item.parameter === action.key);
+        if (!target) return undefined;
+        const lane = next.wdw![action.lane];
+        if (action.key === "enabled" && typeof target.value === "boolean") lane.enabled = target.value;
+        else if (action.key !== "enabled" && typeof target.value === "number") lane[action.key] = target.value;
+        for (const scene of next.sceneSet!.scenes) {
+          scene.targets = scene.targets.filter((item) =>
+            item.target !== "wdwLane" || item.lane !== action.lane || item.parameter !== action.key);
+        }
+        return next;
+      });
     case "set-scene-scope":
       return withMutation(state, (present) => {
         if (!present.sceneSet) return undefined;
@@ -654,8 +676,8 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       if (!source || source.type === "dualRig") return state;
       const sourceLane = wdwLaneForBlock(state.history.present, action.blockId);
       if (sourceLane && (source.type === "nam" || source.type === "cab")
-          && state.history.present.wdw![sourceLane].blocks.some(({ id, type }) =>
-            id !== source.id && type === source.type)) return state;
+          && state.history.present.wdw![sourceLane].blocks.some(({ type }) =>
+            type === source.type)) return state;
       const id = nextPresetBlockId(allPresetBlocksInPreset(state.history.present));
       return withMutation(state, (present) => {
         const next = clonePreset(present);
@@ -663,7 +685,17 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
           const sourceIndex = blocks.findIndex(({ id: candidate }) => candidate === action.blockId);
           if (sourceIndex >= 0) {
             if (blocks.length >= 10) return false;
-            blocks.splice(sourceIndex + 1, 0, { ...structuredClone(blocks[sourceIndex]), id });
+            const duplicate = { ...structuredClone(blocks[sourceIndex]), id };
+            if (next.sceneSet && sceneCanOwnBlockEnabled(duplicate.type)) duplicate.enabled = false;
+            blocks.splice(sourceIndex + 1, 0, duplicate);
+            for (const scene of next.sceneSet?.scenes ?? []) {
+              const copied = scene.targets.flatMap((target): PresetSceneTarget[] => {
+                if (!("blockId" in target) || target.blockId !== source.id) return [];
+                if (target.target === "blockEnabled") return [{ ...target, blockId: id, value: false }];
+                return [{ ...target, blockId: id }];
+              });
+              scene.targets.push(...copied);
+            }
             return true;
           }
           return blocks.some((block) => block.lanes
@@ -742,6 +774,9 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
       return withMutation(state, () => clonePreset(action.preset));
     case "mark-saved": {
       const saved = clonePreset(action.preset);
+      if (action.submitted && !deepEqual(state.history.present, action.submitted)) {
+        return { ...state, saved };
+      }
       const selectedBlockId = state.selectedBlockId
         && findPresetBlockInPreset(saved, state.selectedBlockId) ? state.selectedBlockId : undefined;
       return {

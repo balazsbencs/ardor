@@ -241,8 +241,8 @@ private:
       if (active) ardor::enterScenesMode(session_.state());
       else ardor::enterPresetMode(session_.state());
     };
-    result.updateSceneTarget = [this](std::size_t index, float value) {
-      return !session_.busy() && session_.engine() && session_.engine()->tryOverrideSceneTarget(index, value);
+    result.updateSceneTarget = [this](std::size_t, float) {
+      return !session_.busy() && session_.engine() && session_.engine()->scenesPrepared();
     };
     result.requestSceneCapture = [this] {
       if (session_.engine() && session_.playing()) session_.engine()->requestSceneValueSnapshot();

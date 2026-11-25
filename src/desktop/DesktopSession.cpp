@@ -1,4 +1,5 @@
 #include "desktop/DesktopSession.h"
+#include "preset/ScenePlan.h"
 
 #include <algorithm>
 #include <array>
@@ -39,15 +40,16 @@ DesktopSession::~DesktopSession()
   if (preparation_.valid()) preparation_.wait();
 }
 
-void DesktopSession::prepare(Preset preset, UiNavigationTarget target, PreparationKind kind)
+void DesktopSession::prepare(Preset preset, UiNavigationTarget target, PreparationKind kind,
+                             std::string storedRevision)
 {
   EngineLoadOptions options;
   options.blockSize = settings_.blockSize;
   options.parallelRigs = false; // Portable sequential execution, including WDW.
   const auto root = root_;
   preparation_ = std::async(std::launch::async,
-    [preset = std::move(preset), root, options, target, kind]() mutable {
-      Prepared result{std::make_unique<PedalEngine>(), std::move(preset), target, kind, {}};
+    [preset = std::move(preset), root, options, target, kind, storedRevision = std::move(storedRevision)]() mutable {
+      Prepared result{std::make_unique<PedalEngine>(), std::move(preset), target, kind, {}, std::move(storedRevision)};
       try {
         if (!applyPreset(*result.engine, result.preset, root, options, result.error)) result.engine.reset();
       } catch (const std::exception& exception) {
@@ -88,12 +90,14 @@ void DesktopSession::tick()
           if (state_.activeBank != prepared.target.bank) loadBankFromStore(state_, store_, prepared.target.bank);
           synchronizePresetSelection(state_, prepared.target.preset);
           replaceActivePreset(state_, prepared.preset);
+          state_.bank.presets[state_.activePreset].storedRevision = std::move(prepared.storedRevision);
           state_.dirty = false;
           state_.pendingSlotRequest = -1;
           settings_.bank = prepared.target.bank;
           settings_.slot = static_cast<int>(prepared.target.preset);
           persistSelection();
         }
+        publishedSceneDraft_ = state_.sceneDraftRevision;
         snapshotSerial_ = 0;
         sceneRequest_ = 0;
         if (tunerEnabled_) backend_.setOutputMuted(true);
@@ -105,8 +109,16 @@ void DesktopSession::tick()
     }
   }
   if (!busy() && pendingStructuralPreview(state_)) {
-    prepare(activePresetToPreset(state_), {state_.activeBank, state_.activePreset}, PreparationKind::Preview);
+    auto preset = activePresetToPreset(state_);
+    if (engine_ && preset.sceneSet) {
+      const auto identity = engine_->sceneTransitionTelemetry().destinationIdentity;
+      for (const auto& scene : preset.sceneSet->scenes) {
+        if (sceneIdentity(scene.id) == identity) preset.sceneSet->defaultSceneId = scene.id;
+      }
+    }
+    prepare(std::move(preset), {state_.activeBank, state_.activePreset}, PreparationKind::Preview);
   }
+  if (!busy()) syncSceneDraft();
   if (engine_) engine_->setMasterVolume(static_cast<float>(state_.masterVolume) / 100.0f);
   if (!playing_ || !engine_) return;
 
@@ -144,7 +156,17 @@ void DesktopSession::tick()
     const auto scene = engine_->sceneTransitionTelemetry();
     const float progress = scene.totalFrames == 0 ? 1.0f : std::clamp(
       static_cast<float>(scene.elapsedFrames) / scene.totalFrames, 0.0f, 1.0f);
-    updateSceneTelemetry(state_, {scene.currentSceneIndex, scene.destinationSceneIndex,
+    const auto& set = state_.bank.presets[state_.activePreset].sceneSet;
+    const auto indexFor = [&](std::uint64_t identity, std::size_t fallback) {
+      if (set) {
+        for (std::size_t index = 0; index < set->scenes.size(); ++index) {
+          if (sceneIdentity(set->scenes[index].id) == identity) return index;
+        }
+      }
+      return fallback;
+    };
+    updateSceneTelemetry(state_, {indexFor(scene.currentIdentity, scene.currentSceneIndex),
+      indexFor(scene.destinationIdentity, scene.destinationSceneIndex),
       progress, scene.lastAppliedRequestId < sceneRequest_, scene.transitioning,
       state_.scenes.altered, false, state_.scenes.rejection});
     if (state_.sceneCapturePending) {
@@ -222,7 +244,11 @@ bool DesktopSession::configureAudio(DesktopSettings settings, std::string& error
 
 void DesktopSession::navigate(UiNavigationTarget target)
 {
-  try { prepare(store_.loadOrEmpty({target.bank, static_cast<int>(target.preset)}), target, PreparationKind::Navigation); }
+  try {
+    std::string revision;
+    auto preset = store_.loadOrEmpty({target.bank, static_cast<int>(target.preset)}, &revision);
+    prepare(std::move(preset), target, PreparationKind::Navigation, std::move(revision));
+  }
   catch (const std::exception& exception) { setUiStatus(state_, exception.what(), true); }
 }
 
@@ -265,11 +291,24 @@ void DesktopSession::setTuner(bool enabled)
   else enterPresetMode(state_);
 }
 
+void DesktopSession::syncSceneDraft()
+{
+  if (!engine_ || !engine_->scenesPrepared() || !previewIsSynchronized(state_)
+      || publishedSceneDraft_ == state_.sceneDraftRevision) return;
+  publishedSceneDraft_ = state_.sceneDraftRevision;
+  std::string error;
+  if (!publishPresetSceneBank(*engine_, activePresetToPreset(state_), EngineLoadOptions{}, error)) {
+    if (undoLastBlockEdit(state_)) completeStructuralPreview(state_);
+    setUiStatus(state_, error, true);
+  }
+}
+
 void DesktopSession::selectScene(std::size_t index)
 {
   if (busy() || !engine_ || !playing_ || index >= 4 || !previewIsSynchronized(state_)) return;
   const auto preset = activePresetToPreset(state_);
   if (!preset.sceneSet) return;
+  syncSceneDraft();
   const auto& scene = preset.sceneSet->scenes[index];
   const auto duration = scene.enterTimeMs * 48u;
   if (!engine_->tryRequestScene({engine_->scenePresetGeneration(), ++sceneRequest_, duration,
