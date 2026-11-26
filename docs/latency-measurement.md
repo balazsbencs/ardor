@@ -68,6 +68,11 @@ Use `--ref-channel` and `--dut-channel` if the channels are in a different
 order. The script reads 16-, 24- and 32-bit PCM and 32- or 64-bit float WAV
 files at any sample rate.
 
+If you expect more than 50 ms of latency, use the same `--max-latency-ms`
+value with `generate` and `analyze`, or pass it to `run` once. The generator
+spaces the clicks to fit that search window. Analysis rejects overlapping
+windows because they could pair a reference click with a different response.
+
 ## Read the result
 
 The script gives two values for each run:

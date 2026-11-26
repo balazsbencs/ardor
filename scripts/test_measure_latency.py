@@ -82,6 +82,18 @@ class AnalyzeTests(unittest.TestCase):
         self.assertEqual(result.polarity, 1)
         self.assertEqual(result.warnings, [])
 
+    def test_rejects_windows_that_can_pair_with_the_previous_click(self):
+        dut = delayed(self.ref, round(0.4 * RATE))
+        with self.assertRaisesRegex(ml.AnalysisError, "search windows overlap"):
+            ml.analyze(self.ref, dut, RATE, max_latency_ms=500.0)
+
+    def test_long_latency_with_matching_click_spacing(self):
+        ref, _ = ml.generate_clicks(RATE, 10, -20.0, seed=2, max_latency_ms=500.0)
+        dut = delayed(ref, round(0.4 * RATE))
+        result = ml.analyze(ref, dut, RATE, max_latency_ms=500.0)
+        self.assertEqual(result.measured, 10)
+        self.assertAlmostEqual(result.median_xcorr_ms, 400.0, delta=0.01)
+
     def test_sub_sample_delay(self):
         # fir() places tap 1 at offset 0, so a two-tap average moves the click half a frame earlier.
         dut = fir(delayed(self.ref, 100), [0.5, 0.5])
