@@ -59,10 +59,13 @@ for folder in ROOT.iterdir():
               'schematic_sha256':sha(folder/(s['name']+'.kicad_sch')),
               'bom_sha256':sha(folder/'BOM.csv')}
     (folder/'verification/package-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-    modules[folder.name] = {'electrical':validation,'hand_assembly':hand,'package':report}
+    modules[folder.name] = {'kicad_version':d['kicad_version'],
+                            'electrical':validation,'hand_assembly':hand,'package':report}
     manifest(folder)
     print(folder.name,'bare-board package PASS')
-summary = {'result':'PASS','kicad_version':'9.0.2','modules':modules,
+versions = sorted({module['kicad_version'] for module in modules.values()})
+version_summary = versions[0] if len(versions) == 1 else 'Mixed: ' + ', '.join(versions)
+summary = {'result':'PASS','kicad_version':version_summary,'modules':modules,
            'total_numbered_component_pads':sum(m['hand_assembly']['tht_numbered_pads']+m['hand_assembly']['board_smd_pads'] for m in modules.values()),
            'total_manual_components':sum(m['hand_assembly']['manual_parts'] for m in modules.values()),
            'board_smd_pads':sum(m['hand_assembly']['board_smd_pads'] for m in modules.values()),
