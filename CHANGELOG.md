@@ -2,6 +2,12 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.124](https://github.com/balazsbencs/ardor/compare/v0.1.122...v0.1.124) (2026-11-26)
+
+### Bug Fixes
+
+* **tuner:** detect low bass strings ([5164827](https://github.com/balazsbencs/ardor/commit/516482772863f53d380363c43eb44c3ef59025b2))
+
 ## [0.1.122](https://github.com/balazsbencs/ardor/compare/v0.1.121...v0.1.122) (2026-11-23)
 
 ## [0.1.121](https://github.com/balazsbencs/ardor/compare/v0.1.120...v0.1.121) (2026-11-23)
