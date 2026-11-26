@@ -1780,6 +1780,17 @@ int main(int argc, char** argv)
           std::cerr << "Warning: could not publish live scene state: " << error << "\n";
         }
       };
+      const auto settleCompletedSceneRecall = [&](const ardor::SceneTransitionTelemetry& telemetry) {
+        if (pendingSceneGeneration != liveEngine->scenePresetGeneration()) {
+          pendingSceneRequestId = 0;
+          return;
+        }
+        if (pendingSceneRequestId == 0 || telemetry.lastAppliedRequestId != pendingSceneRequestId
+            || telemetry.transitioning) return;
+        networkRecall.state = "applied";
+        rememberRecall(std::exchange(networkRecall, {}));
+        pendingSceneRequestId = 0;
+      };
       const auto requestSceneSelection = [&](int index, std::string remoteRequestId = {}) {
 #if defined(ARDOR_HAS_UI)
         syncSceneDraft();
@@ -1811,6 +1822,9 @@ int main(int argc, char** argv)
 #endif
           return false;
         }
+        // The previous recall can finish between status polls. Preserve its
+        // result before recording this request as the new destination.
+        settleCompletedSceneRecall(telemetryBeforeRecall);
         if (!networkRecall.requestId.empty()) {
           networkRecall.state = "superseded";
           networkRecall.message = "A newer scene recall replaced this request.";
@@ -2601,19 +2615,12 @@ int main(int argc, char** argv)
         if (now >= nextSceneTelemetryPoll) {
           nextSceneTelemetryPoll = now + std::chrono::milliseconds(50);
           const auto scene = liveEngine->sceneTransitionTelemetry();
-          if (pendingSceneGeneration != liveEngine->scenePresetGeneration()) {
-            pendingSceneRequestId = 0;
-          }
-          const bool pending = pendingSceneRequestId != 0
-            && scene.lastAppliedRequestId < pendingSceneRequestId;
-          if (!pending && pendingSceneRequestId != 0 && !scene.transitioning) {
-            networkRecall.state = "applied";
-            rememberRecall(std::exchange(networkRecall, {}));
-            pendingSceneRequestId = 0;
-          }
+          settleCompletedSceneRecall(scene);
           publishSceneStatus(scene);
 #if defined(ARDOR_HAS_UI)
           if (args.enableUi && ui) {
+            const bool pending = pendingSceneRequestId != 0
+              && scene.lastAppliedRequestId < pendingSceneRequestId;
             const float progress = scene.totalFrames == 0 ? 1.0f
               : std::clamp(static_cast<float>(scene.elapsedFrames)
                   / static_cast<float>(scene.totalFrames), 0.0f, 1.0f);

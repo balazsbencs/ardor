@@ -855,14 +855,11 @@ func (s Store) SaveIfMatch(bank int, slot int, preset Preset, expected string) (
 	if err := os.MkdirAll(filepath.Dir(finalPath), 0o755); err != nil {
 		return Slot{}, err
 	}
-	lock, err := os.OpenFile(finalPath+".lock", os.O_CREATE|os.O_RDWR, 0o666)
+	lock, err := lockPresetSlot(finalPath)
 	if err != nil {
 		return Slot{}, err
 	}
 	defer lock.Close()
-	if err := unix.Flock(int(lock.Fd()), unix.LOCK_EX); err != nil {
-		return Slot{}, err
-	}
 	if expected != "" {
 		current := MissingRevision
 		body, err := os.ReadFile(finalPath)
@@ -875,6 +872,23 @@ func (s Store) SaveIfMatch(bank int, slot int, preset Preset, expected string) (
 			return Slot{}, ErrRevisionConflict
 		}
 	}
+	return writeLockedPreset(finalPath, bank, slot, preset)
+}
+
+func lockPresetSlot(path string) (*os.File, error) {
+	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o666)
+	if err != nil {
+		return nil, err
+	}
+	if err := unix.Flock(int(lock.Fd()), unix.LOCK_EX); err != nil {
+		_ = lock.Close()
+		return nil, err
+	}
+	return lock, nil
+}
+
+// writeLockedPreset writes a validated preset while the caller holds the slot lock.
+func writeLockedPreset(finalPath string, bank, slot int, preset Preset) (Slot, error) {
 	body, err := json.MarshalIndent(preset, "", "  ")
 	if err != nil {
 		return Slot{}, err
@@ -913,41 +927,63 @@ func (s Store) SaveIfMatch(bank int, slot int, preset Preset, expected string) (
 }
 
 // ReplaceAssetReferences updates every saved slot that uses oldPath and
-// returns the number of changed presets. It intentionally uses Save so every
-// rewritten JSON document keeps the same validation and atomic-write rules as
-// a normal manager save.
+// returns the number of changed presets.
 func (s Store) ReplaceAssetReferences(oldPath, newPath string) (int, error) {
 	changed := 0
 	for bank := 0; bank < 100; bank++ {
 		for slot := 0; slot < 4; slot++ {
-			loaded, err := s.Load(bank, slot)
-			if errors.Is(err, os.ErrNotExist) {
-				continue
-			}
+			updated, err := s.replaceSlotAssetReferences(bank, slot, oldPath, newPath)
 			if err != nil {
-				return changed, fmt.Errorf("load bank %d slot %d: %w", bank, slot, err)
+				return changed, fmt.Errorf("update bank %d slot %d: %w", bank, slot, err)
 			}
-			dirty := false
-			if blocks, ok := loaded.Preset["blocks"].([]any); ok {
-				dirty = replaceAssetInBlocks(blocks, oldPath, newPath)
+			if updated {
+				changed++
 			}
-			if wdw, ok := loaded.Preset["wdw"].(map[string]any); ok {
-				for _, laneName := range []string{"dry", "wet"} {
-					lane, _ := wdw[laneName].(map[string]any)
-					children, _ := lane["blocks"].([]any)
-					dirty = replaceAssetInBlocks(children, oldPath, newPath) || dirty
-				}
-			}
-			if !dirty {
-				continue
-			}
-			if _, err := s.Save(bank, slot, loaded.Preset); err != nil {
-				return changed, fmt.Errorf("save bank %d slot %d: %w", bank, slot, err)
-			}
-			changed++
 		}
 	}
 	return changed, nil
+}
+
+func (s Store) replaceSlotAssetReferences(bank, slot int, oldPath, newPath string) (bool, error) {
+	finalPath := s.pathFor(bank, slot)
+	// Avoid creating lock files for empty slots. Reload after taking the
+	// lock so a Manager or pedal save cannot be lost during the rewrite.
+	if _, err := os.Stat(finalPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	lock, err := lockPresetSlot(finalPath)
+	if err != nil {
+		return false, err
+	}
+	defer lock.Close()
+	loaded, err := s.Load(bank, slot)
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	blocks, _ := loaded.Preset["blocks"].([]any)
+	dirty := replaceAssetInBlocks(blocks, oldPath, newPath)
+	if wdw, ok := loaded.Preset["wdw"].(map[string]any); ok {
+		for _, laneName := range []string{"dry", "wet"} {
+			lane, _ := wdw[laneName].(map[string]any)
+			children, _ := lane["blocks"].([]any)
+			dirty = replaceAssetInBlocks(children, oldPath, newPath) || dirty
+		}
+	}
+	if !dirty {
+		return false, nil
+	}
+	if err := Validate(loaded.Preset); err != nil {
+		return false, err
+	}
+	_, err = writeLockedPreset(finalPath, bank, slot, loaded.Preset)
+	return err == nil, err
 }
 
 func replaceAssetInBlocks(blocks []any, oldPath, newPath string) bool {
