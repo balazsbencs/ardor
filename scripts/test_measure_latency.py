@@ -266,6 +266,19 @@ class CommandLineTests(unittest.TestCase):
         self.assertIn(":2", recorder.call_args.args[0])
         self.assertEqual(player.call_args.args[0][0], "afplay")
 
+    def test_run_preserves_an_existing_capture_or_click_file(self):
+        for filename, other in (("clicks.wav", "recording.wav"), ("recording.wav", "clicks.wav")):
+            with self.subTest(filename=filename), tempfile.TemporaryDirectory() as folder:
+                saved = Path(folder) / filename
+                saved.write_bytes(b"previous session")
+                (code, _, err), player, recorder = self.run_capture(folder, 257, 0.5)
+                self.assertEqual(code, 1)
+                self.assertIn("choose a different --keep directory", err)
+                self.assertEqual(saved.read_bytes(), b"previous session")
+                self.assertFalse((Path(folder) / other).exists())
+                player.assert_not_called()
+                recorder.assert_not_called()
+
     def test_run_with_silent_recording_names_the_permission(self):
         with tempfile.TemporaryDirectory() as folder:
             (code, _, err), _, _ = self.run_capture(folder, 257, 0.0)

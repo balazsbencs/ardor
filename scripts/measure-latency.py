@@ -284,7 +284,7 @@ def read_wav(path):
     return rate, [samples[c::count] for c in range(count)]
 
 
-def write_wav(path, channels, sample_rate):
+def write_wav(path, channels, sample_rate, *, exclusive=False):
     """Write 24-bit PCM, interleaving the given channels."""
     frames = len(channels[0])
     count = len(channels)
@@ -299,7 +299,8 @@ def write_wav(path, channels, sample_rate):
     fmt = struct.pack("<HHIIHH", FORMAT_PCM, count, sample_rate, sample_rate * 3 * count, 3 * count, 24)
     body = (b"WAVE" + b"fmt " + struct.pack("<I", len(fmt)) + fmt
             + b"data" + struct.pack("<I", len(packed)) + bytes(packed) + b"\0" * (len(packed) & 1))
-    Path(path).write_bytes(b"RIFF" + struct.pack("<I", len(body)) + body)
+    with Path(path).open("xb" if exclusive else "wb") as wav:
+        wav.write(b"RIFF" + struct.pack("<I", len(body)) + body)
 
 
 def analyze_file(path, ref_channel, dut_channel, max_latency_ms):
@@ -336,7 +337,7 @@ def require_macos_tools():
 
 def capture(test_wav, recording, device, duration):
     recorder = subprocess.Popen(
-        ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y", "-f", "avfoundation",
+        ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-n", "-f", "avfoundation",
          "-i", f":{device}", "-t", f"{duration:.2f}", "-c:a", "pcm_s24le", str(recording)])
     try:
         time.sleep(CAPTURE_START_S)
@@ -362,9 +363,12 @@ def command_run(args):
     folder = Path(args.keep) if args.keep else Path(tempfile.mkdtemp(prefix="ardor-latency-"))
     folder.mkdir(parents=True, exist_ok=True)
     test_wav, recording = folder / "clicks.wav", folder / "recording.wav"
+    for path in (test_wav, recording):
+        if path.exists() or path.is_symlink():
+            raise AnalysisError(f"{path} already exists; choose a different --keep directory")
     samples, _ = generate_clicks(args.sample_rate, args.count, args.level_db, args.seed,
                                  max_latency_ms=args.max_latency_ms)
-    write_wav(test_wav, [samples, samples], args.sample_rate)
+    write_wav(test_wav, [samples, samples], args.sample_rate, exclusive=True)
     capture(test_wav, recording, args.device, len(samples) / args.sample_rate + CAPTURE_START_S + 1.0)
     print(f"recording: {recording}")
     try:
