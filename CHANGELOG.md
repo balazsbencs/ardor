@@ -2,6 +2,21 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.127](https://github.com/balazsbencs/ardor/compare/v0.1.124...v0.1.127) (2026-11-26)
+
+### Features
+
+* add Mono Sum join for Dual Rig ([86dd20d](https://github.com/balazsbencs/ardor/commit/86dd20d793d2f9cb54f748b46459f7d12f038955))
+* compact and relabel the expression module PCB ([d653bb6](https://github.com/balazsbencs/ardor/commit/d653bb6fea455ed69e62bdb12d7a9d7547d6a044))
+* compact and relabel the MIDI input PCB ([1a9b63a](https://github.com/balazsbencs/ardor/commit/1a9b63a43f893a14e022cf7680419a2b6e070d82))
+* **scripts:** add jack-to-jack latency measurement tool ([c6accdb](https://github.com/balazsbencs/ardor/commit/c6accdbbdae59cc95005120500c284a4dca029cc))
+
+### Bug Fixes
+
+* preserve existing latency captures ([ed57da2](https://github.com/balazsbencs/ardor/commit/ed57da2d6c83ed8d9fef9c711bde21c87fe25213))
+* prevent ambiguous latency click matching ([9b3c239](https://github.com/balazsbencs/ardor/commit/9b3c239d85a250553459d1c51af7401c1fe8ba1d))
+* record the KiCad DRC version for each board ([887d4c2](https://github.com/balazsbencs/ardor/commit/887d4c280c15a8f10a489b0390ee9237ba4a50b8))
+
 ## [0.1.124](https://github.com/balazsbencs/ardor/compare/v0.1.122...v0.1.124) (2026-11-26)
 
 ### Bug Fixes
