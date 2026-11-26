@@ -466,9 +466,12 @@ int main()
                 == "Left 4 blocks  /  Right 3 blocks",
               "touchscreen inspector should summarize both Dual Rig lane sizes")) return 1;
   const auto dualRigControls = ardor::parameterPage(dualRigState, 0);
-  if (require(dualRigControls.size() == 5
-                && dualRigControls[1].key == "leftLevelDb"
-                && dualRigControls[3].key == "rightLevelDb",
+  if (require(dualRigControls.size() == 6
+                && containsKey(dualRigControls, "join")
+                && containsKey(dualRigControls, "leftLevelDb")
+                && containsKey(dualRigControls, "rightLevelDb")
+                && containsKey(dualRigControls, "leftPolarityInvert")
+                && containsKey(dualRigControls, "rightPolarityInvert"),
               "touchscreen should expose Dual Rig routing and lane output controls")) return 1;
   const auto preservedDualRig = ardor::activePresetToPreset(dualRigState);
   if (require(preservedDualRig.version == 2
