@@ -2,6 +2,7 @@
 #include "dsp/DualRigProcessor.h"
 #include "dsp/PedalEngine.h"
 #include "dsp/RuntimeChain.h"
+#include "equalizer/ConsoleEqProcessor.h"
 #include "equalizer/EqParameters.h"
 #include "tape/TapeProcessor.h"
 
@@ -224,6 +225,38 @@ int main()
   require(near(rigLeft[0], 0.5f), "dual rig keeps the left lane's left output");
   require(near(rigRight[0], -0.25f), "dual rig keeps the right lane's right output and polarity");
   require(dualRigChain.tailFrames() == 0, "dual rig tail is the maximum of its lane tails");
+
+  auto fastLane = std::make_unique<ardor::RuntimeChain>();
+  auto slowLane = std::make_unique<ardor::RuntimeChain>();
+  ardor::ConsoleEqProcessor latencyBlock;
+  auto dryEqParams = ardor::defaultConsoleEqParams();
+  dryEqParams["mix"] = 0.0f; // Pass only the latency-compensated dry signal.
+  require(latencyBlock.configure(dryEqParams, 48000.0f, dualRigError), dualRigError);
+  slowLane->addConsoleEq("lane-eq", std::move(latencyBlock));
+  ardor::RuntimeChain monoRig;
+  require(monoRig.addDualRig(
+            "mono-rig", {std::move(fastLane), 1.0f, false}, {std::move(slowLane), 0.5f, true},
+            ardor::NamInputMode::Sum, 48000.0, rigInput.size(), false, -1, dualRigError,
+            ardor::DualRigJoin::MonoSum),
+          dualRigError);
+  monoRig.prepareBlockSize(rigInput.size());
+  const auto latency = ardor::ConsoleEqProcessor::kLatencyFrames;
+  require(monoRig.latencyFrames() == latency, "Mono Sum reports the slower lane's latency");
+  rigInput.fill(0.0f);
+  // Place the impulse near the boundary so both lanes must keep delay state.
+  rigInput.back() = 0.8f;
+  monoRig.processBlock(rigInput.data(), rigLeft.data(), rigRight.data(), rigInput.size());
+  for (std::size_t i = 0; i < rigInput.size(); ++i) {
+    require(near(rigLeft[i], 0.0f) && near(rigRight[i], 0.0f),
+            "Mono Sum must delay the faster lane before mixing");
+  }
+  rigInput.back() = 0.0f;
+  monoRig.processBlock(rigInput.data(), rigLeft.data(), rigRight.data(), rigInput.size());
+  for (std::size_t i = 0; i < rigInput.size(); ++i) {
+    const float expected = i == latency - 1 ? 0.2f : 0.0f;
+    require(near(rigLeft[i], expected) && near(rigRight[i], expected),
+            "Mono Sum averages the aligned and polarity-adjusted lanes into both outputs");
+  }
 
   auto nestedEffectLane = std::make_unique<ardor::RuntimeChain>();
   nestedEffectLane->prepareBlockSize(64);
