@@ -48,7 +48,7 @@ public:
   explicit PresetWriteLock(const std::filesystem::path& path)
   {
 #ifndef _WIN32
-    fd_ = ::open(path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0666);
+    fd_ = ::open(path.c_str(), O_CREAT | O_RDWR | O_CLOEXEC, 0600);
     if (fd_ >= 0 && ::flock(fd_, LOCK_EX) == 0) return;
     if (fd_ >= 0) ::close(fd_);
 #else

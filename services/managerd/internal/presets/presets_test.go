@@ -29,6 +29,13 @@ func TestConcurrentPresetSaveChecksTheLoadedRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	lock, err := os.Stat(store.pathFor(0, 0) + ".lock")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if lock.Mode().Perm()&0o077 != 0 {
+		t.Fatalf("preset lock has permissions outside its owner: %v", lock.Mode().Perm())
+	}
 	const writers = 8
 	var group sync.WaitGroup
 	outcomes := make(chan error, writers)
