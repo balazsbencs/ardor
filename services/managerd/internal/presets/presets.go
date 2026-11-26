@@ -876,7 +876,7 @@ func (s Store) SaveIfMatch(bank int, slot int, preset Preset, expected string) (
 }
 
 func lockPresetSlot(path string) (*os.File, error) {
-	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o666)
+	lock, err := os.OpenFile(path+".lock", os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, err
 	}

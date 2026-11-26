@@ -597,6 +597,13 @@ int main()
     saved.blocks.push_back({"block-a", "nam", true, "models/a.nam", nlohmann::json::object()});
     store.save(slot, saved);
     require(std::filesystem::exists(root / "presets/bank-002/preset-3.json"), "saved preset exists");
+#ifndef _WIN32
+    const auto lockPath = root / "presets/bank-002/preset-3.json.lock";
+    using std::filesystem::perms;
+    require((std::filesystem::status(lockPath).permissions() & (perms::group_all | perms::others_all))
+              == perms::none,
+            "preset lock is private to its owner");
+#endif
 
     ardor::PresetSession session;
     session.load(store, slot);
