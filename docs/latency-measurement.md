@@ -46,7 +46,8 @@ python3 -I scripts/measure-latency.py run --device <index> --keep ~/ardor-latenc
 The first run can record silence if the terminal has no microphone
 permission. Give it permission in System Settings > Privacy & Security >
 Microphone, then run again. `--keep` saves `clicks.wav` and `recording.wav`
-for a later check. Keep that folder outside the repository.
+for a later check. Use a new folder for each run. The command refuses to
+overwrite either file. Keep capture folders outside the repository.
 
 ## Run with any DAW
 
