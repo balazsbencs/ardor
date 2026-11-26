@@ -1,8 +1,9 @@
 {
   "result": "PASS",
-  "kicad_version": "Mixed: MIDI 10.0.8; preceding modules 9.0.2",
+  "kicad_version": "Mixed: 10.0.8, 9.0.2",
   "modules": {
     "midi-in": {
+      "kicad_version": "10.0.8",
       "electrical": {
         "result": "PASS",
         "connected_pin_numbers": 41,
@@ -69,6 +70,7 @@
       }
     },
     "headphones": {
+      "kicad_version": "9.0.2",
       "electrical": {
         "result": "PASS",
         "connected_pin_numbers": 84,
@@ -132,6 +134,7 @@
       }
     },
     "mixer": {
+      "kicad_version": "9.0.2",
       "electrical": {
         "result": "PASS",
         "connected_pin_numbers": 71,
@@ -193,6 +196,7 @@
       }
     },
     "line-out": {
+      "kicad_version": "9.0.2",
       "electrical": {
         "result": "PASS",
         "connected_pin_numbers": 66,
@@ -253,6 +257,7 @@
       }
     },
     "expression": {
+      "kicad_version": "9.0.2",
       "electrical": {
         "result": "PASS",
         "connected_pin_numbers": 73,
