@@ -2,6 +2,15 @@
 
 All notable changes are generated from Conventional Commit messages.
 
+## [0.1.128](https://github.com/balazsbencs/ardor/compare/v0.1.127...v0.1.128) (2026-11-26)
+
+### Bug Fixes
+
+* preserve concurrent preset edits and completed recalls ([3c08adf](https://github.com/balazsbencs/ardor/commit/3c08adf9d941f8f3dd063323577338ad36aa3a12))
+* restrict preset lock files to their owner ([648e446](https://github.com/balazsbencs/ardor/commit/648e4464788fa2e24c1f16d63643e79efeac3e9e))
+* **scenes:** address the full scene audit ([01e4531](https://github.com/balazsbencs/ardor/commit/01e45312502c1f3c1bebcd6051b8e0a55c0e4f44))
+* **scenes:** reconcile block edits and restore LAN recall ([786b40a](https://github.com/balazsbencs/ardor/commit/786b40af7b307bf21bf72354f8e1dae5724bdcc9))
+
 ## [0.1.127](https://github.com/balazsbencs/ardor/compare/v0.1.124...v0.1.127) (2026-11-26)
 
 ### Features
