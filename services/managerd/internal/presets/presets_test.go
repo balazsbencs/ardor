@@ -61,6 +61,44 @@ func TestConcurrentPresetSaveChecksTheLoadedRevision(t *testing.T) {
 	}
 }
 
+func TestAssetRenamePreservesConcurrentPresetSave(t *testing.T) {
+	store := NewStore(t.TempDir())
+	first, err := store.Save(0, 0, validPreset())
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft := validPreset()
+	draft["name"] = "Edited"
+	saveResult := make(chan error, 1)
+	go func() {
+		_, err := store.SaveIfMatch(0, 0, draft, first.Revision)
+		saveResult <- err
+	}()
+
+	const newPath = "models/renamed.nam"
+	changed, err := store.ReplaceAssetReferences("models/clean.nam", newPath)
+	saveErr := <-saveResult
+	if err != nil || changed != 1 {
+		t.Fatalf("rename updated %d presets, error: %v", changed, err)
+	}
+	loaded, err := store.Load(0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := loaded.Preset["blocks"].([]any)[0].(map[string]any)
+	if block["asset"] != newPath {
+		t.Fatalf("rename was lost: %v", block["asset"])
+	}
+	switch {
+	case saveErr == nil:
+		if loaded.Preset["name"] != "Edited" {
+			t.Fatal("rename overwrote a successful preset save")
+		}
+	case !errors.Is(saveErr, ErrRevisionConflict):
+		t.Fatal(saveErr)
+	}
+}
+
 func validPreset() Preset {
 	return Preset{
 		"version": float64(1),
