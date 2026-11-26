@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 GAP_RANGE_S = (0.25, 0.45)
+EARLY_SEARCH_MS = 1.0
 LEAD_IN_S = 2.0
 TAIL_S = 1.0
 CAPTURE_START_S = 1.0
@@ -77,17 +78,21 @@ def to_db(level):
     return 20.0 * math.log10(level) if level > 0 else float("-inf")
 
 
-def generate_clicks(sample_rate, count, level_db, seed, lead_in_s=LEAD_IN_S, tail_s=TAIL_S):
+def generate_clicks(sample_rate, count, level_db, seed, lead_in_s=LEAD_IN_S, tail_s=TAIL_S,
+                    max_latency_ms=50.0):
     """Return (samples, onsets): Hann clicks with random gaps, so no period repeats."""
     rng = random.Random(seed)
     amplitude = 10.0 ** (level_db / 20.0)
     width = 2 * round(sample_rate / 6000) + 1
     click = [amplitude * (0.5 - 0.5 * math.cos(2 * math.pi * k / (width - 1))) for k in range(width)]
+    # Keep the previous click's response outside the next search window.
+    min_gap = max(GAP_RANGE_S[0], (max_latency_ms + EARLY_SEARCH_MS + 10.0) / 1000.0)
+    max_gap = min_gap + (GAP_RANGE_S[1] - GAP_RANGE_S[0])
     onsets = []
     position = int(lead_in_s * sample_rate)
     for _ in range(count):
         onsets.append(position)
-        position += int(rng.uniform(*GAP_RANGE_S) * sample_rate)
+        position += int(rng.uniform(min_gap, max_gap) * sample_rate)
     samples = [0.0] * (onsets[-1] + width + int(tail_s * sample_rate))
     for onset in onsets:
         samples[onset:onset + width] = click
@@ -139,7 +144,7 @@ def xcorr_lag(ref, dut, ref_peak, centre, rate):
 
 def measure_click(ref, dut, ref_peak, rate, max_latency_ms, floor):
     """Return (xcorr frames, onset frames, sign) for one click, or None if missed."""
-    low = max(0, ref_peak - to_frames(1.0, rate))
+    low = max(0, ref_peak - to_frames(EARLY_SEARCH_MS, rate))
     high = min(len(dut), ref_peak + to_frames(max_latency_ms, rate))
     if high <= low:
         return None
@@ -186,6 +191,10 @@ def analyze(ref, dut, sample_rate, max_latency_ms=50.0):
     dut_peak = max((abs(x) for x in dut), default=0.0)
     floor = max(10.0 ** (SILENCE_DBFS / 20.0), MISSED_RELATIVE * dut_peak)
     peaks = find_clicks(ref, sample_rate)
+    reach = to_frames(max_latency_ms, sample_rate) + to_frames(EARLY_SEARCH_MS, sample_rate)
+    if any(b - a <= reach for a, b in zip(peaks, peaks[1:])):
+        raise AnalysisError("the latency search windows overlap; lower --max-latency-ms or "
+                            "generate and record clicks with a larger --max-latency-ms")
     found = [measure_click(ref, dut, p, sample_rate, max_latency_ms, floor) for p in peaks]
     measured = [m for m in found if m is not None]
     if not measured:
@@ -302,7 +311,8 @@ def analyze_file(path, ref_channel, dut_channel, max_latency_ms):
 
 
 def command_generate(args):
-    samples, _ = generate_clicks(args.sample_rate, args.count, args.level_db, args.seed)
+    samples, _ = generate_clicks(args.sample_rate, args.count, args.level_db, args.seed,
+                                 max_latency_ms=args.max_latency_ms)
     write_wav(args.output, [samples, samples], args.sample_rate)
     print(f"wrote {args.output}: {args.count} clicks at {args.level_db:.1f} dBFS, "
           f"{len(samples) / args.sample_rate:.1f} s, play it on interface output 1")
@@ -352,7 +362,8 @@ def command_run(args):
     folder = Path(args.keep) if args.keep else Path(tempfile.mkdtemp(prefix="ardor-latency-"))
     folder.mkdir(parents=True, exist_ok=True)
     test_wav, recording = folder / "clicks.wav", folder / "recording.wav"
-    samples, _ = generate_clicks(args.sample_rate, args.count, args.level_db, args.seed)
+    samples, _ = generate_clicks(args.sample_rate, args.count, args.level_db, args.seed,
+                                 max_latency_ms=args.max_latency_ms)
     write_wav(test_wav, [samples, samples], args.sample_rate)
     capture(test_wav, recording, args.device, len(samples) / args.sample_rate + CAPTURE_START_S + 1.0)
     print(f"recording: {recording}")
@@ -382,10 +393,15 @@ def add_signal_options(parser):
     parser.add_argument("--seed", type=int, default=1)
 
 
+def add_latency_option(parser):
+    parser.add_argument("--max-latency-ms", type=bounded(float, 1.0, 500.0), default=50.0,
+                        help="maximum expected latency in ms (default 50)")
+
+
 def add_analysis_options(parser):
     parser.add_argument("--ref-channel", type=bounded(int, 1, 64), default=1)
     parser.add_argument("--dut-channel", type=bounded(int, 1, 64), default=2)
-    parser.add_argument("--max-latency-ms", type=bounded(float, 1.0, 500.0), default=50.0)
+    add_latency_option(parser)
 
 
 def build_parser():
@@ -394,6 +410,7 @@ def build_parser():
     generate = commands.add_parser("generate", help="write the click WAV for a DAW")
     generate.add_argument("output", type=Path)
     add_signal_options(generate)
+    add_latency_option(generate)
     analyze_cmd = commands.add_parser("analyze", help="analyze a recording with both inputs")
     analyze_cmd.add_argument("recording", type=Path)
     analyze_cmd.add_argument("--verbose", action="store_true", help="print each click")
