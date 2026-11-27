@@ -28,34 +28,42 @@ type NAMInfo struct {
 }
 
 type namDocument struct {
-	Architecture string       `json:"architecture"`
-	Version      string       `json:"version"`
-	SampleRate   float64      `json:"sample_rate"`
-	Embedded     *namDocument `json:"embedded_parametric"`
-	Config       struct {
-		Params       json.RawMessage `json:"params"`
-		Hypernet     json.RawMessage `json:"hypernet"`
-		ConditionDSP json.RawMessage `json:"condition_dsp"`
-		Parametric   *struct {
-			Type          string          `json:"type"`
-			Schema        int             `json:"schema_version"`
-			Head          string          `json:"head_mode"`
-			ConditionSize int             `json:"condition_size"`
-			Parameters    json.RawMessage `json:"parameters"`
-			FilmLayers    []string        `json:"film_layers"`
-			Lora          json.RawMessage `json:"lora"`
-		} `json:"parametric"`
-		Layers    json.RawMessage `json:"layers"`
-		HeadScale *float64        `json:"head_scale"`
-		Submodels []struct {
-			Max   float64      `json:"max_value"`
-			Model *namDocument `json:"model"`
-		} `json:"submodels"`
-	} `json:"config"`
-	Metadata struct {
+	Architecture string          `json:"architecture"`
+	Version      string          `json:"version"`
+	SampleRate   float64         `json:"sample_rate"`
+	Embedded     *namDocument    `json:"embedded_parametric"`
+	Config       namConfig       `json:"config"`
+	Weights      json.RawMessage `json:"weights"`
+	Extensions   json.RawMessage `json:"extensions"`
+	Metadata     struct {
 		GearType   string   `json:"gear_type"`
 		InputLevel *float64 `json:"input_level_dbu"`
 	} `json:"metadata"`
+}
+
+type namConfig struct {
+	Params       json.RawMessage `json:"params"`
+	Hypernet     json.RawMessage `json:"hypernet"`
+	ConditionDSP json.RawMessage `json:"condition_dsp"`
+	Parametric   *struct {
+		Type          string          `json:"type"`
+		Schema        int             `json:"schema_version"`
+		Head          string          `json:"head_mode"`
+		ConditionSize int             `json:"condition_size"`
+		Parameters    json.RawMessage `json:"parameters"`
+		FilmLayers    []string        `json:"film_layers"`
+		Lora          json.RawMessage `json:"lora"`
+	} `json:"parametric"`
+	Layers    json.RawMessage `json:"layers"`
+	HeadScale *float64        `json:"head_scale"`
+	Submodels []struct {
+		Max          float64      `json:"max_value"`
+		Model        *namDocument `json:"model"`
+		Architecture string       `json:"architecture"`
+		Config       *namConfig   `json:"config"`
+		WeightOffset *int         `json:"weight_offset"`
+		WeightCount  int          `json:"weight_count"`
+	} `json:"submodels"`
 }
 
 func readNAMInfo(directory, filename string) *NAMInfo {
@@ -96,6 +104,18 @@ func describeNAM(document *namDocument, depth int) *NAMInfo {
 			return fail("Invalid embedded parametric NAM.")
 		}
 		return describeNAM(document.Embedded, 0)
+	}
+	if document.Architecture == "ParametricSlimmableContainer" {
+		if depth > 0 {
+			return fail("Nested parametric NAM containers are not supported.")
+		}
+		parameters, err := describeFlatNAM(document)
+		if err != nil {
+			return fail(err.Error())
+		}
+		result.Parameters = parameters
+		result.Slimmable = len(document.Config.Submodels) > 1
+		return result
 	}
 	if document.Architecture == "SlimmableContainer" {
 		tiers := document.Config.Submodels
@@ -203,6 +223,18 @@ func describeNAM(document *namDocument, depth int) *NAMInfo {
 			}
 		}
 	}
+	parameters, err := parseNAMParameters(definitions, film)
+	if err != nil {
+		return fail(err.Error())
+	}
+	if film && document.Config.Parametric.ConditionSize != len(parameters) {
+		return fail("FiLM condition_size must match parameter definitions.")
+	}
+	result.Parameters = parameters
+	return result
+}
+
+func parseNAMParameters(definitions json.RawMessage, film bool) ([]NAMParameter, error) {
 	// Pointer fields distinguish an omitted default/minimum from a valid zero.
 	var specs []struct {
 		Name      string   `json:"name"`
@@ -218,15 +250,13 @@ func describeNAM(document *namDocument, depth int) *NAMInfo {
 		maxParameters = 16
 	}
 	if json.Unmarshal(definitions, &specs) != nil || len(specs) == 0 || len(specs) > maxParameters {
-		return fail(fmt.Sprintf("Parametric NAM requires 1 to %d parameter definitions.", maxParameters))
+		return nil, fmt.Errorf("Parametric NAM requires 1 to %d parameter definitions.", maxParameters)
 	}
-	if film && document.Config.Parametric.ConditionSize != len(specs) {
-		return fail("FiLM condition_size must match parameter definitions.")
-	}
+	parameters := make([]NAMParameter, 0, len(specs))
 	names := map[string]bool{}
 	for _, spec := range specs {
 		if spec.Name == "" || names[spec.Name] || spec.Min == nil || spec.Max == nil || spec.Default == nil {
-			return fail("NAM parameters require unique names and min, max, default values.")
+			return nil, fmt.Errorf("NAM parameters require unique names and min, max, default values.")
 		}
 		names[spec.Name] = true
 		p := NAMParameter{Name: spec.Name, Min: *spec.Min, Max: *spec.Max, Default: *spec.Default, Type: spec.Type, EnumNames: spec.EnumNames}
@@ -234,26 +264,135 @@ func describeNAM(document *namDocument, depth int) *NAMInfo {
 			p.Type = "continuous"
 		}
 		if p.Min >= p.Max || p.Default < p.Min || p.Default > p.Max {
-			return fail(fmt.Sprintf("Invalid range or default for NAM parameter %s.", p.Name))
+			return nil, fmt.Errorf("Invalid range or default for NAM parameter %s.", p.Name)
 		}
 		if film && (p.Type != "continuous" || spec.Steps > 1) {
-			return fail("FiLM NAM currently supports continuous parameters.")
+			return nil, fmt.Errorf("FiLM NAM currently supports continuous parameters.")
 		}
 		if p.Type == "switch" {
 			enums := map[string]bool{}
 			if len(p.EnumNames) < 2 || p.Min != 0 || p.Max != float64(len(p.EnumNames)-1) || math.Trunc(p.Default) != p.Default {
-				return fail("NAM switches require an integer index and a complete enum_names list.")
+				return nil, fmt.Errorf("NAM switches require an integer index and a complete enum_names list.")
 			}
 			for _, label := range p.EnumNames {
 				if label == "" || enums[label] {
-					return fail("NAM switch choices must be unique and nonempty.")
+					return nil, fmt.Errorf("NAM switch choices must be unique and nonempty.")
 				}
 				enums[label] = true
 			}
 		} else if p.Type != "continuous" || len(p.EnumNames) > 0 {
-			return fail("Unsupported NAM parameter type.")
+			return nil, fmt.Errorf("Unsupported NAM parameter type.")
 		}
-		result.Parameters = append(result.Parameters, p)
+		parameters = append(parameters, p)
 	}
-	return result
+	return parameters, nil
+}
+
+func describeFlatNAM(document *namDocument) ([]NAMParameter, error) {
+	tiers := document.Config.Submodels
+	var weights []*float32
+	if document.Version != "1.0.0" || document.SampleRate != 48000 || len(tiers) == 0 || len(tiers) > 8 ||
+		json.Unmarshal(document.Weights, &weights) != nil {
+		return nil, fmt.Errorf("invalid flat parametric NAM container")
+	}
+	for _, weight := range weights {
+		if weight == nil {
+			return nil, fmt.Errorf("invalid parametric NAM weight")
+		}
+	}
+	parameters, err := parseNAMParameters(document.Config.Params, false)
+	if err != nil {
+		return nil, err
+	}
+	nextWeight, previousBoundary := 0, 0.0
+	for _, tier := range tiers {
+		if tier.Architecture != "HyperWaveNet" || tier.Config == nil || tier.Max <= previousBoundary || tier.Max > 1 ||
+			tier.WeightOffset == nil || *tier.WeightOffset != nextWeight || tier.WeightCount <= 0 || tier.WeightCount > len(weights)-nextWeight {
+			return nil, fmt.Errorf("invalid flat HyperWaveNet NAM tier")
+		}
+		child := describeNAM(&namDocument{Architecture: tier.Architecture, Version: document.Version,
+			SampleRate: document.SampleRate, Config: *tier.Config}, 1)
+		if !child.Supported {
+			return nil, fmt.Errorf("invalid HyperWaveNet tier: %s", child.Error)
+		}
+		if !reflect.DeepEqual(parameters, child.Parameters) {
+			return nil, fmt.Errorf("NAM tiers must share the container's parameter definitions")
+		}
+		nextWeight += tier.WeightCount
+		previousBoundary = tier.Max
+	}
+	if previousBoundary != 1 || nextWeight != len(weights) {
+		return nil, fmt.Errorf("NAM tiers must cover 1.0 and the complete weight payload")
+	}
+	var extensions struct {
+		LinearVolume json.RawMessage `json:"linear_volume"`
+	}
+	if len(document.Extensions) != 0 && json.Unmarshal(document.Extensions, &extensions) != nil {
+		return nil, fmt.Errorf("invalid NAM extensions")
+	}
+	if len(extensions.LinearVolume) != 0 {
+		return insertNAMVolume(parameters, extensions.LinearVolume)
+	}
+	return parameters, nil
+}
+
+func insertNAMVolume(parameters []NAMParameter, raw json.RawMessage) ([]NAMParameter, error) {
+	var volume struct {
+		Schema        int      `json:"schema_version"`
+		Interpolation string   `json:"interpolation"`
+		Name          string   `json:"name"`
+		Index         *int     `json:"index"`
+		Min           *float64 `json:"min"`
+		Max           *float64 `json:"max"`
+		Default       *float64 `json:"default"`
+		Reference     *float64 `json:"reference"`
+		SmoothingMs   *float64 `json:"smoothing_ms"`
+		Segments      []struct {
+			Left         *float64   `json:"left"`
+			Right        *float64   `json:"right"`
+			Coefficients []*float64 `json:"coefficients"`
+		} `json:"segments"`
+	}
+	if json.Unmarshal(raw, &volume) != nil || volume.Schema != 1 || volume.Interpolation != "pchip" ||
+		volume.Index == nil || *volume.Index < 0 || *volume.Index > len(parameters) || len(parameters) >= 24 ||
+		volume.Name == "" || volume.Min == nil || volume.Max == nil || volume.Default == nil ||
+		math.Abs(*volume.Min) > math.MaxFloat32 || math.Abs(*volume.Max) > math.MaxFloat32 ||
+		float32(*volume.Min) >= float32(*volume.Max) || *volume.Default < *volume.Min || *volume.Default > *volume.Max ||
+		volume.Reference == nil || *volume.Reference < *volume.Min || *volume.Reference > *volume.Max ||
+		volume.SmoothingMs == nil || *volume.SmoothingMs < 0 ||
+		math.Round(float64(float32(*volume.SmoothingMs/1000))*48000) >= math.MaxInt32 || len(volume.Segments) == 0 {
+		return nil, fmt.Errorf("invalid NAM linear volume extension")
+	}
+	for _, parameter := range parameters {
+		if volume.Name == parameter.Name {
+			return nil, fmt.Errorf("NAM linear volume duplicates a learned parameter")
+		}
+	}
+	end := *volume.Min
+	for _, segment := range volume.Segments {
+		if segment.Left == nil || segment.Right == nil || *segment.Left != end ||
+			*segment.Right <= end || *segment.Right > *volume.Max || len(segment.Coefficients) != 4 {
+			return nil, fmt.Errorf("invalid NAM volume segment")
+		}
+		bound := 0.0
+		for _, coefficient := range segment.Coefficients {
+			if coefficient == nil {
+				return nil, fmt.Errorf("invalid NAM volume coefficient")
+			}
+			bound = bound*(*segment.Right-end) + math.Abs(*coefficient)
+		}
+		if bound > math.MaxFloat32 {
+			return nil, fmt.Errorf("invalid NAM volume coefficients")
+		}
+		end = *segment.Right
+	}
+	if end != *volume.Max {
+		return nil, fmt.Errorf("NAM volume segments must cover the control range")
+	}
+	index := *volume.Index
+	parameters = append(parameters, NAMParameter{})
+	copy(parameters[index+1:], parameters[index:])
+	parameters[index] = NAMParameter{Name: volume.Name, Min: *volume.Min, Max: *volume.Max,
+		Default: *volume.Default, Type: "continuous"}
+	return parameters, nil
 }
