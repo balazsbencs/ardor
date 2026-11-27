@@ -2,10 +2,11 @@
 
 All notable changes are generated from Conventional Commit messages.
 
-## [0.1.128](https://github.com/balazsbencs/ardor/compare/v0.1.127...v0.1.128) (2026-11-26)
+## [0.1.129](https://github.com/balazsbencs/ardor/compare/v0.1.127...v0.1.129) (2026-11-27)
 
 ### Bug Fixes
 
+* **nam:** address flat HyperWaveNet compatibility review ([6b33eb2](https://github.com/balazsbencs/ardor/commit/6b33eb29062f52334ffcc260b260e444afca1e4f))
 * preserve concurrent preset edits and completed recalls ([3c08adf](https://github.com/balazsbencs/ardor/commit/3c08adf9d941f8f3dd063323577338ad36aa3a12))
 * restrict preset lock files to their owner ([648e446](https://github.com/balazsbencs/ardor/commit/648e4464788fa2e24c1f16d63643e79efeac3e9e))
 * **scenes:** address the full scene audit ([01e4531](https://github.com/balazsbencs/ardor/commit/01e45312502c1f3c1bebcd6051b8e0a55c0e4f44))
