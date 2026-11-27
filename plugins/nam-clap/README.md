@@ -2,12 +2,13 @@
 
 A standalone CLAP effect for macOS Apple Silicon, using Ardor's actual NAM loader.
 It supports snapshot NAMs, ConcatWaveNet / ConcatLSTM controls, FiLM schema 1,
-embedded parametric payloads and compatible one-to-eight-tier containers.
+HyperWaveNet, embedded parametric payloads and compatible one-to-eight-tier containers.
 
-Open a `.nam` file, adjust its modeled controls, and select Nano / Standard when
-both are present. A single model stays a single model; the plugin does not invent
-another size. Extra exported tiers are selectable individually. Switches use their
-exported names. Continuous controls retain Ardor's smoothing. The host can automate
+Open a `.nam` file, adjust its modeled controls, and select its model size when
+multiple tiers are present. Flat HyperWaveNet containers expose Lite / Full.
+Other containers use Nano / Standard. Extra exported tiers are selectable
+individually. Switches use their exported names. Continuous controls retain Ardor's
+smoothing. The host can automate
 physical model controls, input/output trims, input channel and input calibration.
 Size changes prepare a new instance and request a host audio restart; they are not
 advertised as automatable. Controls and their automation IDs survive compatible

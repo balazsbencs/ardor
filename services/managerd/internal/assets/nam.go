@@ -282,6 +282,8 @@ func parseNAMParameters(definitions json.RawMessage, film bool) ([]NAMParameter,
 			}
 		} else if p.Type != "continuous" || len(p.EnumNames) > 0 {
 			return nil, fmt.Errorf("Unsupported NAM parameter type.")
+		} else {
+			p.EnumNames = nil
 		}
 		parameters = append(parameters, p)
 	}

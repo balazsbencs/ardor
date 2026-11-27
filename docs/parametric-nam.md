@@ -151,11 +151,21 @@ controls regenerate weights once at the next block without smoothing. No network
 history is reset by a control edit. This avoids regeneration on every block but
 does not remove possible audible steps while turning knobs.
 
-This adapter rejects nested condition DSPs, packed/slimmable inner layers, and
-HyperWaveNet containers. It validates finite weights, complete base weight counts,
+This adapter rejects nested condition DSPs and packed or slimmable inner layers.
+It validates finite weights, complete base weight counts,
 nonoverlapping delta ranges and low-rank shapes before playback. Limits are four
 hidden layers of up to 512 units, 2,048 targets, ranks up to 64, and 16,777,216
 serialized hypernetwork values. The existing 24-control, mono/48 kHz rules apply.
+
+A flat `ParametricSlimmableContainer` 1.0.0 can package HyperWaveNet tiers at
+48 kHz. The tiers use the same ordered playback controls and contiguous slices
+of the top-level weight array. A two-tier capture exposes both sizes as
+Standard / Nano on the pedal and in Manager, and Full / Lite in the standalone
+NAM CLAP plugin. The optional `extensions.linear_volume` adds a Volume control
+at the exported index. It evaluates the exported piecewise cubic curve and ramps
+the resulting output gain over the exported duration. The 24-control limit
+includes Volume when present.
+
 Format support does not guarantee a model fits the device's processing budget.
 Exact 16-channel A2 HyperWaveNets use an ARM64 NEON kernel with the same learned
 weights, layers, controls and stream timing. Other shapes retain the generic
@@ -322,7 +332,7 @@ concat test measured a maximum adjacent-sample change of `1.25989e-5` versus a
 full-range jump of `0.152159`, including mid-ramp retargeting. These are host
 regressions, not a fresh Pi listening or audio-interface measurement.
 
-Still outside this release: HyperWaveNet containers, FiLM LoRA/schema 2 and residual heads,
+Still outside this release: nested HyperWaveNet containers, FiLM LoRA/schema 2 and residual heads,
 other forks' parametric architectures,
 per-scene learned control values, MIDI/expression control of learned parameters,
 live manager parameter messages, arbitrary model-rate resampling, and hardware

@@ -68,7 +68,8 @@ struct ModelInfo {
         spec.at("max").get<double>(),spec.at("default").get<double>(),
         choices});
     }
-    if (result.architecture == "SlimmableContainer") {
+    const bool flat = result.architecture == "ParametricSlimmableContainer";
+    if (result.architecture == "SlimmableContainer" || flat) {
       const auto& models = playable.at("config").at("submodels");
       if (!models.is_array() || models.empty() || models.size() > 8)
         throw std::runtime_error("Model container requires 1 to 8 tiers");
@@ -77,8 +78,8 @@ struct ModelInfo {
         const double high = models[i].at("max_value").get<double>();
         if (!std::isfinite(high) || high <= previous || high > 1)
           throw std::runtime_error("Invalid model size boundaries");
-        const std::string label = models.size() == 1 ? "Single model" : i == 0 ? "Nano" :
-          i + 1 == models.size() ? "Standard" : "Tier " + std::to_string(i + 1);
+        const std::string label = models.size() == 1 ? "Single model" : i == 0 ? (flat ? "Lite" : "Nano") :
+          i + 1 == models.size() ? (flat ? "Full" : "Standard") : "Tier " + std::to_string(i + 1);
         result.tiers.push_back({label,static_cast<float>((previous + high) * .5)});
         previous = high;
       }

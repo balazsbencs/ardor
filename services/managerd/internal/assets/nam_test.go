@@ -324,7 +324,7 @@ func TestFlatHyperWaveNetNAMMetadata(t *testing.T) {
 	const document = `{
 	  "architecture":"ParametricSlimmableContainer","version":"1.0.0","sample_rate":48000,
 	  "metadata":{"gear_type":"pedal"},"weights":[0,0],
-	  "config":{"params":[{"name":"Gain","min":0,"max":10,"default":5}],"submodels":[
+	  "config":{"params":[{"name":"Gain","min":0,"max":10,"default":5,"step":0.1,"enum_names":[]}],"submodels":[
 	    {"architecture":"HyperWaveNet","weight_offset":0,"weight_count":1,"max_value":0.5,
 	     "config":{"params":[{"name":"Gain","min":0,"max":10,"default":5}],"hypernet":{},"layers":[{"input_size":1,"condition_size":1}]}},
 	    {"architecture":"HyperWaveNet","weight_offset":1,"weight_count":1,"max_value":1,
@@ -345,6 +345,7 @@ func TestFlatHyperWaveNetNAMMetadata(t *testing.T) {
 		{`"weight_offset":1`, `"weight_offset":2`},
 		{`"right":10`, `"right":9`},
 		{`"name":"VOLUME"`, `"name":"Gain"`},
+		{`"default":5`, `"default":6`},
 	} {
 		bad := strings.Replace(document, invalid[0], invalid[1], 1)
 		saved, err := store.Save(KindModel, "Bad.nam", strings.NewReader(bad), true)
