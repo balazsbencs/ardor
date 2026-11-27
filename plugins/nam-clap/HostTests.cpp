@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "TestHost.h"
+#include "FlatHyperWaveNetFixture.h"
 
 int main(){try{
   auto* library=clap_test::open(NAM_CLAP_BINARY);require(library,clap_test::error());
@@ -157,6 +158,36 @@ int main(){try{
     for(double rate:{44100.,48000.}) {
       recalled.on(rate);recalled.audio(4096,nullptr,true,true);recalled.off();
     }
+
+    const FlatHyperWaveNetFixture flat(NAM_CLAP_ROOT);
+    auto project = Json::parse(saved.data);
+    project["model"] = flat.document;
+    project["tier"] = 1;
+    project["controls"]["Volume"] = 7;
+    Stream fullState;
+    fullState.data = project.dump();
+    require(recalled.restore(fullState), "flat HyperWaveNet Full tier recalls");
+    require(recalled.find("Model size") == Size && recalled.value(Size) == 1, "flat container exposes Full and Lite");
+    const auto volume = recalled.find("Volume");
+    require(volume != CLAP_INVALID_ID && recalled.value(volume) == 7, "flat container recalls the independent volume control");
+    char label[32];
+    require(recalled.params->value_to_text(recalled.plugin, Size, 0, label, sizeof(label)) &&
+            std::strcmp(label, "Lite") == 0, "flat container labels the Lite tier");
+    require(recalled.params->value_to_text(recalled.plugin, Size, 1, label, sizeof(label)) &&
+            std::strcmp(label, "Full") == 0, "flat container labels the Full tier");
+    recalled.on();
+    const auto fullAudio = recalled.audio(4096);
+    recalled.off();
+
+    project["tier"] = 0;
+    Stream liteState;
+    liteState.data = project.dump();
+    require(recalled.restore(liteState) && recalled.value(Size) == 0 && recalled.value(volume) == 7,
+            "flat HyperWaveNet Lite tier recalls with the same volume");
+    recalled.on();
+    const auto liteAudio = recalled.audio(4096);
+    recalled.off();
+    require(difference(fullAudio, liteAudio) > 0.00001, "Lite and Full render their own weights");
   }
   entry->deinit();clap_test::close(library);std::cout<<"NAM CLAP model loading, automation, tier/state recall and host-rate checks passed.\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<"\n";return 1;}}

@@ -109,6 +109,20 @@ inline nlohmann::json flatNamTierDocument(const nlohmann::json& parent, const nl
           {"sample_rate",parent.at("sample_rate")},{"config",tier.at("config")}};
 }
 
+// Compare the same playback fields that Manager reads. Exporters may also
+// include capture-planning fields such as step and avoid_zero.
+inline nlohmann::json namPlaybackParameterSpecs(const nlohmann::json& specs) {
+  auto playback = nlohmann::json::array();
+  for (const auto& spec : specs) {
+    nlohmann::json control{{"name",spec.at("name")},{"min",spec.at("min")},
+                           {"max",spec.at("max")},{"default",spec.at("default")},
+                           {"type",spec.at("type")}};
+    if (control.at("type") == "switch") control["enum_names"] = spec.at("enum_names");
+    playback.push_back(std::move(control));
+  }
+  return playback;
+}
+
 // Shared validation for the device drawer and DSP loader. Empty means snapshot.
 // This checks the supported conditioning topology before any DSP allocation.
 inline nlohmann::json namParameterSpecs(const nlohmann::json& document) {
@@ -122,6 +136,7 @@ inline nlohmann::json namParameterSpecs(const nlohmann::json& document) {
         || !tiers.is_array() || tiers.empty() || tiers.size() > 8 || !weights.is_array())
       throw std::runtime_error("Invalid flat parametric NAM container");
     auto specs = validateNamParameterSpecs(config.at("params"), false);
+    const auto playbackSpecs = namPlaybackParameterSpecs(specs);
     double previousBoundary = 0;
     size_t nextWeight = 0;
     for (const auto& tier : tiers) {
@@ -136,7 +151,7 @@ inline nlohmann::json namParameterSpecs(const nlohmann::json& document) {
         throw std::runtime_error("Invalid flat HyperWaveNet NAM tier");
       previousBoundary = boundary;
       nextWeight += count.get<size_t>();
-      if (namParameterSpecs(flatNamTierDocument(model, tier)) != specs)
+      if (namPlaybackParameterSpecs(namParameterSpecs(flatNamTierDocument(model, tier))) != playbackSpecs)
         throw std::runtime_error("NAM tiers must share the container's parameter definitions");
     }
     if (previousBoundary != 1 || nextWeight != weights.size())
