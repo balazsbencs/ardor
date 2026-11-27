@@ -594,6 +594,7 @@ void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const st
         const auto architecture = document.value("architecture", std::string{});
         parametricDocument |= architecture == "ConcatLSTM" || architecture == "ConcatWaveNet"
           || architecture == "ParametricWaveNet" || architecture == "HyperWaveNet"
+          || architecture == "ParametricSlimmableContainer"
           || document.value("config", nlohmann::json::object()).contains("params")
           || document.value("config", nlohmann::json::object()).contains("parametric");
         if (architecture == "SlimmableContainer") {
@@ -603,7 +604,7 @@ void appendAssetsFrom(UiState& state, const std::filesystem::path& dir, const st
         const auto specs = namParameterSpecs(document);
         if (!specs.empty()) {
           asset.modelParameterSpecs = specs;
-          asset.modelSlimmable = document.at("architecture") == "SlimmableContainer"
+          asset.modelSlimmable = (architecture == "SlimmableContainer" || architecture == "ParametricSlimmableContainer")
             && document.at("config").at("submodels").size() > 1;
           const bool pedal = document.value("metadata", nlohmann::json::object()).value("gear_type", std::string{}) == "pedal";
           asset.blockType = pedal ? "namPedal" : "nam";

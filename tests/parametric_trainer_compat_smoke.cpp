@@ -11,6 +11,60 @@
 
 namespace {
 void require(bool condition, const std::string& message) { if (!condition) throw std::runtime_error(message); }
+
+void checkFlatHyperContainer(const std::filesystem::path& source, const std::filesystem::path& models,
+                             const std::vector<float>& input) {
+  using Json = nlohmann::json;
+  Json lite;
+  std::ifstream(source/"tests/fixtures/hyperwavenet/hyperwavenet.nam") >> lite;
+  auto full = lite;
+  full["weights"][0] = -lite["weights"][0].get<float>();
+  lite["metadata"] = full["metadata"] = {{"gear_type","pedal"}};
+  Json document{{"architecture","ParametricSlimmableContainer"},{"version","1.0.0"},{"sample_rate",48000},
+                {"metadata",lite["metadata"]},{"weights",Json::array()}};
+  document["config"]["params"] = lite["config"]["params"];
+  auto& tiers = document["config"]["submodels"] = Json::array();
+  auto& weights = document["weights"];
+  double boundary = 0;
+  for (const auto* child : {&lite, &full}) {
+    const auto& payload = child->at("weights");
+    boundary += 0.5;
+    tiers.push_back({{"architecture","HyperWaveNet"},{"config",child->at("config")},
+                     {"max_value",boundary},{"weight_offset",weights.size()},{"weight_count",payload.size()}});
+    for (const auto& weight : payload) weights.push_back(weight);
+  }
+  document["extensions"]["linear_volume"] = {
+    {"schema_version",1},{"interpolation","pchip"},{"name","Volume"},{"index",0},
+    {"min",0},{"max",10},{"default",5},{"reference",10},{"smoothing_ms",5},
+    {"segments",Json::array({{{"left",0},{"right",10},{"coefficients",{0,0.01,0,0}}}})}
+  };
+  const auto path = models/"flat-hyper.nam";
+  std::ofstream(path) << document;
+  ardor::NamProcessor model, reference;
+  std::vector<float> output(input.size()), expected(input.size());
+  for (float size : {0.0f, 0.5f}) {
+    require(model.load(path,48000,13,size,std::nullopt,{{"gain",7}}), "flat HyperWaveNet container loads");
+    require(model.slimmableSizeBreakpoints() == std::vector<double>{0.5}, "flat HyperWaveNet exposes both tiers");
+    require(reference.loadDocument(size == 0 ? lite : full,48000,64,1,std::nullopt,{{"gain",7}}),
+            "direct reference tier loads");
+    model.processBlock(input.data(),output.data(),input.size());
+    reference.processBlock(input.data(),expected.data(),input.size());
+    for (size_t i = 0; i < output.size(); ++i)
+      require(std::fabs(output[i] - 0.25f * expected[i]) < 0.00005f, "default volume uses the cubic gain curve");
+    require(model.setParameterTarget("Volume",0), "flat HyperWaveNet exposes live volume");
+    model.processBlock(input.data(),output.data(),input.size());
+    require(output.front() != 0 && output.back() == 0, "volume smooths to an exact mute");
+  }
+  model.setSlimmableSize(0);
+  model.processBlock(input.data(),output.data(),input.size());
+  require(std::all_of(output.begin(),output.end(),[](float v) { return v == 0; }), "tier changes preserve volume");
+  auto bad = document;
+  bad["config"]["submodels"][1]["weight_offset"] = weights.size();
+  require(!model.loadDocument(bad,48000,64), "invalid flat tier weights are rejected");
+  bad = document;
+  bad["extensions"]["linear_volume"]["segments"][0]["right"] = 9;
+  require(!model.loadDocument(bad,48000,64), "incomplete volume curve is rejected");
+}
 }
 int main() {
   const auto source = std::filesystem::path{ARDOR_SOURCE_DIR};
@@ -98,6 +152,7 @@ int main() {
       }
     }
   }
+  checkFlatHyperContainer(source, root/"models", input);
   auto ui = ardor::makeDemoUiState(); ardor::loadAssetsFromDataRoot(ui,root);
   size_t loaded = 0;
   for (const auto& asset : ui.assets) {
@@ -106,7 +161,10 @@ int main() {
     const auto expected = document.at("metadata").at("gear_type") == "pedal" ? "namPedal" : "nam";
     require(asset.blockType == expected, "device preserves trainer amp/pedal classification");
     require(asset.modelParameterSpecs == ardor::namParameterSpecs(document), "device preserves every exported control");
-    if (document.at("architecture") == "SlimmableContainer") {
+    if (document.at("architecture") == "ParametricSlimmableContainer") {
+      require(asset.modelSlimmable && asset.modelParameterSpecs.at(0).at("name") == "Volume",
+              "device drawer exposes flat tiers and the independent volume control");
+    } else if (document.at("architecture") == "SlimmableContainer") {
       require(asset.modelSlimmable, "device advertises both bundled tiers");
       ardor::Preset preset; preset.name = "Combined trainer rig";
       const auto lastName = asset.modelParameterSpecs.back().at("name").get<std::string>();
@@ -124,7 +182,7 @@ int main() {
     }
     ++loaded;
   }
-  require(loaded == fixture.at("models").size(), "device drawer discovers every trainer export");
+  require(loaded == fixture.at("models").size() + 1, "device drawer discovers every trainer export");
   nlohmann::json clone;
   std::ifstream(std::filesystem::path{ARDOR_SOURCE_DIR}/"assets/nam/clone-overdrive.nam") >> clone;
   auto film = clone.at("config").at("submodels").at(0).at("model");

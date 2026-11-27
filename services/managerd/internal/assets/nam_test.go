@@ -319,3 +319,37 @@ func TestHyperWaveNetNAMMetadata(t *testing.T) {
 		t.Fatal("missing hypernet accepted")
 	}
 }
+
+func TestFlatHyperWaveNetNAMMetadata(t *testing.T) {
+	const document = `{
+	  "architecture":"ParametricSlimmableContainer","version":"1.0.0","sample_rate":48000,
+	  "metadata":{"gear_type":"pedal"},"weights":[0,0],
+	  "config":{"params":[{"name":"Gain","min":0,"max":10,"default":5}],"submodels":[
+	    {"architecture":"HyperWaveNet","weight_offset":0,"weight_count":1,"max_value":0.5,
+	     "config":{"params":[{"name":"Gain","min":0,"max":10,"default":5}],"hypernet":{},"layers":[{"input_size":1,"condition_size":1}]}},
+	    {"architecture":"HyperWaveNet","weight_offset":1,"weight_count":1,"max_value":1,
+	     "config":{"params":[{"name":"Gain","min":0,"max":10,"default":5}],"hypernet":{},"layers":[{"input_size":1,"condition_size":1}]}}
+	  ]},
+	  "extensions":{"linear_volume":{"schema_version":1,"interpolation":"pchip","name":"VOLUME","index":0,
+	    "min":0,"max":10,"default":5,"reference":10,"smoothing_ms":5,
+	    "segments":[{"left":0,"right":10,"coefficients":[0,0.01,0,0]}]}}
+	}`
+	store := NewStore(t.TempDir())
+	saved, err := store.Save(KindModel, "Flat.nam", strings.NewReader(document), false)
+	if err != nil || saved.NAM == nil || !saved.NAM.Supported || !saved.NAM.Slimmable ||
+		saved.NAM.GearType != "pedal" || len(saved.NAM.Parameters) != 2 ||
+		saved.NAM.Parameters[0].Name != "VOLUME" || saved.NAM.Parameters[1].Name != "Gain" {
+		t.Fatalf("flat HyperWaveNet metadata: %+v %v", saved.NAM, err)
+	}
+	for _, invalid := range [][2]string{
+		{`"weight_offset":1`, `"weight_offset":2`},
+		{`"right":10`, `"right":9`},
+		{`"name":"VOLUME"`, `"name":"Gain"`},
+	} {
+		bad := strings.Replace(document, invalid[0], invalid[1], 1)
+		saved, err := store.Save(KindModel, "Bad.nam", strings.NewReader(bad), true)
+		if err != nil || saved.NAM == nil || saved.NAM.Supported || saved.NAM.Error == "" {
+			t.Fatalf("malformed flat HyperWaveNet metadata: %+v %v", saved.NAM, err)
+		}
+	}
+}
